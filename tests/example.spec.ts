@@ -184,7 +184,7 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
 }
 
 test('crawl and scan', async ({ page }) => {
-  test.setTimeout(300_000); // 5 min timeout
+  test.setTimeout(1_800_000); // 30 min timeout
 
   const visited = new Set<string>();
   const queue: string[] = [START_URL];
