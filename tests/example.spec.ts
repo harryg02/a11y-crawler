@@ -102,7 +102,6 @@ test('crawl and scan', async ({ page }) => {
   const queue: string[] = [START_URL];
   const allResults: PageResult[] = [];
   const origin = new URL(START_URL).origin;
-  await page.goto(START_URL);
   // after page.goto, before scanning. Wrap the main loop more defensively
   // if one page crashes, skip it and continue:
   await page.goto(START_URL);
