@@ -9,7 +9,7 @@ const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = 50; // sets limit
 const SLOW_MO = 500;        // ms between actions, so you can watch
- 
+
 const BLOCKED_PATTERNS = [
   '/logout',
   '/delete',
@@ -30,13 +30,13 @@ const ID_PATTERNS = [
 ];
 // emit repetitive ID patterns from report
 function getRoutePattern(url: string): string {
-  const u = new URL(url);
-  let pattern = u.pathname;
+  const currentUrl = new URL(url);
+  let pattern = currentUrl.pathname;
   for (const regex of ID_PATTERNS) {
     pattern = pattern.replace(regex, ':id');
   }
-  u.search = '';
-  return `${u.origin}${pattern}`;
+  currentUrl.search = '';
+  return `${currentUrl.origin}${pattern}`;
 }
 
 interface PageResult {
@@ -109,7 +109,7 @@ test('crawl and scan', async ({ page }) => {
   // if redirected to login, wait for user to log in
   if (page.url().match(/\/login(\/)?($|\?)/) ) {
     console.log('Waiting for login... (enter credentials in the browser)');
-    await page.waitForURL(u => !u.toString().match(/\/login(\/)?($|\?)/), {
+    await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), {
       timeout: 120_000  // 2 min to log in
     });
     console.log('Login detected, starting crawl.');
@@ -126,7 +126,7 @@ test('crawl and scan', async ({ page }) => {
       // check if session died
       if (page.url().match(/\/login(\/)?($|\?)/)) {
         console.log('  → SESSION LOST: waiting for re-login...');
-        await page.waitForURL(u => !u.toString().match(/\/login(\/)?($|\?)/), {
+        await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), {
           timeout: 120_000
         });
         // re-navigate to the original target after re-login
