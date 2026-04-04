@@ -107,9 +107,9 @@ test('crawl and scan', async ({ page }) => {
   await page.goto(START_URL);
 
   // if redirected to login, wait for user to log in
-  if (page.url().includes('/login')) {
+  if (page.url().match(/\/login(\/)?($|\?)/) ) {
     console.log('Waiting for login... (enter credentials in the browser)');
-    await page.waitForURL(url => !url.toString().includes('/login'), {
+    await page.waitForURL(u => !u.toString().match(/\/login(\/)?($|\?)/), {
       timeout: 120_000  // 2 min to log in
     });
     console.log('Login detected, starting crawl.');
@@ -124,9 +124,9 @@ test('crawl and scan', async ({ page }) => {
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
       // check if session died
-      if (page.url().includes('/login')) {
+      if (page.url().match(/\/login(\/)?($|\?)/)) {
         console.log('  → SESSION LOST: waiting for re-login...');
-        await page.waitForURL(u => !u.toString().includes('/login'), {
+        await page.waitForURL(u => !u.toString().match(/\/login(\/)?($|\?)/), {
           timeout: 120_000
         });
         // re-navigate to the original target after re-login
