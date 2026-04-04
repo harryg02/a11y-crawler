@@ -242,6 +242,12 @@ test('crawl and scan', async ({ page }) => {
       allResults.push(...interactiveResults);
 
     } catch (err) {
+      const msg = (err as Error).message;
+      //Fix: detect a dead browser in the main loop and abort gracefully
+      if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
+        console.log('  → FATAL: Browser closed. Ending crawl.');
+        break;  // exit the while loop, still generate report
+      }
       console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
     }
   }
