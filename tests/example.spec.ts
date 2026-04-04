@@ -8,7 +8,7 @@ import path from 'path';
 const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = 50; // sets limit
-const SLOW_MO = 300;        // ms between actions, so you can watch
+const SLOW_MO = 500;        // ms between actions, so you can watch
 
 const BLOCKED_PATTERNS = [
   '/logout',
@@ -21,6 +21,22 @@ const BLOCKED_PATTERNS = [
 
 function isBlocked(url: string): boolean {
   return BLOCKED_PATTERNS.some(pattern => url.toLowerCase().includes(pattern));
+}
+
+// emit repetitive ID patterns from report
+const ID_PATTERNS = [
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,  // UUIDs
+  /\/\d{4,}\b/g,  // numeric IDs like /course/12345
+];
+// emit repetitive ID patterns from report
+function getRoutePattern(url: string): string {
+  const u = new URL(url);
+  let pattern = u.pathname;
+  for (const regex of ID_PATTERNS) {
+    pattern = pattern.replace(regex, '/:id');
+  }
+  u.search = '';
+  return `${u.origin}${pattern}`;
 }
 
 interface PageResult {
@@ -176,6 +192,50 @@ test('crawl and scan', async ({ page }) => {
   }
   for (const [el, pages] of Object.entries(elementTotals)) {
     console.log(`  ${el}: found on ${pages.length}/${allResults.length} pages`);
+  }
+
+
+  // route pattern grouping, so the report does not show the same result of different pages using the same template
+  const patternMap = new Map<string, PageResult[]>();
+  for (const r of allResults) {
+    const pattern = getRoutePattern(r.url);
+    if (!patternMap.has(pattern)) patternMap.set(pattern, []);
+    patternMap.get(pattern)!.push(r);
+  }
+
+  console.log('\nRESULTS BY ROUTE PATTERN:');
+  for (const [pattern, pages] of patternMap) {
+    const violationSets = pages.map(p =>
+      p.violations.map(v => v.id).sort().join(',')
+    );
+    const allIdentical = violationSets.every(s => s === violationSets[0]);
+
+    if (allIdentical && pages.length > 1) {
+      const rep = pages[0];
+      console.log(`  ${pattern} (${pages.length} instances, identical results)`);
+      console.log(`    Representative: ${rep.url}`);
+      console.log(`    Violations: ${rep.violationCount}`);
+      if (rep.violationCount > 0) {
+        for (const v of rep.violations) {
+          console.log(`      [${v.impact}] ${v.id}: ${v.help} (${v.instances})`);
+        }
+      }
+    } else if (pages.length > 1) {
+      console.log(`  ⚠ ${pattern} (${pages.length} instances, INCONSISTENT)`);
+      for (const p of pages) {
+        console.log(`    ${p.url} → ${p.violationCount} violations`);
+        for (const v of p.violations) {
+          console.log(`      [${v.impact}] ${v.id}: ${v.help} (${v.instances})`);
+        }
+      }
+    } else {
+      const p = pages[0];
+      console.log(`  ${pattern}`);
+      console.log(`    ${p.url} → ${p.violationCount} violations`);
+      for (const v of p.violations) {
+        console.log(`      [${v.impact}] ${v.id}: ${v.help} (${v.instances})`);
+      }
+    }
   }
 
   console.log(`\nFull report: ${jsonPath}`);
