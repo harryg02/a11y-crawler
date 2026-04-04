@@ -76,7 +76,7 @@ async function scanPage(page: Page): Promise<PageResult> {
     highRiskElements,
   };
 }
-
+// find all <a> tags
 async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> {
   const hrefs = await page.evaluate(() =>
     Array.from(document.querySelectorAll('a[href]'))
@@ -93,6 +93,90 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
       !isBlocked(href)
     )
   )];
+}
+// Within each page, find clickable elements, click each one, scan the resulting state, then undo.
+async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
+  const results: PageResult[] = [];
+
+  // find all interactive elements that aren't links (links are handled by the crawler)
+  const clickables = await page.evaluate(() => {
+    const elements: { selector: string; tag: string; text: string }[] = [];
+    const seen = new Set<Element>();
+
+    const candidates = document.querySelectorAll(
+      'button, [role="button"], [role="tab"], [role="menuitem"], ' +
+      '[role="switch"], [role="checkbox"], [role="radio"], ' +
+      'details > summary, [aria-expanded], [aria-haspopup], ' +
+      'select, [onclick]'
+    );
+
+    for (const el of candidates) {
+      if (seen.has(el)) continue;
+      if (el.closest('a')) continue;  // skip if inside a link
+      if ((el as HTMLElement).offsetParent === null) continue;  // skip invisible
+
+      seen.add(el);
+
+      // build a unique selector
+      const tag = el.tagName.toLowerCase();
+      const id = el.id ? `#${el.id}` : '';
+      const classes = el.className && typeof el.className === 'string'
+        ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.')
+        : '';
+      const text = (el.textContent || '').trim().slice(0, 30);
+
+      elements.push({
+        selector: id ? `${tag}${id}` : `${tag}${classes}`,
+        tag,
+        text,
+      });
+    }
+    return elements;
+  });
+
+  console.log(`    Interactive elements found: ${clickables.length}`);
+
+  for (const clickable of clickables) {
+    try {
+      // snapshot current URL and DOM state
+      const beforeUrl = page.url();
+
+      // try to find and click the element
+      const el = page.locator(clickable.selector).first();
+      if (!(await el.isVisible())) continue; //Skips invisible elements, Avoids clicking hidden elements
+
+      console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
+      await el.click({ timeout: 3000 }); //3-second click timeout, Doesn't hang on unclickable elements
+      await page.waitForTimeout(500);  // wait for DOM to settle
+
+      // check if we navigated away — if so, go back
+      if (page.url() !== beforeUrl) {
+        await page.goBack({ waitUntil: 'networkidle' });
+        await page.waitForTimeout(300);
+        continue;  // link navigation — already handled by function discoverLinks()
+      }
+
+      // still on same page — DOM may have changed (modal, tab, accordion)
+      // scan the new state
+      const result = await scanPage(page);
+      result.url = `${beforeUrl} → <${clickable.tag}> "${clickable.text}"`;
+      results.push(result);
+
+      if (result.violationCount > 0) {
+        console.log(`      ⚠ ${result.violationCount} violations in this state`);
+      }
+
+      // try to undo: press Escape (closes most modals/dropdowns)
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+
+    } catch (err) {
+      // element disappeared, click intercepted, etc — skip it
+      continue;
+    }
+  }
+
+  return results;
 }
 
 test('crawl and scan', async ({ page }) => {
@@ -149,6 +233,9 @@ test('crawl and scan', async ({ page }) => {
         }
       }
       console.log(`  → ${links.length} links found, ${queue.length} in queue`);
+      // discover other interactive elements
+      const interactiveResults = await scanInteractiveElements(page);
+      allResults.push(...interactiveResults);
 
     } catch (err) {
       console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
