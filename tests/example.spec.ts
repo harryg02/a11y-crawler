@@ -99,7 +99,7 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
   const results: PageResult[] = [];
 
   // find all interactive elements that aren't links (links are handled by the crawler)
-  const clickables = await page.evaluate(() => {
+  const clickables = await page.evaluate(() => { // collected all the clickable elements in an array
     const elements: { selector: string; tag: string; text: string }[] = [];
     const seen = new Set<Element>();
 
@@ -136,7 +136,11 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
 
   console.log(`    Interactive elements found: ${clickables.length}`);
 
-  for (const clickable of clickables) {
+  for (const clickable of clickables) { // iterates in order
+  // click element #1 → navigates away → go back → continue
+  // loop moves to element #2, not back to #1. The for...of loop keeps
+  // its position in the array regardless of what happens to the page.
+  // After going back, it picks up at the next element.
     try {
       // snapshot current URL and DOM state
       const beforeUrl = page.url();
