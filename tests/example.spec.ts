@@ -9,7 +9,7 @@ const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = 50; // sets limit
 const SLOW_MO = 500;        // ms between actions, so you can watch
-
+ 
 const BLOCKED_PATTERNS = [
   '/logout',
   '/delete',
