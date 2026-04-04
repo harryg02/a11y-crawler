@@ -6,7 +6,8 @@ import path from 'path';
 
 // --- CONFIG ---
 const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
-const MAX_PAGES = 20;       // safety limit
+const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/';  // only crawl within this path
+const MAX_PAGES = 50; // sets limit
 const SLOW_MO = 300;        // ms between actions, so you can watch
 
 interface PageResult {
@@ -56,7 +57,7 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
   // filter: same origin only, no anchors, no mailto/tel, deduplicate
   return [...new Set(
     hrefs.filter(href =>
-      href.startsWith(baseOrigin) &&
+      href.startsWith(SCOPE) &&
       !href.includes('#') &&
       !href.startsWith('mailto:') &&
       !href.startsWith('tel:')
