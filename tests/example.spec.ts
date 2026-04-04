@@ -33,7 +33,7 @@ function getRoutePattern(url: string): string {
   const u = new URL(url);
   let pattern = u.pathname;
   for (const regex of ID_PATTERNS) {
-    pattern = pattern.replace(regex, '/:id');
+    pattern = pattern.replace(regex, ':id');
   }
   u.search = '';
   return `${u.origin}${pattern}`;
