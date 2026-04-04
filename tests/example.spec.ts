@@ -105,16 +105,16 @@ test('crawl and scan', async ({ page }) => {
   await page.goto(START_URL);
   // after page.goto, before scanning. Wrap the main loop more defensively
   // if one page crashes, skip it and continue:
+  await page.goto(START_URL);
+
+  // if redirected to login, wait for user to log in
   if (page.url().includes('/login')) {
-    console.log('  → SESSION LOST: redirected to login. Pausing for re-login.');
-    await page.pause();  // you log back in, click Resume
+    console.log('Waiting for login... (enter credentials in the browser)');
+    await page.waitForURL(url => !url.toString().includes('/login'), {
+      timeout: 120_000  // 2 min to log in
+    });
+    console.log('Login detected, starting crawl.');
   }
-  //Check if the session died (got redirected to login):
-  if (page.url().includes('/login')) {
-    console.log('  → SESSION LOST: redirected to login. Pausing for re-login.');
-    await page.pause();  // you log back in, click Resume
-  }
-  await page.pause();  // you log in, then click Resume
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
     if (visited.has(url)) continue;
@@ -124,6 +124,15 @@ test('crawl and scan', async ({ page }) => {
 
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+      // check if session died
+      if (page.url().includes('/login')) {
+        console.log('  → SESSION LOST: waiting for re-login...');
+        await page.waitForURL(u => !u.toString().includes('/login'), {
+          timeout: 120_000
+        });
+        // re-navigate to the original target after re-login
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+      }
       await page.waitForTimeout(SLOW_MO);
 
       // scan with axe
