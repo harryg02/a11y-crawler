@@ -5,10 +5,23 @@ import fs from 'fs';
 import path from 'path';
 
 // --- CONFIG ---
-const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
-const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/';  // only crawl within this path
+const START_URL = 'https://app.peerceptiv.com';
+const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = 50; // sets limit
 const SLOW_MO = 300;        // ms between actions, so you can watch
+
+const BLOCKED_PATTERNS = [
+  '/logout',
+  '/delete',
+  '/remove',
+  '/signout',
+  '/sign-out',
+  '/log-out',
+];
+
+function isBlocked(url: string): boolean {
+  return BLOCKED_PATTERNS.some(pattern => url.toLowerCase().includes(pattern));
+}
 
 interface PageResult {
   url: string;
@@ -60,7 +73,8 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
       href.startsWith(SCOPE) &&
       !href.includes('#') &&
       !href.startsWith('mailto:') &&
-      !href.startsWith('tel:')
+      !href.startsWith('tel:') &&
+      !isBlocked(href)
     )
   )];
 }
@@ -72,7 +86,19 @@ test('crawl and scan', async ({ page }) => {
   const queue: string[] = [START_URL];
   const allResults: PageResult[] = [];
   const origin = new URL(START_URL).origin;
-
+  await page.goto(START_URL);
+  // after page.goto, before scanning. Wrap the main loop more defensively
+  // if one page crashes, skip it and continue:
+  if (page.url().includes('/login')) {
+    console.log('  → SESSION LOST: redirected to login. Pausing for re-login.');
+    await page.pause();  // you log back in, click Resume
+  }
+  //Check if the session died (got redirected to login):
+  if (page.url().includes('/login')) {
+    console.log('  → SESSION LOST: redirected to login. Pausing for re-login.');
+    await page.pause();  // you log back in, click Resume
+  }
+  await page.pause();  // you log in, then click Resume
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
     if (visited.has(url)) continue;
@@ -94,10 +120,11 @@ test('crawl and scan', async ({ page }) => {
       const links = await discoverLinks(page, origin);
       for (const link of links) {
         if (!visited.has(link) && !queue.includes(link)) {
+          console.log(`    + queued: ${link}`);
           queue.push(link);
         }
       }
-      console.log(`  → Found ${links.length} links, queue: ${queue.length}`);
+      console.log(`  → ${links.length} links found, ${queue.length} in queue`);
 
     } catch (err) {
       console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
