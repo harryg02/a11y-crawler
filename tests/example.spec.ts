@@ -7,8 +7,8 @@ import path from 'path';
 // --- CONFIG ---
 const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
-const MAX_PAGES = 50; // sets limit
-const SLOW_MO = 500;        // ms between actions, so you can watch
+const MAX_PAGES = Infinity; // sets limit
+const SLOW_MO = 100;        // ms between actions, so you can watch
 
 const BLOCKED_PATTERNS = [
   '/logout',
@@ -146,8 +146,18 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
       const beforeUrl = page.url();
 
       // try to find and click the element
-      const el = page.locator(clickable.selector).first();
+      const el = page.locator(clickable.selector).first(); //finds the element
       if (!(await el.isVisible())) continue; //Skips invisible elements, Avoids clicking hidden elements
+
+      await el.evaluate((node: HTMLElement) => {
+        const rect = node.getBoundingClientRect(); // gets its position and size
+        const div = document.createElement('div'); // Creates a div at that position — draws the box
+        div.style.cssText = `position:fixed;top:${rect.top-3}px;left:${rect.left-3}px;width:${rect.width+6}px;height:${rect.height+6}px;border:4px solid red;pointer-events:none;z-index:999999;border-radius:4px;`;
+        document.body.appendChild(div);
+        node.scrollIntoView({ block: 'center' });
+        setTimeout(() => div.remove(), 400); //auto-removes
+      });
+      await page.waitForTimeout(400);
 
       console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
       await el.click({ timeout: 3000 }); //3-second click timeout, Doesn't hang on unclickable elements
