@@ -132,6 +132,7 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
       if (seen.has(el)) continue;
       if (el.closest('a')) continue;  // skip if inside a link
       if ((el as HTMLElement).offsetParent === null) continue;  // skip invisible
+      if (el.tagName === 'TD' || el.tagName === 'TR' || el.tagName === 'TH') continue;  // skip table cells
 
       seen.add(el);
 
