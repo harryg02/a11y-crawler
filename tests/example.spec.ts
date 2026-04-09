@@ -184,19 +184,42 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
       await highlight(page, clickable.selector, 'red');
 
       console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
-      await el.click({ timeout: 3000 }); //3-second click timeout, Doesn't hang on unclickable elements
-      await page.waitForTimeout(500);  // wait for DOM to settle
+      // snapshot DOM before click, hash the DOM, so we can compare 
+      // if DOM changed after clicking on an element
+      const domBefore = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
 
+      await el.click({ timeout: 3000 });
+      await page.waitForTimeout(500);
       // check if we navigated away — if so, go back
       if (page.url() !== beforeUrl) {
         await page.goBack({ waitUntil: 'networkidle' });
         await page.waitForTimeout(300);
-        continue;  // link navigation — already handled by function discoverLinks()
+        continue;
       }
-
-      // still on same page — DOM may have changed (modal, tab, accordion)
-      // scan the new state
+      // check if we navigated away — if so, go back
+      const domAfter = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
+      // check if DOM actually changed
+      if (domBefore === domAfter) {
+        console.log(`      (no DOM change — skipping scan)`);
+        continue;
+      }
+      // If DOM changed — scan the new state
       const result = await scanPage(page);
+
       result.url = `${beforeUrl} → <${clickable.tag}> "${clickable.text}"`;
       results.push(result);
 
