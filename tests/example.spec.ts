@@ -113,7 +113,7 @@ async function highlight(page: Page, selector: string, color: string) {
 }
 
 // Within each page, find clickable elements, click each one, scan the resulting state, then undo.
-async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
+async function scanInteractiveElements(page: Page, scannedInteractions: Set<string>): Promise<PageResult[]> {
   const results: PageResult[] = [];
 
   // find all interactive elements that aren't links (links are handled by the crawler)
@@ -168,6 +168,19 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
       const el = page.locator(clickable.selector).first();
       if (!(await el.isVisible())) continue;
 
+      // check if element is in global nav/header/footer, skip this specific element
+      // if it's been clicked before in a global context.
+      const isGlobal = await el.evaluate((node: HTMLElement) => {
+        return !!node.closest('header, nav, footer, [role="banner"], [role="navigation"], [role="contentinfo"]');
+      }).catch(() => false);
+
+      const routePattern = getRoutePattern(page.url());
+      const interactionKey = isGlobal
+        ? `GLOBAL|${clickable.tag}:${clickable.text}`
+        : `${routePattern}|${clickable.tag}:${clickable.text}`;
+      if (scannedInteractions.has(interactionKey)) continue;
+      scannedInteractions.add(interactionKey);
+
       await highlight(page, clickable.selector, 'red');
 
       console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
@@ -209,6 +222,7 @@ test('crawl and scan', async ({ page }) => {
 
   const visited = new Set<string>();
   const queue: string[] = [START_URL];
+  const scannedInteractions = new Set<string>();
   const allResults: PageResult[] = [];
   const origin = new URL(START_URL).origin;
   // after page.goto, before scanning. Wrap the main loop more defensively
@@ -259,7 +273,7 @@ test('crawl and scan', async ({ page }) => {
       }
       console.log(`  → ${links.length} links found, ${queue.length} in queue`);
       // discover other interactive elements
-      const interactiveResults = await scanInteractiveElements(page);
+      const interactiveResults = await scanInteractiveElements(page, scannedInteractions);
       allResults.push(...interactiveResults);
 
     } catch (err) {
