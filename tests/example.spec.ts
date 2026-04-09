@@ -8,6 +8,7 @@ import path from 'path';
 const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
+const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
 
 const BLOCKED_PATTERNS = [
@@ -94,6 +95,23 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
     )
   )];
 }
+
+async function highlight(page: Page, selector: string, color: string) {
+  if (!WATCH_MODE) return;
+  try {
+    const el = page.locator(selector).first();
+    await el.evaluate((node: HTMLElement, c: string) => {
+      const rect = node.getBoundingClientRect();
+      const div = document.createElement('div');
+      div.style.cssText = `position:fixed;top:${rect.top-3}px;left:${rect.left-3}px;width:${rect.width+6}px;height:${rect.height+6}px;border:4px solid ${c};pointer-events:none;z-index:999999;border-radius:4px;`;
+      document.body.appendChild(div);
+      node.scrollIntoView({ block: 'center' });
+      setTimeout(() => div.remove(), 400);
+    }, color);
+    await page.waitForTimeout(400);
+  } catch {}
+}
+
 // Within each page, find clickable elements, click each one, scan the resulting state, then undo.
 async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
   const results: PageResult[] = [];
@@ -146,18 +164,10 @@ async function scanInteractiveElements(page: Page): Promise<PageResult[]> {
       const beforeUrl = page.url();
 
       // try to find and click the element
-      const el = page.locator(clickable.selector).first(); //finds the element
-      if (!(await el.isVisible())) continue; //Skips invisible elements, Avoids clicking hidden elements
+      const el = page.locator(clickable.selector).first();
+      if (!(await el.isVisible())) continue;
 
-      await el.evaluate((node: HTMLElement) => {
-        const rect = node.getBoundingClientRect(); // gets its position and size
-        const div = document.createElement('div'); // Creates a div at that position — draws the box
-        div.style.cssText = `position:fixed;top:${rect.top-3}px;left:${rect.left-3}px;width:${rect.width+6}px;height:${rect.height+6}px;border:4px solid red;pointer-events:none;z-index:999999;border-radius:4px;`;
-        document.body.appendChild(div);
-        node.scrollIntoView({ block: 'center' });
-        setTimeout(() => div.remove(), 400); //auto-removes
-      });
-      await page.waitForTimeout(400);
+      await highlight(page, clickable.selector, 'red');
 
       console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
       await el.click({ timeout: 3000 }); //3-second click timeout, Doesn't hang on unclickable elements
