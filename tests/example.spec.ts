@@ -7,8 +7,10 @@ import path from 'path';
 // --- CONFIG ---
 const START_URL = 'https://app.peerceptiv.com';
 const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
-const MAX_PAGES = 50; // sets limit
-const SLOW_MO = 500;        // ms between actions, so you can watch
+const MAX_PAGES = Infinity; // sets limit
+const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
+const SLOW_MO = 100;        // ms between actions, so you can watch
+const MAX_INTERACTION_DEPTH = 3;  // how deep to explore nested interactive states
 
 const BLOCKED_PATTERNS = [
   '/logout',
@@ -76,7 +78,7 @@ async function scanPage(page: Page): Promise<PageResult> {
     highRiskElements,
   };
 }
-
+// find all <a> tags
 async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> {
   const hrefs = await page.evaluate(() =>
     Array.from(document.querySelectorAll('a[href]'))
@@ -95,11 +97,152 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
   )];
 }
 
+async function highlight(page: Page, selector: string, color: string) {
+  if (!WATCH_MODE) return;
+  try {
+    const el = page.locator(selector).first();
+    await el.evaluate((node: HTMLElement, c: string) => {
+      const rect = node.getBoundingClientRect();
+      const div = document.createElement('div');
+      div.style.cssText = `position:fixed;top:${rect.top-3}px;left:${rect.left-3}px;width:${rect.width+6}px;height:${rect.height+6}px;border:4px solid ${c};pointer-events:none;z-index:999999;border-radius:4px;`;
+      document.body.appendChild(div);
+      node.scrollIntoView({ block: 'center' });
+      setTimeout(() => div.remove(), 400);
+    }, color);
+    await page.waitForTimeout(400);
+  } catch {}
+}
+
+async function collectClickables(page: Page) {
+  return page.evaluate(() => {
+    const elements: { selector: string; tag: string; text: string }[] = [];
+    const candidates = document.querySelectorAll(
+      'button, [role="button"], [role="tab"], [role="menuitem"], ' +
+      '[role="switch"], [role="checkbox"], [role="radio"], ' +
+      'details > summary, [aria-expanded], [aria-haspopup], ' +
+      'select, [onclick]'
+    );
+    for (const el of candidates) {
+      if (el.closest('a')) continue;
+      if ((el as HTMLElement).offsetParent === null) continue;
+      if (el.tagName === 'TD' || el.tagName === 'TR' || el.tagName === 'TH') continue;
+      const tag = el.tagName.toLowerCase();
+      const id = el.id ? `#${el.id}` : '';
+      const classes = el.className && typeof el.className === 'string'
+        ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.')
+        : '';
+      const text = (el.textContent || '').trim().slice(0, 30);
+      elements.push({ selector: id ? `${tag}${id}` : `${tag}${classes}`, tag, text });
+    }
+    return elements;
+  });
+}
+
+// Within each page, find clickable elements, click each one, scan the resulting state, then undo.
+async function scanInteractiveElements(page: Page, scannedInteractions: Set<string>, depth: number = 0, maxDepth: number = MAX_INTERACTION_DEPTH): Promise<PageResult[]> {
+  if (depth >= maxDepth) return [];
+  const results: PageResult[] = [];
+
+  // find all interactive elements that aren't links (links are handled by the crawler)
+  const clickables = await collectClickables(page);
+  console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`)
+
+  for (const clickable of clickables) { // iterates in order
+  // click element #1 → navigates away → go back → continue
+  // loop moves to element #2, not back to #1. The for...of loop keeps
+  // its position in the array regardless of what happens to the page.
+  // After going back, it picks up at the next element.
+    try {
+      // snapshot current URL and DOM state
+      const beforeUrl = page.url();
+
+      // try to find and click the element
+      const el = page.locator(clickable.selector).first();
+      if (!(await el.isVisible())) continue;
+
+      // check if element is in global nav/header/footer, skip this specific element
+      // if it's been clicked before in a global context.
+      const isGlobal = await el.evaluate((node: HTMLElement) => {
+        return !!node.closest('header, nav, footer, [role="banner"], [role="navigation"], [role="contentinfo"]');
+      }).catch(() => false);
+
+      const routePattern = getRoutePattern(page.url());
+      const interactionKey = isGlobal
+        ? `GLOBAL|${clickable.tag}:${clickable.text}`
+        : `${routePattern}|${clickable.tag}:${clickable.text}`;
+      if (scannedInteractions.has(interactionKey)) continue;
+      scannedInteractions.add(interactionKey);
+
+      await highlight(page, clickable.selector, 'red');
+
+      console.log(`${'    ' + '  '.repeat(depth)}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
+      // snapshot DOM before click, hash the DOM, so we can compare 
+      // if DOM changed after clicking on an element
+      const domBefore = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
+
+      await el.click({ timeout: 3000 });
+      await page.waitForTimeout(500);
+      // check if we navigated away — if so, go back
+      if (page.url() !== beforeUrl) {
+        await page.goBack({ waitUntil: 'networkidle' });
+        await page.waitForTimeout(300);
+        continue;
+      }
+      // check if we navigated away — if so, go back
+      const domAfter = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
+      // check if DOM actually changed
+      if (domBefore === domAfter) {
+        console.log(`${'    ' + '  '.repeat(depth)}  (no DOM change — skipping)`);
+        continue;
+      }
+      // If DOM changed — scan the new state
+      const result = await scanPage(page);
+
+      result.url = `${beforeUrl} → <${clickable.tag}> "${clickable.text}"`;
+      results.push(result);
+
+      if (result.violationCount > 0) {
+        console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violationCount} violations`);
+      }
+
+      // recurse — explore new elements revealed by this click
+      const deeperResults = await scanInteractiveElements(page, scannedInteractions, depth + 1, maxDepth);
+      results.push(...deeperResults);
+
+      // try to undo: press Escape (closes most modals/dropdowns)
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+
+    } catch (err) {
+      // element disappeared, click intercepted, etc — skip it
+      continue;
+    }
+  }
+
+  return results;
+}
+
 test('crawl and scan', async ({ page }) => {
-  test.setTimeout(300_000); // 5 min timeout
+  test.setTimeout(1_800_000); // 30 min timeout
 
   const visited = new Set<string>();
   const queue: string[] = [START_URL];
+  const scannedInteractions = new Set<string>();
+  const patternHashes = new Map<string, number>();
   const allResults: PageResult[] = [];
   const origin = new URL(START_URL).origin;
   // after page.goto, before scanning. Wrap the main loop more defensively
@@ -116,8 +259,9 @@ test('crawl and scan', async ({ page }) => {
   }
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
-    if (visited.has(url)) continue;
-    visited.add(url);
+    const urlPattern = getRoutePattern(url);
+    if (visited.has(urlPattern)) continue;
+    visited.add(urlPattern);
 
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
 
@@ -134,6 +278,22 @@ test('crawl and scan', async ({ page }) => {
       }
       await page.waitForTimeout(SLOW_MO);
 
+      // check if this pattern was already scanned with identical DOM
+      const domHash = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
+
+      if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
+        console.log(`  → Same as previous ${urlPattern} — skipping`);
+        continue;
+      }
+      patternHashes.set(urlPattern, domHash);
+
       // scan with axe
       const result = await scanPage(page);
       allResults.push(result);
@@ -149,8 +309,17 @@ test('crawl and scan', async ({ page }) => {
         }
       }
       console.log(`  → ${links.length} links found, ${queue.length} in queue`);
+      // discover other interactive elements
+      const interactiveResults = await scanInteractiveElements(page, scannedInteractions);
+      allResults.push(...interactiveResults);
 
     } catch (err) {
+      const msg = (err as Error).message;
+      //Fix: detect a dead browser in the main loop and abort gracefully
+      if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
+        console.log('  → FATAL: Browser closed. Ending crawl.');
+        break;  // exit the while loop, still generate report
+      }
       console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
     }
   }
