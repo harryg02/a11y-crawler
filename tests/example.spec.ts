@@ -263,8 +263,6 @@ test('crawl and scan', async ({ page }) => {
     if (visited.has(urlPattern)) continue;
     visited.add(urlPattern);
 
-    const urlPattern = getRoutePattern(url);
-
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
 
     try {
