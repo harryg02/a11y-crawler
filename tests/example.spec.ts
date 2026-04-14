@@ -10,6 +10,7 @@ const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
+const MAX_INTERACTION_DEPTH = 3;  // how deep to explore nested interactive states
 
 const BLOCKED_PATTERNS = [
   '/logout',
@@ -112,48 +113,39 @@ async function highlight(page: Page, selector: string, color: string) {
   } catch {}
 }
 
-// Within each page, find clickable elements, click each one, scan the resulting state, then undo.
-async function scanInteractiveElements(page: Page, scannedInteractions: Set<string>): Promise<PageResult[]> {
-  const results: PageResult[] = [];
-
-  // find all interactive elements that aren't links (links are handled by the crawler)
-  const clickables = await page.evaluate(() => { // collected all the clickable elements in an array
+async function collectClickables(page: Page) {
+  return page.evaluate(() => {
     const elements: { selector: string; tag: string; text: string }[] = [];
-    const seen = new Set<Element>();
-
     const candidates = document.querySelectorAll(
       'button, [role="button"], [role="tab"], [role="menuitem"], ' +
       '[role="switch"], [role="checkbox"], [role="radio"], ' +
       'details > summary, [aria-expanded], [aria-haspopup], ' +
       'select, [onclick]'
     );
-
     for (const el of candidates) {
-      if (seen.has(el)) continue;
-      if (el.closest('a')) continue;  // skip if inside a link
-      if ((el as HTMLElement).offsetParent === null) continue;  // skip invisible
-      if (el.tagName === 'TD' || el.tagName === 'TR' || el.tagName === 'TH') continue;  // skip table cells
-
-      seen.add(el);
-
-      // build a unique selector
+      if (el.closest('a')) continue;
+      if ((el as HTMLElement).offsetParent === null) continue;
+      if (el.tagName === 'TD' || el.tagName === 'TR' || el.tagName === 'TH') continue;
       const tag = el.tagName.toLowerCase();
       const id = el.id ? `#${el.id}` : '';
       const classes = el.className && typeof el.className === 'string'
         ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.')
         : '';
       const text = (el.textContent || '').trim().slice(0, 30);
-
-      elements.push({
-        selector: id ? `${tag}${id}` : `${tag}${classes}`,
-        tag,
-        text,
-      });
+      elements.push({ selector: id ? `${tag}${id}` : `${tag}${classes}`, tag, text });
     }
     return elements;
   });
+}
 
-  console.log(`    Interactive elements found: ${clickables.length}`);
+// Within each page, find clickable elements, click each one, scan the resulting state, then undo.
+async function scanInteractiveElements(page: Page, scannedInteractions: Set<string>, depth: number = 0, maxDepth: number = MAX_INTERACTION_DEPTH): Promise<PageResult[]> {
+  if (depth >= maxDepth) return [];
+  const results: PageResult[] = [];
+
+  // find all interactive elements that aren't links (links are handled by the crawler)
+  const clickables = await collectClickables(page);
+  console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`)
 
   for (const clickable of clickables) { // iterates in order
   // click element #1 → navigates away → go back → continue
@@ -183,7 +175,7 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
 
       await highlight(page, clickable.selector, 'red');
 
-      console.log(`    → Clicking: <${clickable.tag}> "${clickable.text}"`);
+      console.log(`${'    ' + '  '.repeat(depth)}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
       // snapshot DOM before click, hash the DOM, so we can compare 
       // if DOM changed after clicking on an element
       const domBefore = await page.evaluate(() => {
@@ -214,7 +206,7 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
       });
       // check if DOM actually changed
       if (domBefore === domAfter) {
-        console.log(`      (no DOM change — skipping scan)`);
+        console.log(`${'    ' + '  '.repeat(depth)}  (no DOM change — skipping)`);
         continue;
       }
       // If DOM changed — scan the new state
@@ -224,8 +216,12 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
       results.push(result);
 
       if (result.violationCount > 0) {
-        console.log(`      ⚠ ${result.violationCount} violations in this state`);
+        console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violationCount} violations`);
       }
+
+      // recurse — explore new elements revealed by this click
+      const deeperResults = await scanInteractiveElements(page, scannedInteractions, depth + 1, maxDepth);
+      results.push(...deeperResults);
 
       // try to undo: press Escape (closes most modals/dropdowns)
       await page.keyboard.press('Escape');
