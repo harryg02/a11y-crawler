@@ -246,6 +246,7 @@ test('crawl and scan', async ({ page }) => {
   const visited = new Set<string>();
   const queue: string[] = [START_URL];
   const scannedInteractions = new Set<string>();
+  const patternHashes = new Map<string, number>();
   const allResults: PageResult[] = [];
   const origin = new URL(START_URL).origin;
   // after page.goto, before scanning. Wrap the main loop more defensively
@@ -265,6 +266,8 @@ test('crawl and scan', async ({ page }) => {
     if (visited.has(url)) continue;
     visited.add(url);
 
+    const urlPattern = getRoutePattern(url);
+
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
 
     try {
@@ -279,6 +282,22 @@ test('crawl and scan', async ({ page }) => {
         await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
       }
       await page.waitForTimeout(SLOW_MO);
+
+      // check if this pattern was already scanned with identical DOM
+      const domHash = await page.evaluate(() => {
+        let hash = 0;
+        const str = document.body.innerHTML;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        return hash;
+      });
+
+      if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
+        console.log(`  → Same as previous ${urlPattern} — skipping`);
+        continue;
+      }
+      patternHashes.set(urlPattern, domHash);
 
       // scan with axe
       const result = await scanPage(page);
