@@ -258,8 +258,9 @@ test('crawl and scan', async ({ page }) => {
   }
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
-    if (visited.has(url)) continue;
-    visited.add(url);
+    const urlPattern = getRoutePattern(url);
+    if (visited.has(urlPattern)) continue;
+    visited.add(urlPattern);
 
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
 
