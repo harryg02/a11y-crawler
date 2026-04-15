@@ -31,17 +31,18 @@ This does not replace manual accessibility testing, such as screen reader behavi
 
 ## Features
 
-- **Authenticated crawling** pauses at login pages for manual credential entry, then auto-resumes when login completes
-- **Session loss recovery** detects if the session expires mid-crawl and pauses for re-login
+- **Discover all pages and DOM states then run Axe-Core automatically on each link and DOM state**
 - **Link discovery** follows all `<a href>` links within a configurable scope
 - **Interactive element scanning** clicks buttons, tabs, dropdowns, checkboxes, radio buttons, selects, and elements with ARIA roles or event handlers
+- **Authenticated crawling** pauses at login pages for manual credential entry, then auto-resumes when login completes
+- **Session loss recovery** detects if the session expires mid-crawl and pauses for re-login
 - **WCAG 2.1 AA scanning** runs axe-core with `wcag2a`, `wcag2aa`, and `wcag21aa` tags on every state
 - **High-risk element detection** flags pages with tables, forms, iframes, videos, and ARIA dialogs
 - **Cross-page violation aggregation** identifies violations that repeat across multiple pages (likely shared components)
+- **Structural DOM hashing** to identify identical page templates (e.g., dynamically generated course pages), bypassing redundant axe scans while still extracting unique outbound links to ensure complete site coverage.
 - **Route pattern grouping** deduplicates results from pages using the same template (e.g., `/course/:id/dashboard`)
 - **Visual feedback** highlights interactive elements before clicking (red border) so you can watch what the crawler is doing
 - **Destructive URL blocking** configurable blocklist for logout, delete, and other dangerous URL patterns
-- **JSON report output** full structured report saved to `reports/` directory
 
 ## Prerequisites
 
