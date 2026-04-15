@@ -20,13 +20,13 @@ This does not replace manual accessibility testing, such as screen reader behavi
 
 ## ⚠️ Safety Warning
 
-**The crawler clicks every interactive element it finds.** This includes buttons like "Delete", "Remove", "Grant Access", "Revoke Access", "Submit", "Make Payment", and any other destructive or state-changing actions.
+**The crawler can clicks every interactive element it finds.** This includes buttons like "Delete", "Remove", "Grant Access", "Revoke Access", "Submit", "Make Payment", and any other destructive or state-changing actions.
 
 **Before running this tool:**
 
+- Review the `BLOCKED_PATTERNS` configuration and add any URL patterns that should never be visited (e.g., `/delete`, `/remove`, `/payment`)
 - Use a **test or staging environment**, never production
 - Use a **dedicated test account** with non-critical data
-- Review the `BLOCKED_PATTERNS` configuration and add any URL patterns that should never be visited (e.g., `/delete`, `/remove`, `/payment`)
 - Be prepared to monitor the browser window — the crawler runs in a visible browser so you can intervene if needed
 
 ## Features
