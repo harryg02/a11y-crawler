@@ -5,8 +5,8 @@ import fs from 'fs';
 import path from 'path';
 
 // --- CONFIG ---
-const START_URL = 'http://localhost:5500/ai_studio_code.html';
-const SCOPE = 'http://localhost:5500/ai_studio_code.html';  // only crawl within this path
+const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
+const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
