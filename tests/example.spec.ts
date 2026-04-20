@@ -5,8 +5,8 @@ import fs from 'fs';
 import path from 'path';
 
 // --- CONFIG ---
-const START_URL = 'https://app.peerceptiv.com';
-const SCOPE = 'https://app.peerceptiv.com/';  // only crawl within this path
+const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
+const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
@@ -259,26 +259,39 @@ test('crawl and scan', async ({ page }) => {
   }
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
-    const urlPattern = getRoutePattern(url);
-    if (visited.has(urlPattern)) continue;
-    visited.add(urlPattern);
+    //Within while loop
+    // 1. EXACT URL TRACKING (Prevents infinite loops on identical URLs)
+    if (visited.has(url)) continue;
+    visited.add(url);
 
+    const urlPattern = getRoutePattern(url);
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
 
     try {
+      // 2. LOAD PAGE
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+
       // check if session died
       if (page.url().match(/\/login(\/)?($|\?)/)) {
         console.log('  → SESSION LOST: waiting for re-login...');
-        await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), {
-          timeout: 120_000
-        });
+        await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), { timeout: 120_000 });
         // re-navigate to the original target after re-login
         await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
       }
+
       await page.waitForTimeout(SLOW_MO);
 
-      // check if this pattern was already scanned with identical DOM
+      // 3. ALWAYS DISCOVER LINKS (Must happen before any 'continue' statements)
+      const links = await discoverLinks(page, origin);
+      for (const link of links) {
+        if (!visited.has(link) && !queue.includes(link)) {
+          console.log(`    + queued: ${link}`);
+          queue.push(link);
+        }
+      }
+      console.log(`  → ${links.length} links found, ${queue.length} in queue`);
+
+      // 4. CALCULATE DOM HASH, check if this pattern was already scanned with identical DOM
       const domHash = await page.evaluate(() => {
         let hash = 0;
         const str = document.body.innerHTML;
@@ -288,28 +301,18 @@ test('crawl and scan', async ({ page }) => {
         return hash;
       });
 
+      // 5. CHECK HASH TO SKIP EXPENSIVE SCANS
       if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
-        console.log(`  → Same as previous ${urlPattern} — skipping`);
-        continue;
+        console.log(`  → Same DOM as previous ${urlPattern} — skipping Axe/Interactive scans`);
+        continue; // Ends iteration here. Links are already queued.
       }
       patternHashes.set(urlPattern, domHash);
 
-      // scan with axe
+      // 6. RUN EXPENSIVE Axe SCANS (Only reached if DOM is unique)
       const result = await scanPage(page);
       allResults.push(result);
-
       console.log(`  → ${result.violationCount} violations`);
 
-      // discover new links
-      const links = await discoverLinks(page, origin);
-      for (const link of links) {
-        if (!visited.has(link) && !queue.includes(link)) {
-          console.log(`    + queued: ${link}`);
-          queue.push(link);
-        }
-      }
-      console.log(`  → ${links.length} links found, ${queue.length} in queue`);
-      // discover other interactive elements
       const interactiveResults = await scanInteractiveElements(page, scannedInteractions);
       allResults.push(...interactiveResults);
 
@@ -318,7 +321,7 @@ test('crawl and scan', async ({ page }) => {
       //Fix: detect a dead browser in the main loop and abort gracefully
       if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
         console.log('  → FATAL: Browser closed. Ending crawl.');
-        break;  // exit the while loop, still generate report
+        break; // exit the while loop, still generate report
       }
       console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
     }
