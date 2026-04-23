@@ -16,7 +16,7 @@ export default function SidebarTab({ icon, label, active = false, onClick }: Sid
       onClick={onClick}
       className={`
         flex items-center gap-3
-        w-[240px] h-[50px] px-4
+        w-[240px] h-[50px] px-3
         rounded-[5px]
         bg-[#393939] text-white
         border-2
