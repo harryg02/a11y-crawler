@@ -25,7 +25,7 @@ export default function SidebarTab({ icon, label, active = false, onClick }: Sid
         ${active ? 'border-white' : 'border-gray-600 hover:border-gray-400'}
       `}
     >
-      <span className="w-6 h-6 flex items-center justify-center shrink-0">
+      <span aria-hidden="true" className="w-6 h-6 flex items-center justify-center shrink-0">
         {icon}
       </span>
       <span className="text-base">{label}</span>
