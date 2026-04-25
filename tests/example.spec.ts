@@ -8,7 +8,7 @@ import path from 'path';
 // const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
 // const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';
 const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
-const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';  // only crawl within this path
+const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
@@ -24,8 +24,24 @@ const BLOCKED_PATTERNS = [
   '/log-out',
 ];
 
+// URLs starting with any of these are excluded from the crawl
+const EXCLUDED_SCOPES: string[] = [
+  'https://www.w3.org/WAI/demos/bad/before/tickets.html',
+  'https://www.w3.org/WAI/demos/bad/before/survey.html',
+  'https://www.w3.org/WAI/demos/bad/before/reports/',
+];
+
 function isBlocked(url: string): boolean {
   return BLOCKED_PATTERNS.some(pattern => url.toLowerCase().includes(pattern));
+}
+
+function isExcluded(url: string): boolean {
+  return EXCLUDED_SCOPES.some(scope => {
+    const clean = scope.replace(/\/$/, '');  // remove trailing slash
+    return url === clean ||
+           url.startsWith(clean + '/') ||
+           url.startsWith(clean + '?');
+  });
 }
 
 // emit repetitive ID patterns from report
@@ -95,7 +111,8 @@ async function discoverLinks(page: Page, baseOrigin: string): Promise<string[]> 
       !href.includes('#') &&
       !href.startsWith('mailto:') &&
       !href.startsWith('tel:') &&
-      !isBlocked(href)
+      !isBlocked(href) &&
+      !isExcluded(href)
     )
   )];
 }
@@ -276,6 +293,10 @@ test('crawl and scan', async ({ page }) => {
     //Within while loop
     // 1. EXACT URL TRACKING (Prevents infinite loops on identical URLs)
     if (visited.has(url)) continue;
+    if (isExcluded(url)) {
+      console.log(`  → SKIPPED (excluded scope): ${url}`);
+      continue;
+    }
     visited.add(url);
 
     const urlPattern = getRoutePattern(url);
