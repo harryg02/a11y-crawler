@@ -5,12 +5,15 @@ import fs from 'fs';
 import path from 'path';
 
 // --- CONFIG ---
+// const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
+// const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';
 const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
 const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
 const MAX_INTERACTION_DEPTH = 3;  // how deep to explore nested interactive states
+const TIMEOUT = 1_800_000;
 
 const BLOCKED_PATTERNS = [
   '/logout',
@@ -237,7 +240,7 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
 }
 
 test('crawl and scan', async ({ page }) => {
-  test.setTimeout(1_800_000); // 30 min timeout
+  test.setTimeout(TIMEOUT); // 30 min timeout
 
   const visited = new Set<string>();
   const queue: string[] = [START_URL];
@@ -249,14 +252,25 @@ test('crawl and scan', async ({ page }) => {
   // if one page crashes, skip it and continue:
   await page.goto(START_URL);
 
-  // if redirected to login, wait for user to log in
-  if (page.url().match(/\/login(\/)?($|\?)/) ) {
-    console.log('Waiting for login... (enter credentials in the browser)');
-    await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), {
-      timeout: 120_000  // 2 min to log in
-    });
-    console.log('Login detected, starting crawl.');
+  const signalFile = path.join(process.cwd(), '.login-complete');
+  if (fs.existsSync(signalFile)) fs.unlinkSync(signalFile);
+
+  console.log('');
+  console.log('════════════════════════════════════');
+  console.log('  Log in in the browser if needed, then run:');
+  console.log('    touch .login-complete');
+  console.log('  (or create a file named .login-complete in the project root)');
+  console.log('════════════════════════════════════');
+  console.log('');
+
+  // poll for the signal file
+  while (!fs.existsSync(signalFile)) {
+    await page.waitForTimeout(500);
   }
+
+  fs.unlinkSync(signalFile);  // clean up
+  console.log('Login signal received, starting crawl...');
+
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
     //Within while loop
@@ -270,14 +284,6 @@ test('crawl and scan', async ({ page }) => {
     try {
       // 2. LOAD PAGE
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
-
-      // check if session died
-      if (page.url().match(/\/login(\/)?($|\?)/)) {
-        console.log('  → SESSION LOST: waiting for re-login...');
-        await page.waitForURL(currentUrl => !currentUrl.toString().match(/\/login(\/)?($|\?)/), { timeout: 120_000 });
-        // re-navigate to the original target after re-login
-        await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
-      }
 
       await page.waitForTimeout(SLOW_MO);
 
