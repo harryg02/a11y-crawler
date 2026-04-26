@@ -22,7 +22,7 @@ export default function SidebarTab({ icon, label, active = false, onClick }: Sid
         border-2
         transition-colors
         cursor-pointer
-        ${active ? 'border-white' : 'border-gray-600 hover:border-gray-400'}
+        ${active ? 'border-white' : 'border-gray-800 hover:border-gray-400'}
       `}
     >
       <span aria-hidden="true" className="w-6 h-6 flex items-center justify-center shrink-0">

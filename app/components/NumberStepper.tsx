@@ -35,7 +35,7 @@ export default function NumberStepper({
         onClick={decrement}
         disabled={value <= min}
         aria-label="Decrease"
-        className="w-12.5 h-12.5 flex items-center justify-center bg-gray-800 border-2 border-gray-600 rounded-[5px] text-white hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-12.5 h-12.5 flex items-center justify-center bg-gray-800 border-2 border-gray-800 rounded-[5px] text-white hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronLeft size={25} aria-hidden="true" />
       </button>
@@ -54,7 +54,7 @@ export default function NumberStepper({
         onClick={increment}
         disabled={value >= max}
         aria-label="Increase"
-        className="w-12.5 h-12.5 flex items-center justify-center bg-gray-800 border-2 border-gray-600 rounded-[5px] text-white hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-12.5 h-12.5 flex items-center justify-center bg-gray-800 border-2 border-gray-800 rounded-[5px] text-white hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronRight size={25} aria-hidden="true" />
       </button>
