@@ -7,8 +7,8 @@ import path from 'path';
 // --- CONFIG ---
 // const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
 // const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/home.html';
-const START_URL = 'https://www.w3.org/WAI/demos/bad/before/home.html';
-const SCOPE = 'https://www.w3.org/WAI/demos/bad/before/';  // only crawl within this path
+const START_URL = 'https://umitstest.h5p.com/content';
+const SCOPE = 'https://umitstest.h5p.com/content';  // only crawl within this path
 const MAX_PAGES = Infinity; // sets limit
 const WATCH_MODE = true;  // true = highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;        // ms between actions, so you can watch
@@ -42,6 +42,10 @@ function isExcluded(url: string): boolean {
            url.startsWith(clean + '/') ||
            url.startsWith(clean + '?');
   });
+}
+
+function getCanonicalUrl(url: string): string {
+  return url.split('?')[0];
 }
 
 // emit repetitive ID patterns from report
@@ -209,13 +213,16 @@ async function scanInteractiveElements(page: Page, scannedInteractions: Set<stri
 
       await el.click({ timeout: 3000 });
       await page.waitForTimeout(500);
-      // check if we navigated away — if so, go back
-      if (page.url() !== beforeUrl) {
+
+      const afterUrl = page.url();
+      const isFullNavigation = getCanonicalUrl(afterUrl) !== getCanonicalUrl(beforeUrl);
+
+      if (isFullNavigation) {
+        // real navigation to a different page — go back, link will be picked up by main loop
         await page.goBack({ waitUntil: 'networkidle' });
         await page.waitForTimeout(300);
         continue;
       }
-      // check if we navigated away — if so, go back
       const domAfter = await page.evaluate(() => {
         let hash = 0;
         const str = document.body.innerHTML;
@@ -290,14 +297,13 @@ test('crawl and scan', async ({ page }) => {
 
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
-    //Within while loop
-    // 1. EXACT URL TRACKING (Prevents infinite loops on identical URLs)
-    if (visited.has(url)) continue;
+    const urlBase = getCanonicalUrl(url);
+    if (visited.has(urlBase)) continue;
     if (isExcluded(url)) {
       console.log(`  → SKIPPED (excluded scope): ${url}`);
       continue;
     }
-    visited.add(url);
+    visited.add(urlBase);
 
     const urlPattern = getRoutePattern(url);
     console.log(`[${visited.size}/${MAX_PAGES}] Scanning: ${url}`);
@@ -311,7 +317,8 @@ test('crawl and scan', async ({ page }) => {
       // 3. ALWAYS DISCOVER LINKS (Must happen before any 'continue' statements)
       const links = await discoverLinks(page, origin);
       for (const link of links) {
-        if (!visited.has(link) && !queue.includes(link)) {
+        const linkBase = getCanonicalUrl(link);
+        if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
           console.log(`    + queued: ${link}`);
           queue.push(link);
         }
