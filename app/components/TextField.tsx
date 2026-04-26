@@ -22,7 +22,7 @@ export default function TextField({
   return (
     <div className="flex items-center gap-3 w-full h-12.5 px-4 bg-gray-900 border-2 border-gray-600 rounded-[5px] focus-within:border-white transition-colors">
       {icon && (
-        <span aria-hidden="true" className="text-[#888] shrink-0 flex items-center">
+        <span aria-hidden="true" className="text-gray-400 shrink-0 flex items-center">
           {icon}
         </span>
       )}
