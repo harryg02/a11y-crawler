@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { Link } from 'lucide-react';
 import TextField from './TextField';
+import NumberStepper from './NumberStepper';
 
 export default function CrawlScan() {
   const [scope, setScope] = useState('');
   const [startingUrl, setStartingUrl] = useState('');
+  const [maxDepth, setMaxDepth] = useState(2);
+
   return (
-    <div className="max-w-160 mx-auto py-12">
+    <div className="max-w-150 mx-auto py-12">
       <h2 className="text-3xl font-medium mb-8">Crawl & Scan</h2>
       <div className="space-y-6">
         <div>
@@ -36,6 +39,20 @@ export default function CrawlScan() {
             type="url"
           />
         </div>
+        <div>
+          <label htmlFor="max-depth" className="block text-white mb-2">
+            Max Depth
+          </label>
+          <NumberStepper
+            id="max-depth"
+            value={maxDepth}
+            onChange={setMaxDepth}
+            min={1}
+            max={10}
+            ariaLabel="Max interaction depth"
+          />
+        </div>
+
       </div>
 
     </div>
