@@ -5,6 +5,7 @@ import { Link } from 'lucide-react';
 import TextField from './TextField';
 import NumberStepper from './NumberStepper';
 import DropdownInput from './DropdownInput';
+import TagInput from './TagInput';
 
 const TIMEOUT_OPTIONS = [
   { label: '15 Min', value: 15 },
@@ -18,6 +19,9 @@ export default function CrawlScan() {
   const [startingUrl, setStartingUrl] = useState('');
   const [maxDepth, setMaxDepth] = useState(2);
   const [timeout, setTimeout] = useState(30);
+  const [forbiddenWords, setForbiddenWords] = useState<string[]>([
+    'Log out', 'Grant', 'Access', 'Delete'
+  ]);
 
   return (
     <div className="max-w-150 mx-auto py-12">
@@ -75,6 +79,18 @@ export default function CrawlScan() {
               ariaLabel="Timeout in minutes"
             />
           </div>
+
+        </div>
+        <div>
+          <label htmlFor="forbidden-words" className="block text-white mb-2">
+            Forbidden Words
+          </label>
+          <TagInput
+            id="forbidden-words"
+            values={forbiddenWords}
+            onChange={setForbiddenWords}
+            ariaLabel="Forbidden words list"
+          />
         </div>
 
       </div>
