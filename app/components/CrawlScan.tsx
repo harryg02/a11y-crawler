@@ -4,11 +4,20 @@ import { useState } from 'react';
 import { Link } from 'lucide-react';
 import TextField from './TextField';
 import NumberStepper from './NumberStepper';
+import DropdownInput from './DropdownInput';
+
+const TIMEOUT_OPTIONS = [
+  { label: '15 Min', value: 15 },
+  { label: '30 Min', value: 30 },
+  { label: '60 Min', value: 60 },
+  { label: 'Infinity', value: Infinity },
+];
 
 export default function CrawlScan() {
   const [scope, setScope] = useState('');
   const [startingUrl, setStartingUrl] = useState('');
   const [maxDepth, setMaxDepth] = useState(2);
+  const [timeout, setTimeout] = useState(30);
 
   return (
     <div className="max-w-150 mx-auto py-12">
@@ -39,18 +48,33 @@ export default function CrawlScan() {
             type="url"
           />
         </div>
-        <div>
-          <label htmlFor="max-depth" className="block text-white mb-2">
-            Max Depth
-          </label>
-          <NumberStepper
-            id="max-depth"
-            value={maxDepth}
-            onChange={setMaxDepth}
-            min={1}
-            max={10}
-            ariaLabel="Max interaction depth"
-          />
+        <div className="flex gap-6">
+          <div className="flex-1">
+            <label htmlFor="max-depth" className="block text-white mb-2">
+              Max Depth
+            </label>
+            <NumberStepper
+              id="max-depth"
+              value={maxDepth}
+              onChange={setMaxDepth}
+              min={1}
+              max={10}
+              ariaLabel="Max interaction depth"
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="timeout" className="block text-white mb-2">
+              Time Out
+            </label>
+            <DropdownInput
+              id="timeout"
+              value={timeout}
+              onChange={setTimeout}
+              options={TIMEOUT_OPTIONS}
+              suffix="Min"
+              ariaLabel="Timeout in minutes"
+            />
+          </div>
         </div>
 
       </div>
