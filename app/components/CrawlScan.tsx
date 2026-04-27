@@ -22,6 +22,7 @@ export default function CrawlScan() {
   const [forbiddenWords, setForbiddenWords] = useState<string[]>([
     'Log out', 'Grant', 'Access', 'Delete'
   ]);
+  const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
 
   return (
     <div className="max-w-150 mx-auto py-12">
@@ -90,6 +91,18 @@ export default function CrawlScan() {
             values={forbiddenWords}
             onChange={setForbiddenWords}
             ariaLabel="Forbidden words list"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="exclude-scope" className="block text-white mb-2">
+            Exclude Scope
+          </label>
+          <TagInput
+            id="exclude-scope"
+            values={excludedScopes}
+            onChange={setExcludedScopes}
+            ariaLabel="Excluded URL scopes list"
           />
         </div>
 
