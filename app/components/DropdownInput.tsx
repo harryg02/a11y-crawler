@@ -46,7 +46,7 @@ export default function DropdownInput({
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="flex items-center w-full h-[50px] transition-colors">
-        <div className='border-2 border-gray-600 focus-within:border-white items-center flex h-[50px] rounded-l-[5px]'>
+        <div className='border-2 border-gray-600 focus-within:border-white hover:border-gray-400 items-center flex h-[50px] rounded-l-[5px]'>
           <input
             id={id}
             type="text"
@@ -66,7 +66,7 @@ export default function DropdownInput({
           onClick={() => setOpen(!open)}
           aria-label="Show options"
           aria-expanded={open}
-          className="h-full px-3 flex items-center text-white border-2 border-gray-800 bg-gray-800 focus-within:border-white transition-colors rounded-r-[5px]"
+          className="h-full px-3 flex items-center text-white border-2 border-gray-800 bg-gray-800 focus-within:border-white hover:border-gray-400 transition-colors rounded-r-[5px]"
         >
           <ChevronDown size={20} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
@@ -87,7 +87,7 @@ export default function DropdownInput({
                   onChange(opt.value);
                   setOpen(false);
                 }}
-                className={`w-full text-left px-4 py-3 hover:bg-[#4a4a4a] transition-colors ${
+                className={`w-full text-left px-4 py-3 border-2 border-gray-800 hover:border-gray-400 transition-colors ${
                   value === opt.value ? 'text-white' : 'text-[#ccc]'
                 }`}
               >
