@@ -6,6 +6,7 @@ import TextField from './TextField';
 import NumberStepper from './NumberStepper';
 import DropdownInput from './DropdownInput';
 import TagInput from './TagInput';
+import PrimaryButton from './PrimaryButton';
 
 const TIMEOUT_OPTIONS = [
   { label: '15 Min', value: 15 },
@@ -104,6 +105,16 @@ export default function CrawlScan() {
             onChange={setExcludedScopes}
             ariaLabel="Excluded URL scopes list"
           />
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <PrimaryButton
+            onClick={() => {
+              console.log('Start scan with:', { scope, startingUrl, maxDepth, timeoutMin, forbiddenWords, excludedScopes });
+            }}
+          >
+            Start Scan
+          </PrimaryButton>
         </div>
 
       </div>
