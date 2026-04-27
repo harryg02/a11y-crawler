@@ -26,99 +26,102 @@ export default function CrawlScan() {
   const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
 
   return (
-    <div className="max-w-150 mx-auto py-12">
-      <h2 className="text-4xl mb-5">Crawl & Scan</h2>
-      <div className="space-y-6">
-        <div>
-          <label htmlFor="scope" className="block text-white mb-1">
-            Scope
-          </label>
-          <TextField
-            id="scope"
-            icon={<Link size={20} />}
-            value={scope}
-            onChange={setScope}
-            type="url"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="starting-url" className="block text-white mb-1">
-            Starting URL
-          </label>
-          <TextField
-            id="starting-url"
-            icon={<Link size={20} />}
-            value={startingUrl}
-            onChange={setStartingUrl}
-            type="url"
-          />
-        </div>
-        <div className="flex gap-6">
-          <div className="flex-1">
-            <label htmlFor="max-depth" className="block text-white mb-2">
-              Max Depth
+    <div className="min-h-screen flex items-center">
+      <div className="max-w-150 mx-auto py-4">
+        <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
+        <div className="space-y-6">
+          <div>
+            <label htmlFor="scope" className="block text-white mb-1">
+              Scope
             </label>
-            <NumberStepper
-              id="max-depth"
-              value={maxDepth}
-              onChange={setMaxDepth}
-              min={1}
-              max={10}
-              ariaLabel="Max interaction depth"
-            />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="timeout" className="block text-white mb-2">
-              Time Out
-            </label>
-            <DropdownInput
-              id="timeout"
-              value={timeout}
-              onChange={setTimeout}
-              options={TIMEOUT_OPTIONS}
-              suffix="Min"
-              ariaLabel="Timeout in minutes"
+            <TextField
+              id="scope"
+              icon={<Link size={20} />}
+              value={scope}
+              onChange={setScope}
+              type="url"
+              autoFocus
             />
           </div>
 
-        </div>
-        <div>
-          <label htmlFor="forbidden-words" className="block text-white mb-2">
-            Forbidden Words
-          </label>
-          <TagInput
-            id="forbidden-words"
-            values={forbiddenWords}
-            onChange={setForbiddenWords}
-            ariaLabel="Forbidden words list"
-          />
-        </div>
+          <div>
+            <label htmlFor="starting-url" className="block text-white mb-1">
+              Starting URL
+            </label>
+            <TextField
+              id="starting-url"
+              icon={<Link size={20} />}
+              value={startingUrl}
+              onChange={setStartingUrl}
+              type="url"
+            />
+          </div>
+          <div className="flex gap-6">
+            <div className="flex-1">
+              <label htmlFor="max-depth" className="block text-white mb-2">
+                Max Depth
+              </label>
+              <NumberStepper
+                id="max-depth"
+                value={maxDepth}
+                onChange={setMaxDepth}
+                min={1}
+                max={10}
+                ariaLabel="Max interaction depth"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="timeout" className="block text-white mb-2">
+                Time Out
+              </label>
+              <DropdownInput
+                id="timeout"
+                value={timeout}
+                onChange={setTimeout}
+                options={TIMEOUT_OPTIONS}
+                suffix="Min"
+                ariaLabel="Timeout in minutes"
+              />
+            </div>
 
-        <div>
-          <label htmlFor="exclude-scope" className="block text-white mb-2">
-            Exclude Scope
-          </label>
-          <TagInput
-            id="exclude-scope"
-            values={excludedScopes}
-            onChange={setExcludedScopes}
-            ariaLabel="Excluded URL scopes list"
-          />
-        </div>
+          </div>
+          <div>
+            <label htmlFor="forbidden-words" className="block text-white mb-2">
+              Forbidden Words
+            </label>
+            <TagInput
+              id="forbidden-words"
+              values={forbiddenWords}
+              onChange={setForbiddenWords}
+              ariaLabel="Forbidden words list"
+            />
+          </div>
 
-        <div className="flex justify-end pt-4">
-          <PrimaryButton
-            onClick={() => {
-              console.log('Start scan with:', { scope, startingUrl, maxDepth, timeoutMin, forbiddenWords, excludedScopes });
-            }}
-          >
-            Start Scan
-          </PrimaryButton>
+          <div>
+            <label htmlFor="exclude-scope" className="block text-white mb-2">
+              Exclude Scope
+            </label>
+            <TagInput
+              id="exclude-scope"
+              values={excludedScopes}
+              onChange={setExcludedScopes}
+              ariaLabel="Excluded URL scopes list"
+            />
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <PrimaryButton
+              onClick={() => {
+                console.log('Start scan with:', { scope, startingUrl, maxDepth, timeoutMin, forbiddenWords, excludedScopes });
+              }}
+            >
+              Start Scan
+            </PrimaryButton>
+          </div>
+
         </div>
 
       </div>
-
     </div>
   );
 }

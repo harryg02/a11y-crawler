@@ -9,6 +9,7 @@ interface TextFieldProps {
   type?: 'text' | 'url' | 'email' | 'number';
   id?: string;
   ariaLabel?: string;
+  autoFocus?: boolean;
 }
 
 export default function TextField({
@@ -18,6 +19,7 @@ export default function TextField({
   type = 'text',
   id,
   ariaLabel,
+  autoFocus,
 }: TextFieldProps) {
   return (
     <div className="flex items-center gap-3 w-full  px-4 border-2 border-gray-600 rounded-[5px] focus-within:border-white hover:border-gray-400 transition-colors">
@@ -33,6 +35,7 @@ export default function TextField({
         onChange={(e) => onChange(e.target.value)}
         aria-label={ariaLabel}
         className="flex-1 bg-transparent h-12.5 text-white focus:outline-none"
+        autoFocus={autoFocus}
       />
     </div>
   );
