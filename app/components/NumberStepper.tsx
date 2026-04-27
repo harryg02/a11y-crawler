@@ -46,7 +46,7 @@ export default function NumberStepper({
         value={value}
         onChange={(e) => handleInput(e.target.value)}
         aria-label={ariaLabel}
-        className="w-15 h-12.5 text-center bg-gray-900 border-2 border-gray-600 rounded-[5px] text-white focus:border-white focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        className="w-15 h-12.5 text-center border-2 border-gray-600 rounded-[5px] text-white focus:border-white focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
 
       <button

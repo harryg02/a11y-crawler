@@ -23,7 +23,7 @@ export default function Page() {
       </aside>
 
       {/* Main content — takes remaining space */}
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 bg-gray-950">
         {view === 'crawl' && <CrawlScan />}
         {view === 'history' && <History />}
         {view === 'settings' && <Settings />}

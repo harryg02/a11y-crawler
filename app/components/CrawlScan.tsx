@@ -12,7 +12,7 @@ export default function CrawlScan() {
 
   return (
     <div className="max-w-150 mx-auto py-12">
-      <h2 className="text-3xl font-medium mb-8">Crawl & Scan</h2>
+      <h2 className="text-4xl mb-5">Crawl & Scan</h2>
       <div className="space-y-6">
         <div>
           <label htmlFor="scope" className="block text-white mb-1">
