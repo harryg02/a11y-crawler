@@ -67,8 +67,8 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               type="url"
             />
           </div>
-          <div className="flex gap-6">
-            <div className="flex-1">
+          <div className="flex gap-12">
+            <div className="">
               <label htmlFor="max-depth" className="block text-white mb-2">
                 Max Depth
               </label>
@@ -81,7 +81,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                 ariaLabel="Max interaction depth"
               />
             </div>
-            <div className="flex-1">
+            <div className="">
               <label htmlFor="timeout" className="block text-white mb-2">
                 Time Out
               </label>

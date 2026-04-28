@@ -44,8 +44,8 @@ export default function DropdownInput({
   const displayValue = value === Infinity ? '∞' : value.toString();
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      <div className="flex items-center w-full h-[50px] transition-colors">
+    <div ref={containerRef} className="relative">
+      <div className="flex items-center h-[50px] transition-colors">
         <div className='border-2 border-gray-600 hover:border-gray-400 focus-within:border-white hover:focus-within:border-white items-center flex h-[50px] rounded-l-[5px]'>
           <input
             id={id}
@@ -53,7 +53,7 @@ export default function DropdownInput({
             value={displayValue}
             onChange={(e) => handleInput(e.target.value)}
             aria-label={ariaLabel}
-            className="flex-1 h-full px-4 bg-transparent text-white focus:outline-none"
+            className="w-20 h-full px-4 bg-transparent text-white focus:outline-none"
           />
           {suffix && (
             <span className="text-[#888] pr-2 select-none" aria-hidden="true">
