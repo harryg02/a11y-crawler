@@ -16,7 +16,14 @@ const TIMEOUT_OPTIONS = [
 ];
 
 interface CrawlScanProps {
-  onStart: () => void;
+  onStart: (config: {
+    scope: string;
+    startingUrl: string;
+    maxDepth: number;
+    timeout: number;
+    forbiddenWords: string[];
+    excludedScopes: string[];
+  }) => void;
 }
 
 export default function CrawlScan({ onStart }: CrawlScanProps) {
@@ -114,7 +121,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
           </div>
 
           <div className="flex justify-end pt-4">
-            <PrimaryButton onClick={onStart}>Start Scan</PrimaryButton>
+            <PrimaryButton onClick={() => onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes })}>Start Scan</PrimaryButton>
           </div>
 
         </div>

@@ -8,7 +8,7 @@ interface ScanningProps {
 }
 
 
-export default function Scanning() {
+export default function Scanning({ config, onFinish }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
 
