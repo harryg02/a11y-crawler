@@ -13,11 +13,11 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [isFinished, setIsFinished] = useState(false);
+  const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
 
   // mock log stream — replace with real backend later
   useEffect(() => {
-    if (isPaused || isFinished) return;
+    if (isPaused || finishReason !== 'running') return;
     const fakeLogs = [
       'Browser launched',
       'Navigating to https://example.com',
@@ -36,19 +36,21 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
         setLogs(prev => [...prev, fakeLogs[i]]);
         i++;
       } else {
-        setIsFinished(true);
+        setFinishReason('completed');
         clearInterval(interval);
       }
     }, 800);
     return () => clearInterval(interval);
-  }, [isPaused, isFinished, logs.length]);
+  }, [isPaused, finishReason, logs.length]);
+
+  const isFinished = finishReason !== 'running';
 
   return (
     <div className="min-h-screen flex items-center">
       <div className="max-w-150 w-full mx-auto py-8 flex flex-col items-center text-center">
 
         <h1 className="text-3xl font-medium mb-8">
-          {isFinished ? 'Finished' : 'Scanning'}
+          {isFinished ? (finishReason === 'completed' ? 'Scan Complete' : 'Scan Stopped') : 'Scanning'}
         </h1>
 
         {/* Spinner or checkmark */}
@@ -91,7 +93,7 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
                 {isPaused ? 'Resume' : 'Pause'}
               </Button>
               <Button
-                onClick={() => setIsFinished(true)}
+                onClick={() => setFinishReason('stopped')}
               >
                 Finish Now
               </Button>
