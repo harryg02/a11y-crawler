@@ -6,7 +6,7 @@ import TextField from './TextField';
 import NumberStepper from './NumberStepper';
 import DropdownInput from './DropdownInput';
 import TagInput from './TagInput';
-import PrimaryButton from './PrimaryButton';
+import Button from './Button';
 
 const TIMEOUT_OPTIONS = [
   { label: '15 Min', value: 15 },
@@ -121,7 +121,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
           </div>
 
           <div className="flex justify-end pt-4">
-            <PrimaryButton onClick={() => onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes })}>Start Scan</PrimaryButton>
+            <Button onClick={() => onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes })}>Start Scan</Button>
           </div>
 
         </div>

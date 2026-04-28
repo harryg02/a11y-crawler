@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Button from './Button';
 
 interface ScanningProps {
   config: any;
@@ -57,22 +58,19 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
           )}
         </div>
 
-        {/* Buttons placeholder — build SecondaryButton later */}
+        {/* Action buttons */}
         <div className="flex gap-4">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => setIsPaused(!isPaused)}
-            className="h-[50px] px-6 bg-gray-800 border-2 border-gray-600 rounded-full text-white hover:border-gray-400 transition-colors"
           >
             {isPaused ? 'Resume' : 'Pause'}
-          </button>
-          <button
-            type="button"
-            onClick={() => console.log('End scan')}
-            className="h-[50px] px-6 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-colors"
+          </Button>
+          <Button
+            onClick={() => onFinish()}
           >
             Finish Now
-          </button>
+          </Button>
         </div>
 
       </div>
