@@ -31,7 +31,7 @@ export default function Button({
             disabled={disabled}
             aria-label={ariaLabel}
             className={`
-        py-2 px-4
+        py-1 px-4
         rounded-full
         font-medium text-base
         focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0f0f0f]
