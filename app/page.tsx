@@ -26,7 +26,7 @@ export default function Page() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 bg-gray-950 overflow-y-auto">
+      <main className="flex-1 bg-gray-950 overflow-y-auto">
         {/* Keep CrawlScan mounted but hidden when not active so state persists */}
         <div className={view === 'crawl' ? '' : 'hidden'}>
           <CrawlScan
