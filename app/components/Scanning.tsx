@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 import Button from './Button';
 
@@ -45,6 +45,24 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
 
   const isFinished = finishReason !== 'running';
 
+  // Auto-scroll log box to bottom, unless user has scrolled up
+  const logRef = useRef<HTMLDivElement>(null);
+  const userScrolledUp = useRef(false);
+
+  useEffect(() => {
+    const el = logRef.current;
+    if (!el || userScrolledUp.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [logs]);
+
+  const handleLogScroll = () => {
+    const el = logRef.current;
+    if (!el) return;
+    // Consider "at bottom" if within 24px of the bottom
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    userScrolledUp.current = !atBottom;
+  };
+
   return (
     <div className="min-h-screen flex items-center">
       <div className="max-w-150 w-full mx-auto py-8 flex flex-col items-center text-center">
@@ -63,7 +81,16 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
         )}
 
         {/* Log stream */}
-        <div className="w-full h-64 mb-8 bg-gray-800 border-2 border-gray-600 rounded-[5px] p-4 overflow-y-auto text-left font-mono text-sm">
+        <div
+          ref={logRef}
+          role="log"
+          aria-label="Crawl log output"
+          aria-live="polite"
+          aria-relevant="additions"
+          tabIndex={0}
+          onScroll={handleLogScroll}
+          className="w-full h-64 mb-8 bg-gray-800 border-2 border-gray-600 rounded-[5px] p-4 overflow-y-auto text-left font-mono text-sm focus:outline-none focus:border-white transition-colors"
+        >
           {logs.length === 0 ? (
             <p className="text-gray-400">Waiting for crawler to start...</p>
           ) : (
