@@ -35,13 +35,28 @@ export default function DropdownInput({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [open]);
+  // Local draft allows the user to fully clear the field
+  const displayValue = value === Infinity ? '' : value.toString();
+  const [draft, setDraft] = useState(displayValue);
+
+  // Sync draft when value changes externally (e.g. dropdown selection)
+  useEffect(() => {
+    setDraft(value === Infinity ? '' : value.toString());
+  }, [value]);
 
   const handleInput = (raw: string) => {
+    setDraft(raw);
     const n = parseInt(raw, 10);
-    if (!isNaN(n)) onChange(n);
+    if (!isNaN(n) && n > 0) onChange(n);
   };
 
-  const displayValue = value === Infinity ? '∞' : value.toString();
+  const handleBlur = () => {
+    const n = parseInt(draft, 10);
+    if (isNaN(n) || draft.trim() === '') {
+      onChange(Infinity);
+      setDraft('');
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -50,10 +65,12 @@ export default function DropdownInput({
           <input
             id={id}
             type="text"
-            value={displayValue}
+            value={draft}
             onChange={(e) => handleInput(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="∞"
             aria-label={ariaLabel}
-            className="w-20 h-full px-4 bg-transparent text-white focus:outline-none"
+            className="w-20 h-full px-4 bg-transparent text-white placeholder:text-[#888] focus:outline-none"
           />
           {suffix && (
             <span className="text-[#888] pr-2 select-none" aria-hidden="true">
