@@ -38,7 +38,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
   return (
     <div className="min-h-screen flex items-center">
-      <div className="max-w-150 mx-auto py-4">
+      <div className="w-150 max-w-150 mx-auto py-4">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
         <div className="space-y-6">
           <div>
