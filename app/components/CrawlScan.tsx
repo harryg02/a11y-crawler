@@ -112,7 +112,7 @@ export default function CrawlScan() {
           <div className="flex justify-end pt-4">
             <PrimaryButton
               onClick={() => {
-                console.log('Start scan with:', { scope, startingUrl, maxDepth, timeoutMin, forbiddenWords, excludedScopes });
+                console.log('Start scan with:', { scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes });
               }}
             >
               Start Scan
