@@ -44,7 +44,7 @@ export default function TagInput({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 w-full min-h-[50px] p-2 bg-transparent border-2 border-gray-600 rounded-[5px] hover:border-gray-400 focus-within:border-white transition-colors">
+    <div className="flex flex-wrap items-center gap-2 w-full min-h-[50px] p-2 bg-transparent border-2 border-gray-600 rounded-[5px] hover:border-gray-400 focus-within:border-white hover:focus-within:border-white transition-colors">
       {values.map((value, i) => (
         <Pill key={`${value}-${i}`} label={value} onRemove={() => removePill(i)} />
       ))}
