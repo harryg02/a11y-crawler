@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import Button from './Button';
 
 interface ScanningProps {
@@ -12,10 +13,11 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
   // mock log stream — replace with real backend later
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || isFinished) return;
     const fakeLogs = [
       'Browser launched',
       'Navigating to https://example.com',
@@ -33,21 +35,32 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
       if (i < fakeLogs.length) {
         setLogs(prev => [...prev, fakeLogs[i]]);
         i++;
+      } else {
+        setIsFinished(true);
+        clearInterval(interval);
       }
     }, 800);
     return () => clearInterval(interval);
-  }, [isPaused, logs.length]);
+  }, [isPaused, isFinished, logs.length]);
 
   return (
     <div className="min-h-screen flex items-center">
       <div className="max-w-150 w-full mx-auto py-8 flex flex-col items-center text-center">
 
-        <h1 className="text-3xl font-medium mb-8">Scanning</h1>
+        <h1 className="text-3xl font-medium mb-8">
+          {isFinished ? 'Finished' : 'Scanning'}
+        </h1>
 
-        {/* Spinner placeholder — build component next */}
-        <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-label="Scanning in progress" />
+        {/* Spinner or checkmark */}
+        {isFinished ? (
+          <div className="w-16 h-16 mb-8 rounded-full border-4 border-white flex items-center justify-center" aria-label="Scan complete">
+            <Check size={32} strokeWidth={3} />
+          </div>
+        ) : (
+          <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-label="Scanning in progress" />
+        )}
 
-        {/* LogStream placeholder — build component later */}
+        {/* Log stream */}
         <div className="w-full h-64 mb-8 bg-gray-800 border-2 border-gray-600 rounded-[5px] p-4 overflow-y-auto text-left font-mono text-sm">
           {logs.length === 0 ? (
             <p className="text-gray-400">Waiting for crawler to start...</p>
@@ -60,17 +73,30 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
 
         {/* Action buttons */}
         <div className="flex gap-4">
-          <Button
-            variant="secondary"
-            onClick={() => setIsPaused(!isPaused)}
-          >
-            {isPaused ? 'Resume' : 'Pause'}
-          </Button>
-          <Button
-            onClick={() => onFinish()}
-          >
-            Finish Now
-          </Button>
+          {isFinished ? (
+            <>
+              <Button variant="secondary" onClick={onFinish}>
+                Scan Another Site
+              </Button>
+              <Button disabled>
+                View Results
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setIsPaused(!isPaused)}
+              >
+                {isPaused ? 'Resume' : 'Pause'}
+              </Button>
+              <Button
+                onClick={() => setIsFinished(true)}
+              >
+                Finish Now
+              </Button>
+            </>
+          )}
         </div>
 
       </div>
