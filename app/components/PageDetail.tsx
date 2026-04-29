@@ -49,7 +49,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
   ];
 
   return (
-    <div className="max-w-150 mx-auto py-8 px-4">
+    <div className="max-w-200 mx-auto py-8 px-4">
       {/* Back */}
       <button
         type="button"
@@ -131,7 +131,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
           {violation.wcagTags.map(tag => (
             <li
               key={tag}
-              className="inline-flex items-center h-6 px-2 border border-gray-600 rounded text-sm text-gray-400"
+              className="inline-flex items-center h-6 px-2 border border-gray-300 rounded text-gray-300"
             >
               {tag}
             </li>

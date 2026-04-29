@@ -45,7 +45,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   const domain = getDomain(scan.url);
 
   return (
-    <div className="max-w-150 mx-auto py-8 px-4">
+    <div className="max-w-200 mx-auto py-8 px-4">
       {/* Back */}
       <button
         type="button"
@@ -68,39 +68,35 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
       {/* Stats dashboard */}
       <section aria-labelledby="stats-heading">
         <h2 id="stats-heading" className="sr-only">Scan summary</h2>
-        <div className="flex gap-4 mb-8 flex-wrap">
+        <div className="flex py-8 gap-14 mb-8 flex-wrap">
 
           {/* Total */}
-          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[110px]">
+          <div className="= min-w-[110px]">
             <p className="text-5xl font-bold text-white tabular-nums">{total}</p>
             <h3 className="text-base text-gray-400 mt-1">Total Issues</h3>
           </div>
 
           {/* Severity breakdown */}
-          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 flex-1 min-w-[180px]">
+          <div className="flex-1 min-w-[220px]">
             <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">By Severity</h3>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-base">
-                <span className="text-red-400">Critical</span>
-                <span className="text-white font-medium tabular-nums">{counts.critical}</span>
-              </div>
-              <div className="flex justify-between text-base">
-                <span className="text-orange-400">Serious</span>
-                <span className="text-white font-medium tabular-nums">{counts.serious}</span>
-              </div>
-              <div className="flex justify-between text-base">
-                <span className="text-yellow-400">Moderate</span>
-                <span className="text-white font-medium tabular-nums">{counts.moderate}</span>
-              </div>
-              <div className="flex justify-between text-base">
-                <span className="text-blue-400">Minor</span>
-                <span className="text-white font-medium tabular-nums">{counts.minor}</span>
-              </div>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              {([
+                { label: 'Critical', color: 'text-red-400',    count: counts.critical },
+                { label: 'Serious',  color: 'text-orange-400', count: counts.serious  },
+                { label: 'Moderate', color: 'text-yellow-400', count: counts.moderate },
+                { label: 'Minor',    color: 'text-blue-400',   count: counts.minor    },
+              ] as const).map(({ label, color, count }) => (
+                <div key={label} className="flex items-baseline gap-1 text-base">
+                  <span className={`${color} shrink-0`}>{label}</span>
+                  <span className="flex-1 border-b-2 border-dotted border-gray-400 mb-[3px]" aria-hidden="true" />
+                  <span className="text-white font-medium tabular-nums">{count}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* WCAG conformance */}
-          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[160px]">
+          <div className="min-w-[160px]">
             <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
             <div className="flex flex-wrap gap-2">
               {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
