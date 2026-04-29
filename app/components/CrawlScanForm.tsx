@@ -28,6 +28,7 @@ interface CrawlScanProps {
 
 export default function CrawlScan({ onStart }: CrawlScanProps) {
   const [scope, setScope] = useState('');
+  const [requiresLogin, setRequiresLogin] = useState(false);
   const [startingUrl, setStartingUrl] = useState('');
   const [maxDepth, setMaxDepth] = useState(2);
   const [timeout, setTimeout] = useState(30);
@@ -40,14 +41,14 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     <div className="min-h-screen flex items-center">
       <div className="w-150 max-w-150 mx-auto py-4">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
-        <div className="space-y-6">
+        <div className="space-y-8">
 
           <div>
             <label htmlFor="scope" className="block text-white mb-1">
               Site to Scan
             </label>
             <p className="text-gray-400 text-base mb-2">
-              The crawler will visit pages and sub pages within this URL.
+              The crawler will scan pages and sub pages within this URL.
             </p>
             <TextField
               id="scope"
@@ -60,19 +61,42 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
           </div>
 
           <div>
-            <label htmlFor="starting-url" className="block text-white mb-1">
-              Specify Starting Page
-            </label>
-            <p className="text-gray-400 text-base mb-2">
-              The crawler opens this page first and waits, log in here if needed.
-            </p>
-            <TextField
-              id="starting-url"
-              icon={<Link size={20} />}
-              value={startingUrl}
-              onChange={setStartingUrl}
-              type="url"
-            />
+            <div className="flex items-center gap-3">
+              <div className="relative w-5 h-5 shrink-0">
+                <input
+                  type="checkbox"
+                  id="requires-login"
+                  checked={requiresLogin}
+                  onChange={(e) => {
+                    setRequiresLogin(e.target.checked);
+                    if (!e.target.checked) setStartingUrl('');
+                  }}
+                  className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-600 bg-gray-800 checked:bg-white checked:border-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950"
+                />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-gray-800 leading-none">✓</span>
+              </div>
+              <label htmlFor="requires-login" className="text-white cursor-pointer">
+                This site requires login
+              </label>
+            </div>
+
+            {requiresLogin && (
+              <div className="mt-4 ml-2 pl-4 border-l-2 border-gray-600">
+                <label htmlFor="starting-url" className="block text-white mb-1">
+                  Specify Starting Page
+                </label>
+                <p className="text-gray-400 text-base mb-2">
+                  The crawler opens this page first and waits, log in here if needed.
+                </p>
+                <TextField
+                  id="starting-url"
+                  icon={<Link size={20} />}
+                  value={startingUrl}
+                  onChange={setStartingUrl}
+                  type="url"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex gap-12">
