@@ -277,23 +277,25 @@ test('crawl and scan', async ({ page }) => {
   await page.goto(START_URL);
 
   const signalFile = path.join(process.cwd(), '.login-complete');
-  if (fs.existsSync(signalFile)) fs.unlinkSync(signalFile);
 
-  console.log('');
-  console.log('════════════════════════════════════');
-  console.log('  Log in in the browser if needed, then run:');
-  console.log('    touch .login-complete');
-  console.log('  (or create a file named .login-complete in the project root)');
-  console.log('════════════════════════════════════');
-  console.log('');
+  if (START_URL) {
+    if (fs.existsSync(signalFile)) fs.unlinkSync(signalFile);
 
-  // poll for the signal file
-  while (!fs.existsSync(signalFile)) {
-    await page.waitForTimeout(500);
+    console.log('');
+    console.log('════════════════════════════════════');
+    console.log('  Log in in the browser if needed, then run:');
+    console.log('    touch .login-complete');
+    console.log('  (or create a file named .login-complete in the project root)');
+    console.log('════════════════════════════════════');
+    console.log('');
+
+    while (!fs.existsSync(signalFile)) {
+      await page.waitForTimeout(500);
+    }
+
+    fs.unlinkSync(signalFile);  // clean up
+    console.log('Login signal received, starting crawl...');
   }
-
-  fs.unlinkSync(signalFile);  // clean up
-  console.log('Login signal received, starting crawl...');
 
   while (queue.length > 0 && visited.size < MAX_PAGES) {
     const url = queue.shift()!;
