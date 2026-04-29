@@ -46,7 +46,7 @@ export default function HistoryList({ scans, onSelectScan }: HistoryListProps) {
                 <button
                   type="button"
                   onClick={() => onSelectScan(scan.id)}
-                  className="w-full text-left bg-gray-800 border-2 border-gray-800 rounded-md p-4 hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950"
+                  className="w-full text-left bg-gray-800 border-2 border-gray-600 rounded-md p-4 hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950"
                   aria-label={`${getDomain(scan.url)}, scanned ${formatDate(scan.date)}, ${scan.pages.length} pages, ${total} violations`}
                 >
                   <div className="flex items-center gap-3">

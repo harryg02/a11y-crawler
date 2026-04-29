@@ -60,8 +60,9 @@ export default function DropdownInput({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center h-[50px] transition-colors">
-        <div className='border-2 border-gray-600 hover:border-gray-400 focus-within:border-white hover:focus-within:border-white items-center flex h-[50px] rounded-l-[5px]'>
+      <div className="group flex items-center h-12.5 border-2 border-gray-600 hover:border-gray-400 focus-within:border-white transition-colors rounded-[5px] overflow-hidden">
+        {/* Input + suffix */}
+        <div className="flex items-center flex-1 h-full">
           <input
             id={id}
             type="text"
@@ -78,12 +79,15 @@ export default function DropdownInput({
             </span>
           )}
         </div>
+        {/* Single separator that tracks the outer border color */}
+        <div className="w-0.5 self-stretch bg-gray-600 group-hover:bg-gray-400 group-focus-within:bg-white transition-colors" aria-hidden="true" />
+        {/* Dropdown trigger */}
         <button
           type="button"
           onClick={() => setOpen(!open)}
           aria-label="Show options"
           aria-expanded={open}
-          className="h-full px-3 flex items-center text-white border-2 border-gray-800 bg-gray-800 hover:border-gray-400 focus-within:border-white hover:focus-within:border-white transition-colors rounded-r-[5px]"
+          className="h-full px-3 flex items-center text-white bg-gray-800 focus:outline-none"
         >
           <ChevronDown size={20} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
@@ -92,7 +96,7 @@ export default function DropdownInput({
       {open && (
         <ul
           role="listbox"
-          className="absolute top-full left-0 right-0 mt-1 bg-gray-800 rounded-[5px] overflow-hidden z-10 shadow-lg"
+          className="absolute top-full left-0 right-0 mt-1 border-2 border-gray-600 bg-gray-800 rounded-[5px] overflow-hidden z-10 shadow-lg"
         >
           {options.map((opt) => (
             <li key={opt.value}>
