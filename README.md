@@ -105,11 +105,30 @@ const BLOCKED_PATTERNS = [
 ```bash
 # Run the crawler (visible browser)
 npx playwright test --project=chromium --headed
-
-# The browser will open and navigate to START_URL
-# If redirected to a login page, enter your credentials in the browser
-# The crawler will automatically continue once login is detected
 ```
+
+The browser will open and navigate to `START_URL`. The crawler then pauses and waits for you to signal that you're ready to continue.
+
+### Logging in (required every run)
+
+When the browser opens, you'll see this prompt in the terminal:
+
+```
+════════════════════════════════════
+  Log in in the browser if needed, then run:
+    touch .login-complete
+  (or create a file named .login-complete in the project root)
+════════════════════════════════════
+```
+
+1. Log in to the application in the browser window (or skip this step if no login is needed)
+2. Once you're ready, open a second terminal in the project root and run:
+
+```bash
+touch .login-complete
+```
+
+The crawler will detect this file, delete it, and immediately begin crawling. You don't need to do anything else — just keep the browser window visible so you can monitor progress.
 
 ### Windows
 
@@ -117,8 +136,7 @@ Not implemented yet
 
 ### Linux / macOS
 
-
-# run the command above directly
+Run the command above directly.
 
 ## Output
 
