@@ -14,7 +14,7 @@ During accessibility audits, a human tester must manually navigate to every page
 2. Finds all interactive elements on each page (buttons, tabs, dropdowns, modals, selects, etc.)
 3. Clicks each interactive element and scans the resulting DOM state with axe-core
 4. Generates a report with violations grouped by route pattern, cross-page violation patterns, and high-risk element detection
-5. Pauses at login pages so you can manually enter credentials, then continues automatically
+5. Opens a real browser window so you can log in manually, then signals the crawler to continue
 
 This does not replace manual accessibility testing, such as screen reader behavior, keyboard navigation flow, and contextual judgment require human evaluation. This tool handles the automated scanning portion at scale, helps auditors discover pages they might miss, and lets them focus manual testing effort on the highest-risk areas.
 
@@ -27,15 +27,14 @@ This does not replace manual accessibility testing, such as screen reader behavi
 - Review the `BLOCKED_PATTERNS` configuration and add any URL patterns that should never be visited (e.g., `/delete`, `/remove`, `/payment`)
 - Use a **test or staging environment**, never production
 - Use a **dedicated test account** with non-critical data
-- Be prepared to monitor the browser window — the crawler runs in a visible browser so you can intervene if needed
+- Keep the browser window visible so you can intervene if needed
 
 ## Features
 
 - **Discover all pages and DOM states then run Axe-Core automatically on each link and DOM state**
 - **Link discovery** follows all `<a href>` links within a configurable scope
 - **Interactive element scanning** clicks buttons, tabs, dropdowns, checkboxes, radio buttons, selects, and elements with ARIA roles or event handlers
-- **Authenticated crawling** pauses at login pages for manual credential entry, then auto-resumes when login completes
-- **Session loss recovery** detects if the session expires mid-crawl and pauses for re-login
+- **Authenticated crawling** opens a real browser window, pauses for manual login, then resumes when you signal it with `touch .login-complete`
 - **WCAG 2.1 AA scanning** runs axe-core with `wcag2a`, `wcag2aa`, and `wcag21aa` tags on every state
 - **High-risk element detection** flags pages with tables, forms, iframes, videos, and ARIA dialogs
 - **Cross-page violation aggregation** identifies violations that repeat across multiple pages (likely shared components)
@@ -80,7 +79,10 @@ Edit the config section at the top of `tests/example.spec.ts`:
 const START_URL = 'https://your-app.example.com';   // starting URL
 const SCOPE = 'https://your-app.example.com/';       // only crawl URLs under this path
 const MAX_PAGES = Infinity;                           // set a number to limit pages crawled
+const WATCH_MODE = true;                              // true = visual highlights + delays, false = fast silent crawl
 const SLOW_MO = 100;                                  // ms pause between actions (increase to watch more carefully)
+const MAX_INTERACTION_DEPTH = 3;                      // how many levels deep to explore nested interactive states
+const TIMEOUT = 1_800_000;                            // overall test timeout in ms (default: 30 minutes)
 ```
 
 Add any dangerous URL patterns to the blocklist:
@@ -100,14 +102,23 @@ const BLOCKED_PATTERNS = [
 ];
 ```
 
+Exclude specific URLs or URL prefixes from the crawl entirely:
+
+```typescript
+const EXCLUDED_SCOPES: string[] = [
+  'https://your-app.example.com/survey',
+  'https://your-app.example.com/reports/',
+];
+```
+
 ## Usage
 
 ```bash
-# Run the crawler (visible browser)
+# Run the crawler (opens a visible browser window)
 npx playwright test --project=chromium --headed
 ```
 
-The browser will open and navigate to `START_URL`. The crawler then pauses and waits for you to signal that you're ready to continue.
+A Chromium browser window will open and navigate to `START_URL`. The crawler then pauses and waits for you to signal that you're ready to continue.
 
 ### Logging in (required every run)
 
@@ -129,6 +140,8 @@ touch .login-complete
 ```
 
 The crawler will detect this file, delete it, and immediately begin crawling. You don't need to do anything else — just keep the browser window visible so you can monitor progress.
+
+If `START_URL` is empty, the login pause is skipped and the crawler starts immediately.
 
 ### Windows
 
