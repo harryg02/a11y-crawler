@@ -44,11 +44,11 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           <div>
             <label htmlFor="scope" className="block text-white mb-1">
-              Site to scan
+              Site to Scan
             </label>
-            {/* <p className="text-gray-400 text-base mb-2">
-              The crawler will only visit pages within this URL.
-            </p> */}
+            <p className="text-gray-400 text-base mb-2">
+              The crawler will visit pages and sub pages within this URL.
+            </p>
             <TextField
               id="scope"
               icon={<Link size={20} />}
@@ -61,7 +61,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           <div>
             <label htmlFor="starting-url" className="block text-white mb-1">
-              Specify Starting page
+              Specify Starting Page
             </label>
             <p className="text-gray-400 text-base mb-2">
               The crawler opens this page first and waits, log in here if needed.
@@ -81,7 +81,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                 Interaction depth
               </label>
               <p className="text-gray-400 text-base mb-2">
-                e.g. at depth 2: click a button, then click what it reveals, but proceed no further if more button reveals
+                e.g. At depth 2: click a button, then click what it reveals on the same page. 
               </p>
               <NumberStepper
                 id="max-depth"
