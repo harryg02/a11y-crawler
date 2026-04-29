@@ -52,9 +52,9 @@ export default function HistoryList({ scans, onSelectScan }: HistoryListProps) {
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0 flex items-baseline gap-2">
                       <p className="text-lg font-medium text-white shrink-0">{getDomain(scan.url)}</p>
-                      <p className="text-sm text-gray-400 truncate">{formatDate(scan.date)}</p>
+                      <p className="text-base text-gray-400 truncate">{formatDate(scan.date)}</p>
                     </div>
-                    <p className="text-sm text-gray-400 shrink-0 text-right">
+                    <p className="text-base text-gray-400 shrink-0 text-right">
                       {scan.pages.length} pages · {total} violations · {formatDuration(scan.durationSeconds)}
                     </p>
                     <ChevronRight size={18} className="text-gray-500 shrink-0" aria-hidden="true" />

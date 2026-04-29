@@ -62,7 +62,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
       {/* Page header */}
       <h1 className="text-2xl font-medium text-white break-all mb-1">{page.url}</h1>
-      <p className="text-gray-400 mb-6">
+      <p className="text-base text-gray-400 mb-6">
         {page.violations.length === 0
           ? 'No violations on this page'
           : `${page.violations.length} violation${page.violations.length === 1 ? '' : 's'} on this page`}
@@ -82,7 +82,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
               onClick={() => setFilter(f.id)}
               aria-pressed={filter === f.id}
               className={`
-                inline-flex items-center h-8 px-3 rounded-full text-sm border-2 transition-colors
+                inline-flex items-center h-9 px-3 rounded-full text-base border-2 transition-colors
                 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950
                 ${filter === f.id
                   ? 'bg-white text-gray-950 border-white'
@@ -105,7 +105,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
           ))}
         </ul>
       ) : (
-        <p className="text-gray-400 text-center mt-8">No violations for this filter.</p>
+        <p className="text-base text-gray-400 text-center mt-8">No violations for this filter.</p>
       )}
     </div>
   );
@@ -117,7 +117,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
       {/* Header row: severity badge + title */}
       <div className="flex flex-wrap items-start gap-2">
         <span
-          className={`inline-flex items-center h-6 px-2.5 rounded-full text-xs font-medium border-2 capitalize shrink-0 ${SEVERITY_STYLE[violation.impact]}`}
+          className={`inline-flex items-center h-6 px-2.5 rounded-full text-sm font-medium border-2 capitalize shrink-0 ${SEVERITY_STYLE[violation.impact]}`}
           aria-label={`Severity: ${violation.impact}`}
         >
           {violation.impact}
@@ -127,42 +127,46 @@ function ViolationCard({ violation }: { violation: Violation }) {
 
       {/* WCAG tags */}
       {violation.wcagTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5" aria-label="WCAG criteria">
+        <ul className="flex flex-wrap gap-1.5" aria-label="WCAG criteria" role="list">
           {violation.wcagTags.map(tag => (
-            <span
+            <li
               key={tag}
-              className="inline-flex items-center h-6 px-2 border border-gray-600 rounded text-xs text-gray-400"
+              className="inline-flex items-center h-6 px-2 border border-gray-600 rounded text-sm text-gray-400"
             >
               {tag}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Nodes */}
+      {/* Nodes — each is a definition list of Element / Selector / Fix */}
       <div className="space-y-5">
         {violation.nodes.map((node, i) => (
-          <div
+          <dl
             key={i}
             className={`space-y-3 ${i > 0 ? 'border-t border-gray-700 pt-5' : ''}`}
           >
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1.5">Element</p>
-              <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-sm text-green-300 leading-relaxed">
-                <code>{node.html}</code>
-              </pre>
+              <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Element</dt>
+              <dd>
+                <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-base text-green-300 leading-relaxed">
+                  <code>{node.html}</code>
+                </pre>
+              </dd>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1.5">Selector</p>
-              <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-sm text-blue-300 leading-relaxed">
-                <code>{node.selector}</code>
-              </pre>
+              <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Selector</dt>
+              <dd>
+                <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-base text-blue-300 leading-relaxed">
+                  <code>{node.selector}</code>
+                </pre>
+              </dd>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1.5">Fix</p>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{node.failureSummary}</p>
+              <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Fix</dt>
+              <dd className="text-base text-gray-300 whitespace-pre-wrap leading-relaxed">{node.failureSummary}</dd>
             </div>
-          </div>
+          </dl>
         ))}
       </div>
 
@@ -173,10 +177,10 @@ function ViolationCard({ violation }: { violation: Violation }) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Learn more about "${violation.help}" (opens in new window)`}
-          className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded"
+          className="inline-flex items-center gap-1.5 text-base text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded"
         >
           Learn more
-          <ExternalLink size={13} aria-hidden="true" />
+          <ExternalLink size={14} aria-hidden="true" />
         </a>
       </div>
     </article>

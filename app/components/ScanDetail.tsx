@@ -59,55 +59,60 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
       {/* Scan metadata */}
       <div className="mb-6">
         <h1 className="text-3xl font-medium text-white">{domain}</h1>
-        <p className="text-sm text-gray-400 mt-1 break-all">{scan.url}</p>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-base text-gray-400 mt-1 break-all">{scan.url}</p>
+        <p className="text-base text-gray-400 mt-1">
           {formatDate(scan.date)} · {formatDuration(scan.durationSeconds)}
         </p>
       </div>
 
       {/* Stats dashboard */}
-      <div className="flex gap-4 mb-8 flex-wrap">
-        {/* Total */}
-        <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[110px]">
-          <p className="text-5xl font-bold text-white tabular-nums">{total}</p>
-          <p className="text-sm text-gray-400 mt-1">Total Issues</p>
-        </div>
+      <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading" className="sr-only">Scan summary</h2>
+        <div className="flex gap-4 mb-8 flex-wrap">
 
-        {/* Severity breakdown */}
-        <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 flex-1 min-w-[180px]">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">By Severity</p>
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-sm">
-              <span className="text-red-400">Critical</span>
-              <span className="text-white font-medium tabular-nums">{counts.critical}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-orange-400">Serious</span>
-              <span className="text-white font-medium tabular-nums">{counts.serious}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-yellow-400">Moderate</span>
-              <span className="text-white font-medium tabular-nums">{counts.moderate}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-blue-400">Minor</span>
-              <span className="text-white font-medium tabular-nums">{counts.minor}</span>
+          {/* Total */}
+          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[110px]">
+            <p className="text-5xl font-bold text-white tabular-nums">{total}</p>
+            <h3 className="text-base text-gray-400 mt-1">Total Issues</h3>
+          </div>
+
+          {/* Severity breakdown */}
+          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 flex-1 min-w-[180px]">
+            <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">By Severity</h3>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-base">
+                <span className="text-red-400">Critical</span>
+                <span className="text-white font-medium tabular-nums">{counts.critical}</span>
+              </div>
+              <div className="flex justify-between text-base">
+                <span className="text-orange-400">Serious</span>
+                <span className="text-white font-medium tabular-nums">{counts.serious}</span>
+              </div>
+              <div className="flex justify-between text-base">
+                <span className="text-yellow-400">Moderate</span>
+                <span className="text-white font-medium tabular-nums">{counts.moderate}</span>
+              </div>
+              <div className="flex justify-between text-base">
+                <span className="text-blue-400">Minor</span>
+                <span className="text-white font-medium tabular-nums">{counts.minor}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* WCAG conformance */}
-        <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[160px]">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Violations Found In</p>
-          <div className="flex flex-wrap gap-2">
-            {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
-            {wcagLevels.has('AA') && <Pill label="WCAG 2.1 AA" />}
-            {wcagLevels.size === 0 && (
-              <span className="text-sm text-gray-400">Best practice only</span>
-            )}
+          {/* WCAG conformance */}
+          <div className="bg-gray-800 border-2 border-gray-600 rounded-md p-5 min-w-[160px]">
+            <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
+            <div className="flex flex-wrap gap-2">
+              {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
+              {wcagLevels.has('AA') && <Pill label="WCAG 2.1 AA" />}
+              {wcagLevels.size === 0 && (
+                <span className="text-base text-gray-400">Best practice only</span>
+              )}
+            </div>
           </div>
+
         </div>
-      </div>
+      </section>
 
       {/* Pages list */}
       <section aria-labelledby="pages-heading">
@@ -128,22 +133,19 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
                   >
                     <div className="flex items-center gap-3">
                       <span aria-hidden="true" className="text-amber-400 shrink-0 text-base leading-none">⚠</span>
-                      <span className="flex-1 text-sm text-white truncate">{page.url}</span>
-                      <span className="text-sm text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">
+                      <span className="flex-1 text-base text-white truncate">{page.url}</span>
+                      <span className="text-base text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">
                         {page.violations.length}
                       </span>
                       <ChevronRight size={16} className="text-gray-500 shrink-0" aria-hidden="true" />
                     </div>
                   </button>
                 ) : (
-                  <div
-                    className="bg-gray-800 border-2 border-gray-700 rounded-md p-3 opacity-50"
-                    aria-label={`${page.url}: no violations`}
-                  >
+                  <div className="bg-gray-800 border-2 border-gray-700 rounded-md p-3">
                     <div className="flex items-center gap-3">
                       <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>
-                      <span className="flex-1 text-sm text-gray-400 truncate">{page.url}</span>
-                      <span className="text-sm text-gray-500 tabular-nums shrink-0" aria-hidden="true">0</span>
+                      <span className="flex-1 text-base text-gray-400 truncate">{page.url}</span>
+                      <span className="text-base text-gray-600 tabular-nums shrink-0" aria-hidden="true">0</span>
                     </div>
                   </div>
                 )}
