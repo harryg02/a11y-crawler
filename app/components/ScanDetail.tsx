@@ -49,7 +49,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
     <div>
       {/* Sticky back bar */}
       <div className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800">
-        <div className="max-w-200 mx-auto px-4 py-3">
+        <div className="max-w-200 mx-auto px-4 py-1">
           <button
             type="button"
             onClick={onBack}
