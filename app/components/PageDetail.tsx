@@ -100,7 +100,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
         <ul className="space-y-4" role="list">
           {filtered.map((violation, i) => (
             <li key={`${violation.id}-${i}`}>
-              <ViolationCard violation={violation} />
+              <ViolationCard violation={violation} defaultExpanded={filtered.length === 1} />
             </li>
           ))}
         </ul>
@@ -111,8 +111,8 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
   );
 }
 
-function ViolationCard({ violation }: { violation: Violation }) {
-  const [expanded, setExpanded] = useState(false);
+function ViolationCard({ violation, defaultExpanded = false }: { violation: Violation; defaultExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [nodeIndex, setNodeIndex] = useState(0);
   const total = violation.nodes.length;
   const node = violation.nodes[nodeIndex];
