@@ -4,6 +4,7 @@ import path from 'path';
 import { getConfig } from '../lib/crawler/config';
 import { crawl } from '../lib/crawler/index';
 import { generateReport } from '../lib/crawler/reporter';
+import { scanPage } from '../lib/crawler/scanner';
 
 test('crawl and scan', async ({ page }) => {
   const config = getConfig();
@@ -11,7 +12,13 @@ test('crawl and scan', async ({ page }) => {
 
   await page.goto(config.startUrl);
 
+  const preLoginResults = [];
+
   if (config.requiresLogin) {
+    const loginPageResult = await scanPage(page);
+    preLoginResults.push(loginPageResult);
+    console.log(`  → Login page scanned: ${loginPageResult.violations.length} violations`);
+
     const signalFile = path.join(process.cwd(), '.login-complete');
     if (fs.existsSync(signalFile)) fs.unlinkSync(signalFile);
 
@@ -30,5 +37,5 @@ test('crawl and scan', async ({ page }) => {
 
   const startTime = Date.now();
   const results = await crawl(page, config);
-  generateReport(results, config, startTime);
+  generateReport([...preLoginResults, ...results], config, startTime);
 });

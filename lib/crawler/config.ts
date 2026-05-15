@@ -22,9 +22,10 @@ export function getConfig(): CrawlerConfig {
     maxInteractionDepth: process.env.CRAWLER_MAX_DEPTH ? Number(process.env.CRAWLER_MAX_DEPTH) : 3,
     timeout:             process.env.CRAWLER_TIMEOUT ? Number(process.env.CRAWLER_TIMEOUT) : 1_800_000,
     requiresLogin:       process.env.CRAWLER_REQUIRES_LOGIN === 'true',
-    blockedPatterns:     process.env.CRAWLER_BLOCKED
-      ? JSON.parse(process.env.CRAWLER_BLOCKED)
-      : ['/logout', '/delete', '/remove', '/signout', '/sign-out', '/log-out'],
+    blockedPatterns:     [
+      '/logout', '/delete', '/remove', '/signout', '/sign-out', '/log-out',
+      ...(process.env.CRAWLER_BLOCKED ? JSON.parse(process.env.CRAWLER_BLOCKED) : []),
+    ],
     excludedScopes:      process.env.CRAWLER_EXCLUDED
       ? JSON.parse(process.env.CRAWLER_EXCLUDED)
       : [

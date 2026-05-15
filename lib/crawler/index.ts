@@ -3,7 +3,7 @@ import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { scanPage, scanInteractiveElements } from './scanner';
 import { discoverLinks } from './linker';
-import { isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
+import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
 
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
   const visited = new Set<string>();
@@ -16,6 +16,10 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     const url = queue.shift()!;
     const urlBase = getCanonicalUrl(url);
     if (visited.has(urlBase)) continue;
+    if (isBlocked(url, config.blockedPatterns)) {
+      console.log(`  → SKIPPED (blocked): ${url}`);
+      continue;
+    }
     if (isExcluded(url, config.excludedScopes)) {
       console.log(`  → SKIPPED (excluded scope): ${url}`);
       continue;
