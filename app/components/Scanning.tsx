@@ -16,9 +16,6 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
   const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
   const [loggedIn, setLoggedIn] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const isPausedRef = useRef(false);
-
-  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -54,7 +51,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               setFinishReason('completed');
             } else if (text === '__SCAN_ERROR__') {
               setFinishReason('stopped');
-            } else if (text && !isPausedRef.current) {
+            } else if (text) {
               setLogs(prev => [...prev, text]);
             }
           }
@@ -154,7 +151,15 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             <>
               <Button
                 variant="secondary"
-                onClick={() => setIsPaused(!isPaused)}
+                onClick={() => {
+                  if (isPaused) {
+                    fetch('/api/scan/resume', { method: 'POST' });
+                    setIsPaused(false);
+                  } else {
+                    fetch('/api/scan/pause', { method: 'POST' });
+                    setIsPaused(true);
+                  }
+                }}
               >
                 {isPaused ? 'Resume' : 'Pause'}
               </Button>

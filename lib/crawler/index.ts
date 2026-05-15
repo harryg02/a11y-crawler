@@ -1,9 +1,22 @@
 import type { Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { scanPage, scanInteractiveElements } from './scanner';
 import { discoverLinks } from './linker';
 import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
+
+const PAUSE_FILE = path.join(process.cwd(), '.pause');
+
+async function waitIfPaused(page: Page): Promise<void> {
+  if (!fs.existsSync(PAUSE_FILE)) return;
+  console.log('  → PAUSED (waiting for resume)');
+  while (fs.existsSync(PAUSE_FILE)) {
+    await page.waitForTimeout(500);
+  }
+  console.log('  → RESUMED');
+}
 
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
   const visited = new Set<string>();
@@ -25,6 +38,8 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       continue;
     }
     visited.add(urlBase);
+
+    await waitIfPaused(page);
 
     const urlPattern = getRoutePattern(url);
     console.log(`[${visited.size}/${config.maxPages}] Scanning: ${url}`);
