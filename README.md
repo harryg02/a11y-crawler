@@ -1,6 +1,6 @@
-# a11y-crawler
+# A11y Crawler
 
-An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, then runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable states and pages. 
+An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable page and interactive state, and presents results in a browser-based dashboard.
 
 ## Why This Exists
 
@@ -20,14 +20,13 @@ This does not replace manual accessibility testing, such as screen reader behavi
 
 ## ⚠️ Safety Warning
 
-**The crawler can clicks every interactive element it finds.** This includes buttons like "Delete", "Remove", "Grant Access", "Revoke Access", "Submit", "Make Payment", and any other destructive or state-changing actions.
+**The crawler clicks every interactive element it finds**, including buttons labelled "Delete", "Remove", "Pay", "Purchase", and other destructive actions.
 
-**Before running this tool:**
-
-- Review the `BLOCKED_PATTERNS` configuration and add any URL patterns that should never be visited (e.g., `/delete`, `/remove`, `/payment`)
+Before running:
 - Use a **test or staging environment**, never production
 - Use a **dedicated test account** with non-critical data
 - Keep the browser window visible so you can intervene if needed
+- Review the **Buttons to avoid** list in the UI before starting
 
 ## Features
 
@@ -45,147 +44,126 @@ This does not replace manual accessibility testing, such as screen reader behavi
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 or higher
+- macOS 12 or later
+- [Node.js](https://nodejs.org/) 18 or later
 
-## Setup
+### Installing Node.js on Mac
+
+**Option A — Direct download (recommended for beginners):**
+
+1. Go to [nodejs.org](https://nodejs.org/)
+2. Download the macOS installer (LTS version)
+3. Run the `.pkg` file and follow the installer
+
+**Option B — Homebrew:**
 
 ```bash
-# Clone the repository
+# Install Homebrew if you don't have it
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Node.js
+brew install node
+```
+
+Verify the installation:
+
+```bash
+node --version   # should print v18 or higher
+npm --version
+```
+
+---
+
+## Installation
+
+```bash
+# 1. Clone the repository
 git clone <repository-url>
 cd a11y-crawler
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Install browser (first run only)
+# 3. Install the Chromium browser used by the crawler
 npx playwright install chromium
 ```
 
-On Linux, if Chromium fails to launch with missing library errors:
+## Running the App
 
 ```bash
-# Debian/Ubuntu
-sudo npx playwright install-deps
-
-# Arch Linux
-sudo pacman -S nss atk at-spi2-core cups libdrm libxkbcommon mesa libxdamage
+npm run dev
 ```
 
-## Configuration
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Edit the config section at the top of `tests/example.spec.ts`:
+The app runs entirely on your machine. Scan results are saved as JSON files in the `reports/` folder inside the project.
 
-```typescript
-const START_URL = 'https://your-app.example.com';   // starting URL
-const SCOPE = 'https://your-app.example.com/';       // only crawl URLs under this path
-const MAX_PAGES = Infinity;                           // set a number to limit pages crawled
-const WATCH_MODE = true;                              // true = visual highlights + delays, false = fast silent crawl
-const SLOW_MO = 100;                                  // ms pause between actions (increase to watch more carefully)
-const MAX_INTERACTION_DEPTH = 3;                      // how many levels deep to explore nested interactive states
-const TIMEOUT = 1_800_000;                            // overall test timeout in ms (default: 30 minutes)
-```
+> To stop the server, press `Ctrl + C` in the terminal.
 
-Add any dangerous URL patterns to the blocklist:
+---
 
-```typescript
-const BLOCKED_PATTERNS = [
-  '/logout',
-  '/delete',
-  '/remove',
-  '/signout',
-  '/sign-out',
-  '/log-out',
-  // add patterns specific to your application:
-  // '/payment',
-  // '/revoke',
-  // '/grant',
-];
-```
+## How to Use
 
-Exclude specific URLs or URL prefixes from the crawl entirely:
+### 1. Crawl & Scan
 
-```typescript
-const EXCLUDED_SCOPES: string[] = [
-  'https://your-app.example.com/survey',
-  'https://your-app.example.com/reports/',
-];
-```
+- Enter the URL of the site you want to scan
+- If the site requires login, check **This site requires login** and enter the login page URL
+- Optionally open **Advanced options** to adjust interaction depth, time limit, and buttons to avoid
+- Click **Start Scan**
 
-## Usage
+### 2. Login flow (if required)
 
-```bash
-# Run the crawler (opens a visible browser window)
-npx playwright test --project=chromium --headed
-```
+When the scan starts, a Chromium browser window will open automatically. If the site requires login:
 
-A Chromium browser window will open and navigate to `START_URL`. The crawler then pauses and waits for you to signal that you're ready to continue.
+1. Log in manually in the browser window
+2. Click **I've logged in** in the app when ready
 
-### Logging in (required every run)
+The crawler will then begin scanning automatically.
 
-When the browser opens, you'll see this prompt in the terminal:
+### 3. During the scan
 
-```
-════════════════════════════════════
-  Log in in the browser if needed, then run:
-    touch .login-complete
-  (or create a file named .login-complete in the project root)
-════════════════════════════════════
-```
+- Watch live log output in the app
+- Use **Pause** to temporarily stop the crawler between pages
+- Use **Stop** to end the scan early
+- Results are saved automatically when the scan finishes
 
-1. Log in to the application in the browser window (or skip this step if no login is needed)
-2. Once you're ready, open a second terminal in the project root and run:
+### 4. Viewing results
 
-```bash
-touch .login-complete
-```
+Click **View Results** after a scan completes, or open the **History** tab at any time to browse past scans.
 
-The crawler will detect this file, delete it, and immediately begin crawling. You don't need to do anything else — just keep the browser window visible so you can monitor progress.
+Each result shows:
+- Total violations by severity (critical, serious, moderate, minor)
+- WCAG conformance levels affected
+- Per-page breakdown with the specific elements and selectors that failed
+- Fix guidance from axe-core for each violation
 
-If `START_URL` is empty, the login pause is skipped and the crawler starts immediately.
+---
 
-### Windows
+## What It Scans
 
-Not implemented yet
+1. **Every page** reachable by following `<a>` links within the site's URL scope
+2. **Every interactive state** — clicks buttons, tabs, dropdowns, modals, and other elements to expose DOM states that only appear after interaction
+3. **The login page itself** — scanned before you log in, so pre-auth pages are also covered
 
-### Linux / macOS
-
-Run the command above directly.
-
-## Output
-
-### Terminal
-
-Real-time progress including pages scanned, violations found, interactive elements clicked, and links discovered.
-
-### JSON Report
-
-A full structured report is saved to `reports/report-<timestamp>.json` containing:
-
-- Every page URL visited
-- Every interactive state scanned
-- All axe-core violations with WCAG criteria, severity, and instance count
-- High-risk element counts per page
-
-### Console Summary
-
-After the crawl completes:
-
-- **Repeat violations** — violations appearing on multiple pages (likely shared component issues — fix once, fix everywhere)
-- **High-risk elements** — pages containing tables, forms, iframes, and other complex components
-- **Results by route pattern** — deduplicated results grouped by URL template
+---
 
 ## Limitations
 
-- **Automated testing catches approximately 30% of WCAG issues.** This tool cannot detect keyboard trap behavior, screen reader announcement errors, color-only information, or contextual heading structure problems. Manual testing with assistive technology is still required.
-- **Interactive state discovery is not exhaustive.** Some states are only reachable through specific sequences of actions (e.g., filling out a form then clicking submit). The crawler clicks elements individually from the initial page state.
-- **The crawler cannot access pages behind different user roles.** Run separate crawls with different accounts (e.g., student vs. instructor) to cover role-specific pages.
-- **Dynamic selectors may cause duplicate or missed element clicks.** Applications that generate random class names or IDs on each render may produce inconsistent results between runs.
+- Automated testing catches approximately 30% of WCAG issues. Keyboard navigation flow, screen reader announcements, and color-only information require manual testing with assistive technology.
+- The crawler cannot access pages behind different user roles. Run separate scans with different accounts (e.g., student vs. instructor) to cover role-specific pages.
+- Some states are only reachable through specific action sequences (e.g., fill out a form, then submit). The crawler clicks elements individually from the initial page state.
+
+---
 
 ## Tech Stack
 
+- [Next.js](https://nextjs.org/) — frontend dashboard
 - [Playwright](https://playwright.dev/) — browser automation
 - [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright) — WCAG accessibility scanning
+- [Tailwind CSS](https://tailwindcss.com/) — styling
 - TypeScript
+
+---
 
 ## License
 
