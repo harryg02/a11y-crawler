@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, ExternalLink } from 'lucide-react';
 import { PageRecord, ScanRecord, Violation } from '../../lib/types';
 
 interface PageDetailProps {
@@ -112,40 +112,95 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 }
 
 function ViolationCard({ violation }: { violation: Violation }) {
+  const [expanded, setExpanded] = useState(false);
+  const [nodeIndex, setNodeIndex] = useState(0);
+  const total = violation.nodes.length;
+  const node = violation.nodes[nodeIndex];
+
   return (
-    <article className="bg-gray-800 border-2 border-gray-600 rounded-md p-6 space-y-4">
-      {/* Header row: severity badge + title */}
-      <div className="flex flex-wrap items-start gap-2">
+    <article className="bg-gray-800 border-2 border-gray-600 rounded-md overflow-hidden">
+      {/* Collapsed header — always visible, click to toggle */}
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-750 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+      >
         <span
           className={`inline-flex items-center h-6 px-2.5 rounded-full text-sm font-medium border-2 capitalize shrink-0 ${SEVERITY_STYLE[violation.impact]}`}
-          aria-label={`Severity: ${violation.impact}`}
         >
           {violation.impact}
         </span>
-        <h2 className="text-base font-medium text-white leading-snug">{violation.help}</h2>
-      </div>
+        <span className="flex-1 text-base font-medium text-white leading-snug">{violation.help}</span>
+        <span className="text-base text-gray-400 shrink-0">{total}</span>
+        {expanded
+          ? <ChevronDown size={18} className="text-gray-400 shrink-0" aria-hidden="true" />
+          : <ChevronRight size={18} className="text-gray-400 shrink-0" aria-hidden="true" />
+        }
+      </button>
 
-      {/* WCAG tags */}
-      {violation.wcagTags.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label="WCAG criteria" role="list">
-          {violation.wcagTags.map(tag => (
-            <li
-              key={tag}
-              className="inline-flex items-center h-6 px-2 border border-gray-300 rounded text-gray-300"
-            >
-              {tag}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Expanded body */}
+      {expanded && (
+        <div className="border-t border-gray-700 px-4 py-4 space-y-4">
 
-      {/* Nodes — each is a definition list of Element / Selector / Fix */}
-      <div className="space-y-5">
-        {violation.nodes.map((node, i) => (
-          <dl
-            key={i}
-            className={`space-y-3 ${i > 0 ? 'border-t border-gray-700 pt-5' : ''}`}
-          >
+          {/* Node paginator */}
+          {total > 1 && (
+            <div className="flex items-center gap-1" role="group" aria-label="Navigate elements">
+              <button
+                type="button"
+                onClick={() => setNodeIndex(0)}
+                disabled={nodeIndex === 0}
+                aria-label="First element"
+                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+              >
+                <ChevronsLeft size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setNodeIndex(i => Math.max(0, i - 1))}
+                disabled={nodeIndex === 0}
+                aria-label="Previous element"
+                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+              >
+                <ChevronLeft size={16} aria-hidden="true" />
+              </button>
+              <span className="px-2 text-base text-gray-300 min-w-20 text-center" aria-live="polite">
+                {nodeIndex + 1} of {total}
+              </span>
+              <button
+                type="button"
+                onClick={() => setNodeIndex(i => Math.min(total - 1, i + 1))}
+                disabled={nodeIndex === total - 1}
+                aria-label="Next element"
+                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+              >
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setNodeIndex(total - 1)}
+                disabled={nodeIndex === total - 1}
+                aria-label="Last element"
+                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+              >
+                <ChevronsRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          {/* WCAG tags */}
+          {violation.wcagTags.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5" aria-label="WCAG criteria" role="list">
+              {violation.wcagTags.map(tag => (
+                <li key={tag} className="inline-flex items-center h-6 px-2 border border-gray-500 rounded text-sm text-gray-300">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Current node */}
+          <dl className="space-y-3">
             <div>
               <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Element</dt>
               <dd>
@@ -167,22 +222,22 @@ function ViolationCard({ violation }: { violation: Violation }) {
               <dd className="text-base text-gray-300 whitespace-pre-wrap leading-relaxed">{node.failureSummary}</dd>
             </div>
           </dl>
-        ))}
-      </div>
 
-      {/* Learn more */}
-      <div className="pt-3 border-t border-gray-700">
-        <a
-          href={violation.helpUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Learn more about "${violation.help}" (opens in new window)`}
-          className="inline-flex items-center gap-1.5 text-base text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded"
-        >
-          Learn more
-          <ExternalLink size={14} aria-hidden="true" />
-        </a>
-      </div>
+          {/* Learn more */}
+          <div className="pt-2 border-t border-gray-700">
+            <a
+              href={violation.helpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Learn more about "${violation.help}" (opens in new window)`}
+              className="inline-flex items-center gap-1.5 text-base text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded"
+            >
+              Learn more
+              <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
