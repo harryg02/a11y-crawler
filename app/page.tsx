@@ -34,6 +34,7 @@ export default function Page() {
             setCrawlState={setCrawlState}
             config={crawlConfig}
             setConfig={setCrawlConfig}
+            onViewHistory={() => setView('history')}
           />
         </div>
 

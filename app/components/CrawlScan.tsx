@@ -10,14 +10,16 @@ interface CrawlScanProps {
   setCrawlState: (state: CrawlState) => void;
   config: any;
   setConfig: (config: any) => void;
+  onViewHistory: () => void;
 }
 
-export default function CrawlScan({ crawlState, setCrawlState, config, setConfig }: CrawlScanProps) {
+export default function CrawlScan({ crawlState, setCrawlState, config, setConfig, onViewHistory }: CrawlScanProps) {
   if (crawlState === 'scanning') {
     return (
       <Scanning
         config={config}
         onFinish={() => setCrawlState('idle')}
+        onViewResults={() => { setCrawlState('idle'); onViewHistory(); }}
       />
     );
   }

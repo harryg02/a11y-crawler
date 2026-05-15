@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HistoryList from './HistoryList';
 import ScanDetail from './ScanDetail';
 import PageDetail from './PageDetail';
-import { mockScans } from './mockHistoryData';
+import { ScanRecord } from '../../lib/types';
 
 type HistoryView =
   | { type: 'list' }
@@ -13,17 +13,36 @@ type HistoryView =
 
 export default function History() {
   const [view, setView] = useState<HistoryView>({ type: 'list' });
+  const [scans, setScans] = useState<ScanRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/history')
+      .then(res => res.json())
+      .then((data: ScanRecord[]) => setScans(data))
+      .catch(() => setScans([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-200 mx-auto py-8 px-4">
+        <h1 className="text-3xl font-medium mb-6">History</h1>
+        <p className="text-gray-400 text-center mt-16">Loading...</p>
+      </div>
+    );
+  }
 
   if (view.type === 'list') {
     return (
       <HistoryList
-        scans={mockScans}
+        scans={scans}
         onSelectScan={(id) => setView({ type: 'scan', scanId: id })}
       />
     );
   }
 
-  const scan = mockScans.find(s => s.id === view.scanId);
+  const scan = scans.find(s => s.id === view.scanId);
   if (!scan) return null;
 
   if (view.type === 'scan') {

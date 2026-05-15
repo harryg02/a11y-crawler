@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
-import { ScanRecord } from './mockHistoryData';
+import { ScanRecord } from '../../lib/types';
 
 interface HistoryListProps {
   scans: ScanRecord[];

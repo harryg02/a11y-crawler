@@ -7,41 +7,65 @@ import Button from './Button';
 interface ScanningProps {
   config: any;
   onFinish: () => void;
+  onViewResults: () => void;
 }
 
-
-export default function Scanning({ config, onFinish }: ScanningProps) {
+export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
+  const abortRef = useRef<AbortController | null>(null);
+  const isPausedRef = useRef(false);
 
-  // mock log stream — replace with real backend later
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
   useEffect(() => {
-    if (isPaused || finishReason !== 'running') return;
-    const fakeLogs = [
-      'Browser launched',
-      'Navigating to https://example.com',
-      'Login detected — waiting for credentials',
-      'Login complete, starting crawl',
-      'Scanning /home',
-      'Found 3 violations on /home',
-      'Discovering links...',
-      'Queued 12 new pages',
-      'Scanning /about',
-      'No violations on /about',
-    ];
-    let i = logs.length;
-    const interval = setInterval(() => {
-      if (i < fakeLogs.length) {
-        setLogs(prev => [...prev, fakeLogs[i]]);
-        i++;
-      } else {
-        setFinishReason('completed');
-        clearInterval(interval);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    async function run() {
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config),
+          signal: controller.signal,
+        });
+
+        if (!res.ok || !res.body) { setFinishReason('stopped'); return; }
+
+        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += value;
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith('data: ')) continue;
+            const text = line.slice(6);
+            if (text === '__SCAN_COMPLETE__') {
+              setFinishReason('completed');
+            } else if (text === '__SCAN_ERROR__') {
+              setFinishReason('stopped');
+            } else if (text && !isPausedRef.current) {
+              setLogs(prev => [...prev, text]);
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') setFinishReason('stopped');
       }
-    }, 800);
-    return () => clearInterval(interval);
-  }, [isPaused, finishReason, logs.length]);
+    }
+
+    run();
+    return () => controller.abort();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFinished = finishReason !== 'running';
 
@@ -58,7 +82,6 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
   const handleLogScroll = () => {
     const el = logRef.current;
     if (!el) return;
-    // Consider "at bottom" if within 24px of the bottom
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     userScrolledUp.current = !atBottom;
   };
@@ -78,6 +101,18 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
           </div>
         ) : (
           <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-label="Scanning in progress" />
+        )}
+
+        {/* Login prompt — only shown when site requires login and scan is still running */}
+        {!isFinished && config.startingUrl && (
+          <div className="mb-8 text-center">
+            <p className="text-gray-400 text-base mb-3">
+              Log in at the browser window, then click when ready:
+            </p>
+            <Button onClick={() => fetch('/api/scan/login-complete', { method: 'POST' })}>
+              I&apos;ve logged in
+            </Button>
+          </div>
         )}
 
         {/* Log stream */}
@@ -107,7 +142,7 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
               </Button>
-              <Button disabled>
+              <Button onClick={onViewResults}>
                 View Results
               </Button>
             </>
@@ -119,10 +154,8 @@ export default function Scanning({ config, onFinish }: ScanningProps) {
               >
                 {isPaused ? 'Resume' : 'Pause'}
               </Button>
-              <Button
-                onClick={() => setFinishReason('stopped')}
-              >
-                Finish Now
+              <Button onClick={() => { abortRef.current?.abort(); setFinishReason('stopped'); }}>
+                Stop
               </Button>
             </>
           )}

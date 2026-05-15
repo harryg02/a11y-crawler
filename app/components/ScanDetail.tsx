@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ScanRecord } from './mockHistoryData';
+import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 
 interface ScanDetailProps {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ExternalLink } from 'lucide-react';
-import { PageRecord, ScanRecord, Violation } from './mockHistoryData';
+import { PageRecord, ScanRecord, Violation } from '../../lib/types';
 
 interface PageDetailProps {
   page: PageRecord;

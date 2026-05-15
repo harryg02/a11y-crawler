@@ -7,6 +7,10 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
+# Crawler output
+/reports/
+/.login-complete
+
 # Next.js
 .next/
 out/
