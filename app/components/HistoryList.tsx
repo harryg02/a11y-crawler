@@ -57,7 +57,7 @@ export default function HistoryList({ scans, onSelectScan }: HistoryListProps) {
                     <p className="text-base text-gray-400 shrink-0 text-right">
                       {scan.pages.length} pages · {total} violations · {formatDuration(scan.durationSeconds)}
                     </p>
-                    <ChevronRight size={18} className="text-gray-500 shrink-0" aria-hidden="true" />
+                    <ChevronRight size={18} className="text-gray-400 shrink-0" aria-hidden="true" />
                   </div>
                 </button>
               </li>

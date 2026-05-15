@@ -1,6 +1,7 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 
@@ -52,7 +53,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
+            className="inline-flex items-center gap-1 min-h-11 px-2 -ml-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
           >
             <ChevronLeft size={18} aria-hidden="true" />
             <span>Back to History</span>
@@ -121,41 +122,67 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           Pages Scanned ({scan.pages.length})
         </h2>
         <ul className="space-y-2" role="list">
-          {scan.pages.map(page => {
-            const hasViolations = page.violations.length > 0;
-            return (
-              <li key={page.id}>
-                {hasViolations ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectPage(page.id)}
-                    aria-label={`${page.url}: ${page.violations.length} violation${page.violations.length === 1 ? '' : 's'}`}
-                    className="w-full text-left bg-gray-800 border-2 border-gray-600 rounded-md p-3 hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span aria-hidden="true" className="text-amber-400 shrink-0 text-base leading-none">⚠</span>
-                      <span className="flex-1 text-base text-white truncate">{page.url}</span>
-                      <span className="text-base text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">
-                        {page.violations.length}
-                      </span>
-                      <ChevronRight size={16} className="text-gray-500 shrink-0" aria-hidden="true" />
-                    </div>
-                  </button>
-                ) : (
-                  <div className="bg-gray-800 border-2 border-gray-700 rounded-md p-3">
-                    <div className="flex items-center gap-3">
-                      <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>
-                      <span className="flex-1 text-base text-gray-400 truncate">{page.url}</span>
-                      <span className="text-base text-gray-600 tabular-nums shrink-0" aria-hidden="true">0</span>
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
+          {scan.pages.map(page => (
+            <li key={page.id}>
+              <PageRow page={page} onSelectPage={onSelectPage} />
+            </li>
+          ))}
         </ul>
       </section>
     </div>
+    </div>
+  );
+}
+
+function PageRow({ page, onSelectPage }: { page: { id: string; url: string; violations: any[] }; onSelectPage: (id: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const hasViolations = page.violations.length > 0;
+
+  function copyUrl() {
+    navigator.clipboard.writeText(page.url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  const borderColor = hasViolations ? 'border-gray-600' : 'border-gray-700';
+  const icon = hasViolations
+    ? <span aria-hidden="true" className="text-amber-400 shrink-0 text-base leading-none">⚠</span>
+    : <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>;
+
+  return (
+    <div className={`flex items-center gap-1 bg-gray-800 border-2 ${borderColor} rounded-md pr-1`}>
+      {/* Main results button */}
+      {hasViolations ? (
+        <button
+          type="button"
+          onClick={() => onSelectPage(page.id)}
+          aria-label={`View results for ${page.url}: ${page.violations.length} violation${page.violations.length === 1 ? '' : 's'}`}
+          className="flex-1 min-w-0 flex items-center gap-3 p-3 text-left hover:bg-gray-700 rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+        >
+          {icon}
+          <span className="flex-1 text-base text-white truncate">{page.url}</span>
+          <span className="text-base text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
+          <ChevronRight size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+        </button>
+      ) : (
+        <div className="flex-1 min-w-0 flex items-center gap-3 p-3">
+          {icon}
+          <span className="flex-1 text-base text-gray-400 truncate">{page.url}</span>
+          <span className="text-base text-gray-400 tabular-nums shrink-0" aria-hidden="true">0</span>
+        </div>
+      )}
+
+      {/* Copy button */}
+      <div className="flex items-center shrink-0 border-l border-gray-700 ml-1">
+        <button
+          type="button"
+          onClick={copyUrl}
+          aria-label={copied ? 'URL copied' : 'Copy URL'}
+          className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r-md"
+        >
+          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+        </button>
+      </div>
     </div>
   );
 }
