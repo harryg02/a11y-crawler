@@ -49,17 +49,22 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
   ];
 
   return (
-    <div className="max-w-200 mx-auto py-8 px-4">
-      {/* Back */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors mb-6 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
-      >
-        <ChevronLeft size={18} aria-hidden="true" />
-        <span>Back to {domain} scan</span>
-      </button>
+    <div>
+      {/* Sticky back bar */}
+      <div className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800">
+        <div className="max-w-200 mx-auto px-4 py-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
+          >
+            <ChevronLeft size={18} aria-hidden="true" />
+            <span>Back to {domain} scan</span>
+          </button>
+        </div>
+      </div>
 
+    <div className="max-w-200 mx-auto py-8 px-4">
       {/* Page header */}
       <h1 className="text-2xl font-medium text-white break-all mb-1">{page.url}</h1>
       <p className="text-base text-gray-400 mb-6">
@@ -107,6 +112,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
       ) : (
         <p className="text-base text-gray-400 text-center mt-8">No violations for this filter.</p>
       )}
+    </div>
     </div>
   );
 }
