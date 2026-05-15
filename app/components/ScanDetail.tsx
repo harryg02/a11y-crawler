@@ -150,7 +150,7 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
     : <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>;
 
   return (
-    <div className={`flex items-center gap-1 bg-gray-800 border-2 ${borderColor} rounded-md pr-1`}>
+    <div className={`flex items-center bg-gray-800 border-2 ${borderColor} rounded-md`}>
       {/* Main results button */}
       {hasViolations ? (
         <button
@@ -173,12 +173,12 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
       )}
 
       {/* Copy button */}
-      <div className="flex items-center shrink-0 border-l border-gray-700 ml-1">
+      <div className="flex self-stretch shrink-0 border-l border-gray-700">
         <button
           type="button"
           onClick={copyUrl}
           aria-label={copied ? 'URL copied' : 'Copy URL'}
-          className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r-md"
+          className="w-11 self-stretch flex items-center justify-center text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r-md"
         >
           {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
         </button>

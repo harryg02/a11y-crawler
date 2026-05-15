@@ -158,13 +158,13 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
         </button>
 
         {/* Delete button */}
-        <div className="flex items-center shrink-0 border-l border-gray-700">
+        <div className="flex self-stretch shrink-0 border-l border-gray-700">
           <button
             ref={deleteButtonRef}
             type="button"
             onClick={() => setShowDialog(true)}
             aria-label={`Delete scan for ${domain}`}
-            className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r-md"
+            className="w-11 self-stretch flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r"
           >
             <Trash2 size={16} aria-hidden="true" />
           </button>
