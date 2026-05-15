@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Link } from 'lucide-react';
+import { Link, ChevronDown } from 'lucide-react';
 import TextField from './TextField';
 import NumberStepper from './NumberStepper';
 import DropdownInput from './DropdownInput';
@@ -36,6 +36,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     'Log out', 'Grant', 'Access', 'Delete'
   ]);
   const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
     <div className="min-h-screen flex items-center">
@@ -43,6 +44,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
         <div className="space-y-8">
 
+          {/* Site to Scan */}
           <div>
             <label htmlFor="scope" className="block text-white mb-1">
               Site to Scan
@@ -60,6 +62,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
             />
           </div>
 
+          {/* Requires login */}
           <div>
             <div className="flex items-center gap-3">
               <div className="relative w-5 h-5 shrink-0">
@@ -99,71 +102,97 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
             )}
           </div>
 
-          <div className="flex gap-12">
-            <div>
-              <label htmlFor="max-depth" className="block text-white mb-1">
-                Interaction depth
-              </label>
-              <p className="text-gray-400 text-base mb-2">
-                e.g. At depth 2: click a button, then click what it reveals on the same page. 
-              </p>
-              <NumberStepper
-                id="max-depth"
-                value={maxDepth}
-                onChange={setMaxDepth}
-                min={1}
-                max={10}
-                ariaLabel="Interaction depth"
-              />
-            </div>
-            <div>
-              <label htmlFor="timeout" className="block text-white mb-1">
-                Time limit
-              </label>
-              <p className="text-gray-400 text-base mb-2">
-                Stop the scan after this long.
-              </p>
-              <DropdownInput
-                id="timeout"
-                value={timeout}
-                onChange={setTimeout}
-                options={TIMEOUT_OPTIONS}
-                suffix="Min"
-                ariaLabel="Time limit in minutes"
-              />
-            </div>
-          </div>
-
+          {/* Advanced options disclosure */}
           <div>
-            <label htmlFor="forbidden-words" className="block text-white mb-1">
-              Buttons to avoid
-            </label>
-            <p className="text-gray-400 text-base mb-2">
-              The crawler will not clicking on any button that contains these words.
-            </p>
-            <TagInput
-              id="forbidden-words"
-              values={forbiddenWords}
-              onChange={setForbiddenWords}
-              ariaLabel="Buttons to avoid"
-            />
+            <button
+              type="button"
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-options"
+              onClick={() => setShowAdvanced(v => !v)}
+              className="flex items-center gap-2 min-h-11 px-2 -ml-2 text-base text-white border-2 border-transparent rounded transition-colors hover:text-gray-300 focus:outline-none focus:border-white"
+            >
+              <ChevronDown
+                size={18}
+                aria-hidden="true"
+                className={`transition-transform duration-200 ${showAdvanced ? 'rotate-0' : '-rotate-90'}`}
+              />
+              Advanced options
+            </button>
+
+            <div id="advanced-options" hidden={!showAdvanced} className="mt-6 space-y-8">
+
+              {/* Interaction depth + Time limit */}
+              <div className="flex gap-12">
+                <div>
+                  <label htmlFor="max-depth" className="block text-white mb-1">
+                    Interaction depth
+                  </label>
+                  <p className="text-gray-400 text-base mb-2">
+                    At depth 2: click a button, then click what it reveals on the same page.
+                  </p>
+                  <NumberStepper
+                    id="max-depth"
+                    value={maxDepth}
+                    onChange={setMaxDepth}
+                    min={1}
+                    max={10}
+                    ariaLabel="Interaction depth"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="timeout" className="block text-white mb-1">
+                    Time limit
+                  </label>
+                  <p className="text-gray-400 text-base mb-2">
+                    Stop the scan after this long.
+                  </p>
+                  <DropdownInput
+                    id="timeout"
+                    value={timeout}
+                    onChange={setTimeout}
+                    options={TIMEOUT_OPTIONS}
+                    suffix="Min"
+                    ariaLabel="Time limit in minutes"
+                  />
+                </div>
+              </div>
+
+              {/* Buttons to avoid */}
+              <div>
+                <label htmlFor="forbidden-words" className="block text-white mb-1">
+                  Buttons to avoid
+                </label>
+                <p className="text-gray-400 text-base mb-2">
+                  The crawler will not click any button containing these words.
+                </p>
+                <TagInput
+                  id="forbidden-words"
+                  values={forbiddenWords}
+                  onChange={setForbiddenWords}
+                  ariaLabel="Buttons to avoid"
+                />
+              </div>
+
+              {/* Skip URLs */}
+              <div>
+                <label htmlFor="exclude-scope" className="block text-white mb-1">
+                  Skip these URLs
+                </label>
+                <p className="text-gray-400 text-base mb-2">
+                  Pages matching these addresses will not be scanned.
+                </p>
+                <TagInput
+                  id="exclude-scope"
+                  values={excludedScopes}
+                  onChange={setExcludedScopes}
+                  ariaLabel="URLs to skip"
+                />
+              </div>
+
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="exclude-scope" className="block text-white mb-1">
-              Skip Scanning these URLs
-            </label>
-            {/* <p className="text-gray-400 text-base mb-2">
-              Pages with these addresses will not be scanned.
-            </p> */}
-            <TagInput
-              id="exclude-scope"
-              values={excludedScopes}
-              onChange={setExcludedScopes}
-              ariaLabel="URLs to skip"
-            />
-          </div>
-
+          {/* Submit */}
           <div className="flex justify-end pt-4">
             <Button onClick={() => onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes })}>
               Start Scan
