@@ -204,7 +204,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
             <div>
               <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Element</dt>
               <dd>
-                <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-base text-green-300 leading-relaxed">
+                <pre className="bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-green-300 leading-relaxed">
                   <code>{node.html}</code>
                 </pre>
               </dd>
@@ -212,7 +212,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
             <div>
               <dt className="text-sm text-gray-400 uppercase tracking-wide mb-1.5">Selector</dt>
               <dd>
-                <pre className="bg-gray-900 rounded p-3 overflow-x-auto text-base text-blue-300 leading-relaxed">
+                <pre className="bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-blue-300 leading-relaxed">
                   <code>{node.selector}</code>
                 </pre>
               </dd>
