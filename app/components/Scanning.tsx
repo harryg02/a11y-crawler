@@ -14,6 +14,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
+  const [loggedIn, setLoggedIn] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const isPausedRef = useRef(false);
 
@@ -103,13 +104,16 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
           <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-label="Scanning in progress" />
         )}
 
-        {/* Login prompt — only shown when site requires login and scan is still running */}
-        {!isFinished && config.startingUrl && (
+        {/* Login prompt — only shown when site requires login, scan is running, and user hasn't confirmed yet */}
+        {!isFinished && config.startingUrl && !loggedIn && (
           <div className="mb-8 text-center">
             <p className="text-gray-400 text-base mb-3">
               Log in at the browser window, then click when ready:
             </p>
-            <Button onClick={() => fetch('/api/scan/login-complete', { method: 'POST' })}>
+            <Button onClick={() => {
+              fetch('/api/scan/login-complete', { method: 'POST' });
+              setLoggedIn(true);
+            }}>
               I&apos;ve logged in
             </Button>
           </div>
