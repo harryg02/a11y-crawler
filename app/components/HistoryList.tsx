@@ -34,12 +34,13 @@ function getTotalViolations(scan: ScanRecord): number {
 
 interface ConfirmDeleteDialogProps {
   domain: string;
+  date: string;
   onConfirm: () => void;
   onCancel: () => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-function ConfirmDeleteDialog({ domain, onConfirm, onCancel, triggerRef }: ConfirmDeleteDialogProps) {
+function ConfirmDeleteDialog({ domain, date, onConfirm, onCancel, triggerRef }: ConfirmDeleteDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -102,7 +103,7 @@ function ConfirmDeleteDialog({ domain, onConfirm, onCancel, triggerRef }: Confir
           Delete scan?
         </h2>
         <p id="delete-dialog-desc" className="text-base text-gray-400 mb-6">
-          The scan result for <span className="text-white font-medium">{domain}</span> will be permanently deleted. This cannot be undone.
+          The scan result for <span className="text-white font-medium">{domain}</span> on <span className="text-white font-medium">{date}</span> will be permanently deleted. This cannot be undone.
         </p>
         <div className="flex gap-3 justify-end">
           <button
@@ -173,6 +174,7 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
       {showDialog && (
         <ConfirmDeleteDialog
           domain={domain}
+          date={formatDate(scan.date)}
           onConfirm={() => { setShowDialog(false); onDelete(scan.id); }}
           onCancel={() => setShowDialog(false)}
           triggerRef={deleteButtonRef}
