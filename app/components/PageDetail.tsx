@@ -145,26 +145,26 @@ function ViolationCard({ violation }: { violation: Violation }) {
 
           {/* Node paginator */}
           {total > 1 && (
-            <div className="flex items-center gap-1" role="group" aria-label="Navigate elements">
+            <div className="flex items-center gap-1.5" role="group" aria-label="Navigate elements">
               <button
                 type="button"
                 onClick={() => setNodeIndex(0)}
                 disabled={nodeIndex === 0}
                 aria-label="First element"
-                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-md bg-gray-700 border-2 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
               >
-                <ChevronsLeft size={16} aria-hidden="true" />
+                <ChevronsLeft size={18} aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={() => setNodeIndex(i => Math.max(0, i - 1))}
                 disabled={nodeIndex === 0}
                 aria-label="Previous element"
-                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-md bg-gray-700 border-2 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
               >
-                <ChevronLeft size={16} aria-hidden="true" />
+                <ChevronLeft size={18} aria-hidden="true" />
               </button>
-              <span className="px-2 text-base text-gray-300 min-w-20 text-center" aria-live="polite">
+              <span className="px-3 text-base text-white min-w-20 text-center tabular-nums" aria-live="polite" aria-atomic="true">
                 {nodeIndex + 1} of {total}
               </span>
               <button
@@ -172,18 +172,18 @@ function ViolationCard({ violation }: { violation: Violation }) {
                 onClick={() => setNodeIndex(i => Math.min(total - 1, i + 1))}
                 disabled={nodeIndex === total - 1}
                 aria-label="Next element"
-                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-md bg-gray-700 border-2 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
               >
-                <ChevronRight size={16} aria-hidden="true" />
+                <ChevronRight size={18} aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={() => setNodeIndex(total - 1)}
                 disabled={nodeIndex === total - 1}
                 aria-label="Last element"
-                className="p-1.5 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-md bg-gray-700 border-2 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
               >
-                <ChevronsRight size={16} aria-hidden="true" />
+                <ChevronsRight size={18} aria-hidden="true" />
               </button>
             </div>
           )}
