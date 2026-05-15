@@ -33,11 +33,18 @@ export default function History() {
     );
   }
 
+  function handleDelete(id: string) {
+    fetch(`/api/history/${id}`, { method: 'DELETE' })
+      .then(() => setScans(prev => prev.filter(s => s.id !== id)))
+      .catch(() => {});
+  }
+
   if (view.type === 'list') {
     return (
       <HistoryList
         scans={scans}
         onSelectScan={(id) => setView({ type: 'scan', scanId: id })}
+        onDelete={handleDelete}
       />
     );
   }
