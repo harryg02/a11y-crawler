@@ -10,7 +10,7 @@ export async function discoverLinks(page: Page, config: CrawlerConfig): Promise<
 
   return [...new Set(
     hrefs.filter(href =>
-      href.startsWith(config.scope) &&
+      href.startsWith(config.crawlBoundary) &&
       !href.includes('#') &&
       !href.startsWith('mailto:') &&
       !href.startsWith('tel:') &&

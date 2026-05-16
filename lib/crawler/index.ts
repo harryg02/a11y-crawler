@@ -19,6 +19,8 @@ async function waitIfPaused(page: Page): Promise<void> {
 }
 
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
+  if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
+
   const visited = new Set<string>();
   const queue: string[] = [config.startUrl];
   const scannedInteractions = new Set<string>();

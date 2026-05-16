@@ -1,5 +1,6 @@
 export interface CrawlerConfig {
   scope: string;
+  crawlBoundary: string;
   startUrl: string;
   maxPages: number;
   watchMode: boolean;
@@ -15,6 +16,7 @@ export function getConfig(): CrawlerConfig {
   const scope = process.env.CRAWLER_SCOPE ?? 'https://umitstest.h5p.com/content';
   return {
     scope,
+    crawlBoundary:       process.env.CRAWLER_BOUNDARY ?? scope,
     startUrl:            process.env.CRAWLER_START_URL ?? scope,
     maxPages:            process.env.CRAWLER_MAX_PAGES ? Number(process.env.CRAWLER_MAX_PAGES) : Infinity,
     watchMode:           process.env.CRAWLER_WATCH_MODE !== 'false',

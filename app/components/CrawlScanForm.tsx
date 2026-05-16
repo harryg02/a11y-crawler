@@ -19,6 +19,7 @@ interface CrawlScanProps {
   onStart: (config: {
     scope: string;
     startingUrl: string;
+    crawlBoundary: string;
     maxDepth: number;
     timeout: number;
     forbiddenWords: string[];
@@ -36,6 +37,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     'Log out', 'Sign out', 'Delete', 'Remove', 'Grant', 'Access',
     'Pay', 'Payment', 'Purchase', 'Buy', 'Checkout', 'Deactivate', 'Disable',
   ]);
+  const [crawlBoundary, setCrawlBoundary] = useState('');
   const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -43,7 +45,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     <div className="min-h-screen flex items-center">
       <div className="w-170 max-w-170 mx-auto py-8">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
-        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes }); }}>
+        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, crawlBoundary, maxDepth, timeout, forbiddenWords, excludedScopes }); }}>
 
           {/* Site to Scan */}
           <div>
@@ -165,6 +167,23 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   id="forbidden-words"
                   values={forbiddenWords}
                   onChange={setForbiddenWords}
+                />
+              </div>
+
+              {/* Crawl boundary */}
+              <div>
+                <label htmlFor="crawl-boundary" className="block text-white mb-1">
+                  Crawl boundary
+                </label>
+                <p className="text-gray-400 text-base mb-2">
+                  By default, the crawler stays within the site URL above. Set this only if you need a different boundary.
+                </p>
+                <TextField
+                  id="crawl-boundary"
+                  icon={<Link size={20} />}
+                  value={crawlBoundary}
+                  onChange={setCrawlBoundary}
+                  type="url"
                 />
               </div>
 

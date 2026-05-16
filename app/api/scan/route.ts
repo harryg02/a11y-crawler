@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 interface ScanConfig {
   scope: string;
   startingUrl: string;
+  crawlBoundary: string;
   maxDepth: number;
   timeout: number;
   forbiddenWords: string[];
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
 
   const crawlerEnv: Record<string, string> = {
     CRAWLER_SCOPE: config.scope,
+    CRAWLER_BOUNDARY: config.crawlBoundary || config.scope,
     CRAWLER_START_URL: config.startingUrl || config.scope,
     CRAWLER_MAX_DEPTH: String(config.maxDepth),
     CRAWLER_TIMEOUT: String(config.timeout * 60 * 1000),
