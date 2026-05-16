@@ -27,8 +27,8 @@ export default function History() {
   if (loading) {
     return (
       <div className="max-w-220 mx-auto p-8">
-        <h1 className="text-3xl font-medium mb-6">History</h1>
-        <p className="text-gray-200 text-center mt-16">Loading...</p>
+        <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">History</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-center mt-16">Loading...</p>
       </div>
     );
   }

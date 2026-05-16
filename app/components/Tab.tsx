@@ -18,11 +18,11 @@ export default function SidebarTab({ icon, label, active = false, onClick }: Sid
         flex items-center gap-3
         w-[240px] h-[50px] px-3
         rounded-[5px]
-        bg-gray-800 text-white
+        bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-white
         border-2
         transition-colors
         cursor-pointer
-        ${active ? 'border-gray-400' : 'border-gray-700 hover:border-gray-100'}
+        ${active ? 'border-gray-500 dark:border-gray-400' : 'border-gray-300 hover:border-gray-500 dark:border-gray-700 dark:hover:border-gray-100'}
       `}
     >
       <span aria-hidden="true" className="w-6 h-6 flex items-center justify-center shrink-0">

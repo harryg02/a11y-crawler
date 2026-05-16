@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Atkinson_Hyperlegible_Next } from 'next/font/google';
+import { ThemeProvider } from './components/ThemeProvider';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,9 +20,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={atkinson.variable}>
+    <html lang="en" className={atkinson.variable} suppressHydrationWarning>
       <body className="font-sans">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )

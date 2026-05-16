@@ -16,9 +16,9 @@ export default function Page() {
   const [crawlConfig, setCrawlConfig] = useState<any>(null);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-900 text-white">
+    <div className="flex h-screen overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
       {/* Sidebar */}
-      <aside className="shrink-0 p-4 flex flex-col gap-3 border-r-2 border-gray-700 overflow-y-auto">
+      <aside className="shrink-0 p-4 flex flex-col gap-3 border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto">
         <h1 className="text-2xl font-medium px-2">A11y Crawler</h1>
         <Tab icon={<Radar size={24} />} label="Crawl & Scan" active={view === 'crawl'} onClick={() => setView('crawl')} />
         <Tab icon={<HistoryIcon size={24} />} label="History" active={view === 'history'} onClick={() => setView('history')} />
@@ -26,7 +26,7 @@ export default function Page() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 bg-gray-950 overflow-y-auto">
+      <main className="flex-1 bg-white dark:bg-gray-950 overflow-y-auto">
         {/* Keep CrawlScan mounted but hidden when not active so state persists */}
         <div className={view === 'crawl' ? '' : 'hidden'}>
           <CrawlScan

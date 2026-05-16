@@ -60,7 +60,7 @@ export default function DropdownInput({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="group flex items-center h-12.5 border-2 border-gray-600 hover:border-gray-400 focus-within:border-white transition-colors rounded-[5px] overflow-hidden">
+      <div className="group flex items-center h-12.5 border-2 border-gray-400 hover:border-gray-600 focus-within:border-gray-900 dark:border-gray-600 dark:hover:border-gray-400 dark:focus-within:border-white transition-colors rounded-[5px] overflow-hidden">
         {/* Input + suffix */}
         <div className="flex items-center flex-1 h-full">
           <input
@@ -71,23 +71,23 @@ export default function DropdownInput({
             onBlur={handleBlur}
             placeholder="∞"
             aria-label={ariaLabel}
-            className="w-20 h-full px-4 bg-transparent text-white placeholder:text-[#888] focus:outline-none"
+            className="w-20 h-full px-4 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[#888] focus:outline-none"
           />
           {suffix && (
-            <span className="text-[#888] pr-2 select-none" aria-hidden="true">
+            <span className="text-gray-500 dark:text-[#888] pr-2 select-none" aria-hidden="true">
               {suffix}
             </span>
           )}
         </div>
         {/* Single separator that tracks the outer border color */}
-        <div className="w-0.5 self-stretch bg-gray-600 group-hover:bg-gray-400 group-focus-within:bg-white transition-colors" aria-hidden="true" />
+        <div className="w-0.5 self-stretch bg-gray-400 group-hover:bg-gray-600 group-focus-within:bg-gray-900 dark:bg-gray-600 dark:group-hover:bg-gray-400 dark:group-focus-within:bg-white transition-colors" aria-hidden="true" />
         {/* Dropdown trigger */}
         <button
           type="button"
           onClick={() => setOpen(!open)}
           aria-label="Show options"
           aria-expanded={open}
-          className="h-full px-3 flex items-center text-white bg-gray-800 focus:outline-none"
+          className="h-full px-3 flex items-center text-gray-900 bg-gray-200 dark:text-white dark:bg-gray-800 focus:outline-none"
         >
           <ChevronDown size={20} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
@@ -96,7 +96,7 @@ export default function DropdownInput({
       {open && (
         <ul
           role="listbox"
-          className="absolute top-full left-0 right-0 mt-1 border-2 border-gray-600 bg-gray-800 rounded-[5px] overflow-hidden z-10 shadow-lg"
+          className="absolute top-full left-0 right-0 mt-1 border-2 border-gray-400 bg-gray-100 dark:border-gray-600 dark:bg-gray-800 rounded-[5px] overflow-hidden z-10 shadow-lg"
         >
           {options.map((opt) => (
             <li key={opt.value}>
@@ -108,7 +108,7 @@ export default function DropdownInput({
                   onChange(opt.value);
                   setOpen(false);
                 }}
-                className={`w-full text-left px-4 py-3 border-2 border-gray-800 hover:border-gray-400 transition-colors ${value === opt.value ? 'text-white' : 'text-[#ccc]'
+                className={`w-full text-left px-4 py-3 border-2 border-gray-100 hover:border-gray-500 dark:border-gray-800 dark:hover:border-gray-400 transition-colors ${value === opt.value ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-[#ccc]'
                   }`}
               >
                 {opt.label}

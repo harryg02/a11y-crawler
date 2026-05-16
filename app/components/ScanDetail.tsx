@@ -53,9 +53,9 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
     <div className="max-w-220 mx-auto p-8">
       {/* Scan metadata */}
       <div className="mb-6">
-        <h1 className="text-3xl font-medium text-white">{domain}</h1>
-        <p className="text-base text-gray-400 mt-1 break-all">{scan.url}</p>
-        <p className="text-base text-gray-400 mt-1">
+        <h1 className="text-3xl font-medium text-gray-900 dark:text-white">{domain}</h1>
+        <p className="text-base text-gray-600 dark:text-gray-400 mt-1 break-all">{scan.url}</p>
+        <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
           {formatDate(scan.date)} · {formatDuration(scan.durationSeconds)}
         </p>
       </div>
@@ -66,24 +66,24 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
           {/* Total */}
           <div className="= min-w-[110px]">
-            <p className="text-5xl font-bold text-white tabular-nums">{total}</p>
-            <h3 className="text-base text-gray-400 mt-1">Total Issues</h3>
+            <p className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{total}</p>
+            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Total Issues</h3>
           </div>
 
           {/* Severity breakdown */}
           <div className="flex-1 min-w-[220px]">
-            <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">By Severity</h3>
+            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">By Severity</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2">
               {([
-                { label: 'Critical', color: 'text-red-400',    count: counts.critical },
-                { label: 'Serious',  color: 'text-orange-400', count: counts.serious  },
-                { label: 'Moderate', color: 'text-yellow-400', count: counts.moderate },
-                { label: 'Minor',    color: 'text-blue-400',   count: counts.minor    },
+                { label: 'Critical', color: 'text-red-700 dark:text-red-400',      count: counts.critical },
+                { label: 'Serious',  color: 'text-orange-700 dark:text-orange-400', count: counts.serious  },
+                { label: 'Moderate', color: 'text-yellow-800 dark:text-yellow-400', count: counts.moderate },
+                { label: 'Minor',    color: 'text-blue-700 dark:text-blue-400',     count: counts.minor    },
               ] as const).map(({ label, color, count }) => (
                 <div key={label} className="flex items-baseline gap-1 text-base">
                   <span className={`${color} shrink-0`}>{label}</span>
                   <span className="flex-1 border-b-2 border-dotted border-gray-400 mb-[3px]" aria-hidden="true" />
-                  <span className="text-white font-medium tabular-nums">{count}</span>
+                  <span className="text-gray-900 dark:text-white font-medium tabular-nums">{count}</span>
                 </div>
               ))}
             </div>
@@ -91,12 +91,12 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
           {/* WCAG conformance */}
           <div className="min-w-[160px]">
-            <h3 className="text-sm text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
+            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
             <div className="flex flex-wrap gap-2">
               {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
               {wcagLevels.has('AA') && <Pill label="WCAG 2.1 AA" />}
               {wcagLevels.size === 0 && (
-                <span className="text-base text-gray-400">Best practice only</span>
+                <span className="text-base text-gray-600 dark:text-gray-400">Best practice only</span>
               )}
             </div>
           </div>
@@ -142,48 +142,48 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
     setTimeout(() => setCopied(false), 1500);
   }
 
-  const borderColor = hasViolations ? 'border-gray-600' : 'border-gray-700';
+  const borderColor = hasViolations ? 'border-gray-400 dark:border-gray-600' : 'border-gray-300 dark:border-gray-700';
   const icon = hasViolations
-    ? <span aria-hidden="true" className="text-amber-400 shrink-0 text-base leading-none">⚠</span>
-    : <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>;
+    ? <span aria-hidden="true" className="text-amber-600 dark:text-amber-400 shrink-0 text-base leading-none">⚠</span>
+    : <span aria-hidden="true" className="text-green-700 dark:text-green-500 shrink-0 text-base leading-none">✓</span>;
 
   const interactionBadge = interaction && (
-    <span className="shrink-0 px-2 py-0.5 rounded bg-gray-700 text-gray-300 text-sm font-medium">
+    <span className="shrink-0 px-2 py-0.5 rounded bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
       clicked &ldquo;{interaction}&rdquo;
     </span>
   );
 
   return (
-    <div className={`flex items-center bg-gray-800 border-2 ${borderColor} rounded-md`}>
+    <div className={`flex items-center bg-gray-200 dark:bg-gray-800 border-2 ${borderColor} rounded-md`}>
       {/* Main results button */}
       {hasViolations ? (
         <button
           type="button"
           onClick={() => onSelectPage(page.id)}
-          className="flex-1 min-w-0 flex items-center gap-3 p-3 text-left hover:bg-gray-700 rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+          className="flex-1 min-w-0 flex items-center gap-3 p-3 text-left hover:bg-gray-300 dark:hover:bg-gray-700 rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white"
         >
           {icon}
-          <span className="flex-1 text-base text-white truncate">{baseUrl}</span>
+          <span className="flex-1 text-base text-gray-900 dark:text-white truncate">{baseUrl}</span>
           {interactionBadge}
-          <span className="text-base text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
-          <ChevronRight size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+          <span className="text-base text-amber-600 dark:text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
+          <ChevronRight size={16} className="text-gray-600 dark:text-gray-400 shrink-0" aria-hidden="true" />
         </button>
       ) : (
         <div className="flex-1 min-w-0 flex items-center gap-3 p-3">
           {icon}
-          <span className="flex-1 text-base text-gray-400 truncate">{baseUrl}</span>
+          <span className="flex-1 text-base text-gray-600 dark:text-gray-400 truncate">{baseUrl}</span>
           {interactionBadge}
-          <span className="text-base text-gray-400 tabular-nums shrink-0" aria-hidden="true">0</span>
+          <span className="text-base text-gray-600 dark:text-gray-400 tabular-nums shrink-0" aria-hidden="true">0</span>
         </div>
       )}
 
       {/* Copy button */}
-      <div className="flex self-stretch shrink-0 border-l border-gray-700">
+      <div className="flex self-stretch shrink-0 border-l border-gray-300 dark:border-gray-700">
         <button
           type="button"
           onClick={copyUrl}
           aria-label={copied ? 'URL copied' : 'Copy URL'}
-          className="w-11 self-stretch flex items-center justify-center text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r-md"
+          className="w-11 self-stretch flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white rounded-r-md"
         >
           {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
         </button>

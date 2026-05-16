@@ -22,9 +22,9 @@ export default function TextField({
   autoFocus,
 }: TextFieldProps) {
   return (
-    <div className="flex items-center gap-3 w-full  px-4 border-2 border-gray-600 rounded-[5px] hover:border-gray-400 focus-within:border-white hover:focus-within:border-white transition-colors">
+    <div className="flex items-center gap-3 w-full px-4 border-2 border-gray-400 rounded-[5px] hover:border-gray-600 focus-within:border-gray-900 hover:focus-within:border-gray-900 dark:border-gray-600 dark:hover:border-gray-400 dark:focus-within:border-white dark:hover:focus-within:border-white transition-colors">
       {icon && (
-        <span aria-hidden="true" className="text-gray-400 shrink-0 flex items-center">
+        <span aria-hidden="true" className="text-gray-500 dark:text-gray-400 shrink-0 flex items-center">
           {icon}
         </span>
       )}
@@ -34,7 +34,7 @@ export default function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={ariaLabel}
-        className="flex-1 bg-transparent h-12.5 text-white focus:outline-none"
+        className="flex-1 bg-transparent h-12.5 text-gray-900 dark:text-white focus:outline-none"
         autoFocus={autoFocus}
       />
     </div>

@@ -49,10 +49,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           {/* Site to Scan */}
           <div>
-            <label htmlFor="scope" className="block text-white mb-1">
+            <label htmlFor="scope" className="block text-gray-900 dark:text-white mb-1">
               Site to Scan
             </label>
-            <p className="text-gray-400 text-base mb-2">
+            <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
               The crawler will scan pages and sub pages within this URL.
             </p>
             <TextField
@@ -64,7 +64,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               autoFocus
             />
             {/\.(html|php)$/i.test(scope) && (
-              <p className="text-amber-400 mt-2">
+              <p className="text-amber-600 dark:text-amber-400 mt-2">
                 Only this page will be scanned. To scan more pages, use the Crawl boundary field in Advanced options.
               </p>
             )}
@@ -81,19 +81,19 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     setRequiresLogin(e.target.checked);
                     if (!e.target.checked) setStartingUrl('');
                   }}
-                  className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-600 bg-gray-800 checked:bg-white checked:border-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950"
+                  className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-400 bg-gray-200 checked:bg-white checked:border-white dark:border-gray-600 dark:bg-gray-800 dark:checked:bg-white dark:checked:border-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950"
                 />
                 <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-gray-800 leading-none">✓</span>
               </div>
-              <span className="text-white">This site requires login</span>
+              <span className="text-gray-900 dark:text-white">This site requires login</span>
             </label>
 
             {requiresLogin && (
-              <div className="mt-4 ml-2 pl-4 border-l-2 border-gray-600">
-                <label htmlFor="starting-url" className="block text-white mb-1">
+              <div className="mt-4 ml-2 pl-4 border-l-2 border-gray-400 dark:border-gray-600">
+                <label htmlFor="starting-url" className="block text-gray-900 dark:text-white mb-1">
                   Specify Starting Page
                 </label>
-                <p className="text-gray-400 text-base mb-2">
+                <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                   The crawler opens this page first and waits, log in here if needed.
                 </p>
                 <TextField
@@ -114,7 +114,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               aria-expanded={showAdvanced}
               aria-controls="advanced-options"
               onClick={() => setShowAdvanced(v => !v)}
-              className="flex items-center gap-2 min-h-11 px-2 -ml-2 text-base text-white border-2 border-transparent rounded transition-colors hover:text-gray-300 focus:outline-none focus:border-white"
+              className="flex items-center gap-2 min-h-11 px-2 -ml-2 text-base text-gray-900 border-2 border-transparent rounded transition-colors hover:text-gray-600 focus:outline-none focus:border-gray-900 dark:text-white dark:hover:text-gray-300 dark:focus:border-white"
             >
               <ChevronDown
                 size={18}
@@ -129,10 +129,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               {/* Interaction depth + Time limit */}
               <div className="flex gap-12">
                 <div>
-                  <label htmlFor="max-depth" className="block text-white mb-1">
+                  <label htmlFor="max-depth" className="block text-gray-900 dark:text-white mb-1">
                     Interaction depth
                   </label>
-                  <p className="text-gray-400 text-base mb-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                     At depth 2: click a button, then click what it reveals on the same page.
                   </p>
                   <NumberStepper
@@ -144,10 +144,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     />
                 </div>
                 <div>
-                  <label htmlFor="timeout" className="block text-white mb-1">
+                  <label htmlFor="timeout" className="block text-gray-900 dark:text-white mb-1">
                     Time limit
                   </label>
-                  <p className="text-gray-400 text-base mb-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                     Stop the scan after this long.
                   </p>
                   <DropdownInput
@@ -162,10 +162,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
               {/* Buttons to avoid */}
               <div>
-                <label htmlFor="forbidden-words" className="block text-white mb-1">
+                <label htmlFor="forbidden-words" className="block text-gray-900 dark:text-white mb-1">
                   Buttons to avoid
                 </label>
-                <p className="text-gray-400 text-base mb-2">
+                <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                   The crawler will not click any button containing these words.
                 </p>
                 <TagInput
@@ -177,10 +177,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
               {/* Crawl boundary */}
               <div>
-                <label htmlFor="crawl-boundary" className="block text-white mb-1">
+                <label htmlFor="crawl-boundary" className="block text-gray-900 dark:text-white mb-1">
                   Crawl boundary
                 </label>
-                <p className="text-gray-400 text-base mb-2">
+                <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                   By default, the crawler stays within the site URL above. Set this only if you need a different boundary.
                 </p>
                 <TextField
@@ -194,10 +194,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
               {/* Skip URLs */}
               <div>
-                <label htmlFor="exclude-scope" className="block text-white mb-1">
+                <label htmlFor="exclude-scope" className="block text-gray-900 dark:text-white mb-1">
                   Skip these URLs
                 </label>
-                <p className="text-gray-400 text-base mb-2">
+                <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
                   Pages matching these addresses will not be scanned.
                 </p>
                 <TagInput

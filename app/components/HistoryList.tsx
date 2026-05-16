@@ -97,27 +97,27 @@ function ConfirmDeleteDialog({ domain, date, onConfirm, onCancel, triggerRef }: 
         aria-describedby="delete-dialog-desc"
         onKeyDown={handleKeyDown}
         onClick={e => e.stopPropagation()}
-        className="bg-gray-900 border-2 border-gray-700 rounded-lg p-6 w-full max-w-sm mx-4 shadow-xl"
+        className="bg-gray-100 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 w-full max-w-sm mx-4 shadow-xl"
       >
-        <h2 id="delete-dialog-title" className="text-lg font-medium text-white mb-2">
+        <h2 id="delete-dialog-title" className="text-lg font-medium text-gray-900 dark:text-white mb-2">
           Delete scan?
         </h2>
-        <p id="delete-dialog-desc" className="text-base text-gray-400 mb-6">
-          The scan result for <span className="text-white font-medium">{domain}</span> on <span className="text-white font-medium">{date}</span> will be permanently deleted. This cannot be undone.
+        <p id="delete-dialog-desc" className="text-base text-gray-600 dark:text-gray-400 mb-6">
+          The scan result for <span className="text-gray-900 dark:text-white font-medium">{domain}</span> on <span className="text-gray-900 dark:text-white font-medium">{date}</span> will be permanently deleted. This cannot be undone.
         </p>
         <div className="flex gap-3 justify-end">
           <button
             ref={cancelRef}
             type="button"
             onClick={() => close('cancel')}
-            className="h-10 px-4 rounded-md text-base font-medium bg-gray-700 text-white border-2 border-gray-600 hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900"
+            className="h-10 px-4 rounded-md text-base font-medium bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-600 hover:border-gray-600 dark:hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={() => close('confirm')}
-            className="h-10 px-4 rounded-md text-base font-medium bg-red-700 text-white border-2 border-red-600 hover:bg-red-600 hover:border-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900"
+            className="h-10 px-4 rounded-md text-base font-medium bg-red-700 text-white border-2 border-red-600 hover:bg-red-600 hover:border-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
           >
             Delete
           </button>
@@ -137,33 +137,33 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
 
   return (
     <>
-      <div className="flex items-center bg-gray-800 border-2 border-gray-600 rounded-md hover:border-gray-400 transition-colors">
+      <div className="flex items-center bg-gray-200 dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 rounded-md hover:border-gray-500 dark:hover:border-gray-400 transition-colors">
         {/* Main row button */}
         <button
           type="button"
           onClick={() => onSelectScan(scan.id)}
-          className="flex-1 min-w-0 text-left p-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-l-md"
+          className="flex-1 min-w-0 text-left p-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white rounded-l-md"
         >
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0 flex items-baseline gap-2">
-              <p className="text-lg font-medium text-white shrink-0">{domain}</p>
-              <p className="text-base text-gray-400 truncate">{formatDate(scan.date)}</p>
+              <p className="text-lg font-medium text-gray-900 dark:text-white shrink-0">{domain}</p>
+              <p className="text-base text-gray-600 dark:text-gray-400 truncate">{formatDate(scan.date)}</p>
             </div>
-            <p className="text-base text-gray-400 shrink-0 text-right">
+            <p className="text-base text-gray-600 dark:text-gray-400 shrink-0 text-right">
               {scan.pages.length} pages · {total} violations · {formatDuration(scan.durationSeconds)}
             </p>
-            <ChevronRight size={18} className="text-gray-400 shrink-0" aria-hidden="true" />
+            <ChevronRight size={18} className="text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true" />
           </div>
         </button>
 
         {/* Delete button */}
-        <div className="flex self-stretch shrink-0 border-l border-gray-700">
+        <div className="flex self-stretch shrink-0 border-l border-gray-300 dark:border-gray-700">
           <button
             ref={deleteButtonRef}
             type="button"
             onClick={() => setShowDialog(true)}
             aria-label={`Delete scan for ${domain}`}
-            className="w-11 self-stretch flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-r"
+            className="w-11 self-stretch flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white rounded-r"
           >
             <Trash2 size={16} aria-hidden="true" />
           </button>
@@ -188,10 +188,10 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
 export default function HistoryList({ scans, onSelectScan, onDelete }: HistoryListProps) {
   return (
     <div className="max-w-220 mx-auto p-8">
-      <h1 className="text-3xl font-medium mb-6">History</h1>
+      <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">History</h1>
 
       {scans.length === 0 ? (
-        <p className="text-gray-400 text-center mt-16">
+        <p className="text-gray-600 dark:text-gray-400 text-center mt-16">
           No scans yet. Run a crawl to see it here.
         </p>
       ) : (
