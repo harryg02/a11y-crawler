@@ -43,7 +43,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     <div className="min-h-screen flex items-center">
       <div className="w-150 max-w-150 mx-auto py-8">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
-        <div className="space-y-8">
+        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes }); }}>
 
           {/* Site to Scan */}
           <div>
@@ -65,11 +65,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           {/* Requires login */}
           <div>
-            <div className="flex items-center gap-3">
+            <label className="flex items-center gap-3 cursor-pointer">
               <div className="relative w-5 h-5 shrink-0">
                 <input
                   type="checkbox"
-                  id="requires-login"
                   checked={requiresLogin}
                   onChange={(e) => {
                     setRequiresLogin(e.target.checked);
@@ -79,10 +78,8 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                 />
                 <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-gray-800 leading-none">✓</span>
               </div>
-              <label htmlFor="requires-login" className="text-white cursor-pointer">
-                This site requires login
-              </label>
-            </div>
+              <span className="text-white">This site requires login</span>
+            </label>
 
             {requiresLogin && (
               <div className="mt-4 ml-2 pl-4 border-l-2 border-gray-600">
@@ -191,12 +188,12 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           {/* Submit */}
           <div className="flex justify-end pt-4">
-            <Button onClick={() => onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes })}>
+            <Button type="submit">
               Start Scan
             </Button>
           </div>
 
-        </div>
+        </form>
       </div>
     </div>
   );
