@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { ChevronRight, Copy, Check } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
+import BackBar from './BackBar';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -47,21 +48,9 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
   return (
     <div>
-      {/* Sticky back bar */}
-      <div className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800">
-        <div className="max-w-200 mx-auto px-4 py-1">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-1 min-h-11 px-2 -ml-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-            <span>Back to History</span>
-          </button>
-        </div>
-      </div>
+      <BackBar label="Back to History" onClick={onBack} />
 
-    <div className="max-w-200 mx-auto py-8 px-4">
+    <div className="max-w-220 mx-auto p-8">
       {/* Scan metadata */}
       <div className="mb-6">
         <h1 className="text-3xl font-medium text-white">{domain}</h1>

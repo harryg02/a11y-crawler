@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, ExternalLink } from 'lucide-react';
+import BackBar from './BackBar';
 import { PageRecord, ScanRecord, Violation } from '../../lib/types';
 
 interface PageDetailProps {
@@ -50,21 +51,9 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
   return (
     <div>
-      {/* Sticky back bar */}
-      <div className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800">
-        <div className="max-w-200 mx-auto px-4 py-1">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-1 min-h-11 px-2 -ml-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-950 rounded"
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-            <span>Back to {domain} scan</span>
-          </button>
-        </div>
-      </div>
+      <BackBar label={`Back to ${domain} scan`} onClick={onBack} />
 
-    <div className="max-w-200 mx-auto py-8 px-4">
+    <div className="max-w-220 mx-auto p-8">
       {/* Page header */}
       <h1 className="text-2xl font-medium text-white break-all mb-1">{page.url}</h1>
       <p className="text-base text-gray-400 mb-6">

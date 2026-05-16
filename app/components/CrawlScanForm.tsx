@@ -41,7 +41,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
   return (
     <div className="min-h-screen flex items-center">
-      <div className="w-150 max-w-150 mx-auto py-8">
+      <div className="w-170 max-w-170 mx-auto py-8">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
         <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, maxDepth, timeout, forbiddenWords, excludedScopes }); }}>
 

@@ -187,7 +187,7 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
 
 export default function HistoryList({ scans, onSelectScan, onDelete }: HistoryListProps) {
   return (
-    <div className="max-w-200 mx-auto py-8 px-4">
+    <div className="max-w-220 mx-auto p-8">
       <h1 className="text-3xl font-medium mb-6">History</h1>
 
       {scans.length === 0 ? (
