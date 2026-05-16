@@ -24,6 +24,7 @@ interface CrawlScanProps {
     timeout: number;
     forbiddenWords: string[];
     excludedScopes: string[];
+    watchMode: boolean;
   }) => void;
 }
 
@@ -39,13 +40,14 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
   ]);
   const [crawlBoundary, setCrawlBoundary] = useState('');
   const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
+  const [watchMode, setWatchMode] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
     <div className="min-h-screen flex items-center">
       <div className="w-170 max-w-170 mx-auto p-8">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
-        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, crawlBoundary, maxDepth, timeout, forbiddenWords, excludedScopes }); }}>
+        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, crawlBoundary, maxDepth, timeout, forbiddenWords, excludedScopes, watchMode }); }}>
 
           {/* Site to Scan */}
           <div>
@@ -205,6 +207,25 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   values={excludedScopes}
                   onChange={setExcludedScopes}
                 />
+              </div>
+
+              {/* Watch mode */}
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative w-5 h-5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={watchMode}
+                      onChange={(e) => setWatchMode(e.target.checked)}
+                      className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-400 bg-gray-200 checked:bg-gray-900 checked:border-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:checked:bg-white dark:checked:border-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950"
+                    />
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-white dark:text-gray-800 leading-none">✓</span>
+                  </div>
+                  <span className="text-gray-900 dark:text-white">Watch mode</span>
+                </label>
+                <p className="text-gray-600 dark:text-gray-400 text-base mt-2 ml-8">
+                  Opens a visible browser so you can watch the crawler navigate and click through pages.
+                </p>
               </div>
 
             </div>

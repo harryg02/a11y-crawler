@@ -6,16 +6,21 @@ import { crawl } from '../lib/crawler/index';
 import { generateReport } from '../lib/crawler/reporter';
 import { scanPage } from '../lib/crawler/scanner';
 
-test('crawl and scan', async ({ page }) => {
+test('crawl and scan', async ({ playwright }) => {
   const config = getConfig();
   test.setTimeout(config.timeout);
 
-  await page.goto(config.startUrl);
-
-  const preLoginResults = [];
+  const preLoginResults: Awaited<ReturnType<typeof scanPage>>[] = [];
+  let storageState: { cookies: any[]; origins: any[] } | undefined;
 
   if (config.requiresLogin) {
-    const loginPageResult = await scanPage(page);
+    // Phase 1: headed browser so the user can log in
+    const headedBrowser = await playwright.chromium.launch({ headless: false });
+    const headedCtx = await headedBrowser.newContext();
+    const loginPage = await headedCtx.newPage();
+    await loginPage.goto(config.startUrl);
+
+    const loginPageResult = await scanPage(loginPage);
     preLoginResults.push(loginPageResult);
     console.log(`  → Login page scanned: ${loginPageResult.violations.length} violations`);
 
@@ -24,18 +29,27 @@ test('crawl and scan', async ({ page }) => {
 
     console.log('');
     console.log('════════════════════════════════════');
-    console.log('  Log in in the browser if needed, then run:');
-    console.log('    touch .login-complete');
-    console.log('  (or create a file named .login-complete in the project root)');
+    console.log('  Log in, then click "I\'ve logged in" in the app');
     console.log('════════════════════════════════════');
     console.log('');
 
-    while (!fs.existsSync(signalFile)) await page.waitForTimeout(500);
+    while (!fs.existsSync(signalFile)) await loginPage.waitForTimeout(500);
     fs.unlinkSync(signalFile);
-    console.log('Login signal received, starting crawl...');
+    console.log('Login complete. Switching to headless crawl...');
+
+    // Save cookies/session, then close headed browser
+    storageState = await headedCtx.storageState();
+    await headedBrowser.close();
   }
+
+  // Phase 2: crawl browser — headless normally, headed in watch mode
+  const browser = await playwright.chromium.launch({ headless: !config.watchMode });
+  const ctx = await browser.newContext(storageState ? { storageState } : {});
+  const page = await ctx.newPage();
 
   const startTime = Date.now();
   const results = await crawl(page, config);
   generateReport([...preLoginResults, ...results], config, startTime);
+
+  await browser.close();
 });

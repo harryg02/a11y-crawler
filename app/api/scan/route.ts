@@ -12,6 +12,7 @@ interface ScanConfig {
   timeout: number;
   forbiddenWords: string[];
   excludedScopes: string[];
+  watchMode: boolean;
 }
 
 export async function POST(req: NextRequest) {
@@ -27,9 +28,8 @@ export async function POST(req: NextRequest) {
     CRAWLER_TIMEOUT: String(config.timeout * 60 * 1000),
     CRAWLER_BLOCKED: JSON.stringify(config.forbiddenWords ?? []),
     CRAWLER_EXCLUDED: JSON.stringify(config.excludedScopes ?? []),
-    CRAWLER_WATCH_MODE: 'false',
+    CRAWLER_WATCH_MODE: config.watchMode ? 'true' : 'false',
     CRAWLER_REQUIRES_LOGIN: requiresLogin ? 'true' : 'false',
-    CRAWLER_HEADLESS: requiresLogin ? 'false' : 'true',
   };
 
   const encoder = new TextEncoder();

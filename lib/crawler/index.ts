@@ -48,7 +48,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
 
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
-      await page.waitForTimeout(config.slowMo);
+      if (config.watchMode) await page.waitForTimeout(config.slowMo);
 
       const links = await discoverLinks(page, config);
       for (const link of links) {
