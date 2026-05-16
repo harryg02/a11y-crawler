@@ -63,6 +63,11 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               type="url"
               autoFocus
             />
+            {/\.(html|php)$/i.test(scope) && (
+              <p className="text-amber-400 mt-2">
+                Only this page will be scanned. To scan more pages, use the Crawl boundary field in Advanced options.
+              </p>
+            )}
           </div>
 
           {/* Requires login */}
