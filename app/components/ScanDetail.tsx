@@ -31,11 +31,11 @@ function formatDuration(seconds: number): string {
 export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailProps) {
   const counts = { critical: 0, serious: 0, moderate: 0, minor: 0 };
   const wcagLevels = new Set<string>();
-  let total = 0;
+  let pagesAffected = 0;
 
   for (const page of scan.pages) {
+    if (page.violations.length > 0) pagesAffected++;
     for (const v of page.violations) {
-      total += v.nodes.length;
       counts[v.impact] += v.nodes.length;
       for (const tag of v.wcagTags) {
         if (tag === 'wcag2aa' || tag === 'wcag21aa') wcagLevels.add('AA');
@@ -44,6 +44,8 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
     }
   }
 
+  const totalPages = scan.pages.length;
+  const pct = totalPages === 0 ? 0 : Math.round((pagesAffected / totalPages) * 100);
   const domain = getDomain(scan.url);
 
   return (
@@ -66,13 +68,13 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
           {/* Total */}
           <div className="= min-w-[110px]">
-            <p className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{total}</p>
-            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Elements Affected</h3>
+            <p className="text-6xl font-bold text-gray-900 dark:text-white tabular-nums">{pct}%</p>
+            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">of {totalPages} pages affected</h3>
           </div>
 
           {/* Severity breakdown */}
           <div className="flex-1 min-w-[220px]">
-            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">By Severity</h3>
+            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Elements by Severity</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2">
               {([
                 { label: 'Critical', color: 'text-red-700 dark:text-red-400',      count: counts.critical },
