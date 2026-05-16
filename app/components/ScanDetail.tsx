@@ -144,7 +144,7 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
 
   const borderColor = hasViolations ? 'border-gray-400 dark:border-gray-600' : 'border-gray-300 dark:border-gray-700';
   const icon = hasViolations
-    ? <span aria-hidden="true" className="text-amber-600 dark:text-amber-400 shrink-0 text-base leading-none">⚠</span>
+    ? <span aria-hidden="true" className="text-amber-700 dark:text-amber-400 shrink-0 text-base leading-none">⚠</span>
     : <span aria-hidden="true" className="text-green-700 dark:text-green-500 shrink-0 text-base leading-none">✓</span>;
 
   const interactionBadge = interaction && (
@@ -165,7 +165,7 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
           {icon}
           <span className="flex-1 text-base text-gray-900 dark:text-white truncate">{baseUrl}</span>
           {interactionBadge}
-          <span className="text-base text-amber-600 dark:text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
+          <span className="text-base text-amber-800 dark:text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
           <ChevronRight size={16} className="text-gray-600 dark:text-gray-400 shrink-0" aria-hidden="true" />
         </button>
       ) : (
