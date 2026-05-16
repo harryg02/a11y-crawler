@@ -35,8 +35,8 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
   for (const page of scan.pages) {
     for (const v of page.violations) {
-      total++;
-      counts[v.impact]++;
+      total += v.nodes.length;
+      counts[v.impact] += v.nodes.length;
       for (const tag of v.wcagTags) {
         if (tag === 'wcag2aa' || tag === 'wcag21aa') wcagLevels.add('AA');
         else if (tag === 'wcag2a' || tag === 'wcag21a') wcagLevels.add('A');
@@ -67,7 +67,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           {/* Total */}
           <div className="= min-w-[110px]">
             <p className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{total}</p>
-            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Total Issues</h3>
+            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Elements Affected</h3>
           </div>
 
           {/* Severity breakdown */}
@@ -165,7 +165,7 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
           {icon}
           <span className="flex-1 text-base text-gray-900 dark:text-white truncate">{baseUrl}</span>
           {interactionBadge}
-          <span className="text-base text-amber-800 dark:text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
+          <span className="text-base text-amber-800 dark:text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.reduce((sum, v) => sum + v.nodes.length, 0)}</span>
           <ChevronRight size={16} className="text-gray-600 dark:text-gray-400 shrink-0" aria-hidden="true" />
         </button>
       ) : (

@@ -30,11 +30,11 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
   const domain = getDomain(scan.url);
 
   const counts = {
-    all:      page.violations.length,
-    critical: page.violations.filter(v => v.impact === 'critical').length,
-    serious:  page.violations.filter(v => v.impact === 'serious').length,
-    moderate: page.violations.filter(v => v.impact === 'moderate').length,
-    minor:    page.violations.filter(v => v.impact === 'minor').length,
+    all:      page.violations.reduce((sum, v) => sum + v.nodes.length, 0),
+    critical: page.violations.filter(v => v.impact === 'critical').reduce((sum, v) => sum + v.nodes.length, 0),
+    serious:  page.violations.filter(v => v.impact === 'serious').reduce((sum, v) => sum + v.nodes.length, 0),
+    moderate: page.violations.filter(v => v.impact === 'moderate').reduce((sum, v) => sum + v.nodes.length, 0),
+    minor:    page.violations.filter(v => v.impact === 'minor').reduce((sum, v) => sum + v.nodes.length, 0),
   };
 
   const filtered = filter === 'all'
@@ -57,9 +57,9 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
       {/* Page header */}
       <h1 className="text-2xl font-medium text-gray-900 dark:text-white break-all mb-1">{page.url}</h1>
       <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
-        {page.violations.length === 0
-          ? 'No violations on this page'
-          : `${page.violations.length} violation${page.violations.length === 1 ? '' : 's'} on this page`}
+        {counts.all === 0
+          ? 'No issues on this page'
+          : `${counts.all} element${counts.all === 1 ? '' : 's'} affected`}
       </p>
 
       {/* Filter bar */}
