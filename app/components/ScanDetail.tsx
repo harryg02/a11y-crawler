@@ -133,9 +133,19 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   );
 }
 
+function parsePageUrl(url: string): { baseUrl: string; interaction: string | null } {
+  const arrowIdx = url.indexOf(' → ');
+  if (arrowIdx === -1) return { baseUrl: url, interaction: null };
+  const baseUrl = url.slice(0, arrowIdx);
+  const rest = url.slice(arrowIdx + 3);
+  const match = rest.match(/^<[^>]+>\s*"(.+)"$/);
+  return { baseUrl, interaction: match ? match[1] : rest };
+}
+
 function PageRow({ page, onSelectPage }: { page: { id: string; url: string; violations: any[] }; onSelectPage: (id: string) => void }) {
   const [copied, setCopied] = useState(false);
   const hasViolations = page.violations.length > 0;
+  const { baseUrl, interaction } = parsePageUrl(page.url);
 
   function copyUrl() {
     navigator.clipboard.writeText(page.url);
@@ -148,6 +158,12 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
     ? <span aria-hidden="true" className="text-amber-400 shrink-0 text-base leading-none">⚠</span>
     : <span aria-hidden="true" className="text-green-500 shrink-0 text-base leading-none">✓</span>;
 
+  const interactionBadge = interaction && (
+    <span className="shrink-0 px-2 py-0.5 rounded bg-gray-700 text-gray-300 text-sm font-medium">
+      clicked &ldquo;{interaction}&rdquo;
+    </span>
+  );
+
   return (
     <div className={`flex items-center bg-gray-800 border-2 ${borderColor} rounded-md`}>
       {/* Main results button */}
@@ -158,14 +174,16 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
           className="flex-1 min-w-0 flex items-center gap-3 p-3 text-left hover:bg-gray-700 rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
         >
           {icon}
-          <span className="flex-1 text-base text-white truncate">{page.url}</span>
+          <span className="flex-1 text-base text-white truncate">{baseUrl}</span>
+          {interactionBadge}
           <span className="text-base text-amber-400 font-medium tabular-nums shrink-0" aria-hidden="true">{page.violations.length}</span>
           <ChevronRight size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
         </button>
       ) : (
         <div className="flex-1 min-w-0 flex items-center gap-3 p-3">
           {icon}
-          <span className="flex-1 text-base text-gray-400 truncate">{page.url}</span>
+          <span className="flex-1 text-base text-gray-400 truncate">{baseUrl}</span>
+          {interactionBadge}
           <span className="text-base text-gray-400 tabular-nums shrink-0" aria-hidden="true">0</span>
         </div>
       )}
