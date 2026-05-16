@@ -81,9 +81,9 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     setRequiresLogin(e.target.checked);
                     if (!e.target.checked) setStartingUrl('');
                   }}
-                  className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-400 bg-gray-200 checked:bg-white checked:border-white dark:border-gray-600 dark:bg-gray-800 dark:checked:bg-white dark:checked:border-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950"
+                  className="peer appearance-none w-5 h-5 cursor-pointer rounded border-2 border-gray-400 bg-gray-200 checked:bg-gray-900 checked:border-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:checked:bg-white dark:checked:border-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950"
                 />
-                <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-gray-800 leading-none">✓</span>
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden peer-checked:flex items-center justify-center text-white dark:text-gray-800 leading-none">✓</span>
               </div>
               <span className="text-gray-900 dark:text-white">This site requires login</span>
             </label>
