@@ -94,11 +94,11 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
         {/* Spinner or checkmark */}
         {isFinished ? (
-          <div className="w-16 h-16 mb-8 rounded-full border-4 border-white flex items-center justify-center" aria-label="Scan complete">
+          <div className="w-16 h-16 mb-8 rounded-full border-4 border-white flex items-center justify-center" aria-hidden="true">
             <Check size={32} strokeWidth={3} />
           </div>
         ) : (
-          <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-label="Scanning in progress" />
+          <div className="w-16 h-16 mb-8 border-4 border-gray-700 border-t-white rounded-full animate-spin" aria-hidden="true" />
         )}
 
         {/* Login prompt — only shown when site requires login, scan is running, and user hasn't confirmed yet */}
@@ -120,7 +120,6 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
         <div
           ref={logRef}
           role="log"
-          aria-label="Crawl log output"
           aria-live="polite"
           aria-relevant="additions"
           tabIndex={0}

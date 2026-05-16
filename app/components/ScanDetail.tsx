@@ -72,8 +72,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
       </div>
 
       {/* Stats dashboard */}
-      <section aria-labelledby="stats-heading">
-        <h2 id="stats-heading" className="sr-only">Scan summary</h2>
+      <section>
         <div className="flex py-8 gap-14 mb-8 flex-wrap">
 
           {/* Total */}
@@ -117,11 +116,11 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
       </section>
 
       {/* Pages list */}
-      <section aria-labelledby="pages-heading">
-        <h2 id="pages-heading" className="text-xl font-medium mb-3">
+      <section>
+        <h2 className="text-xl font-medium mb-3">
           Pages Scanned ({scan.pages.length})
         </h2>
-        <ul className="space-y-2" role="list">
+        <ul className="space-y-2">
           {scan.pages.map(page => (
             <li key={page.id}>
               <PageRow page={page} onSelectPage={onSelectPage} />
@@ -156,7 +155,6 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
         <button
           type="button"
           onClick={() => onSelectPage(page.id)}
-          aria-label={`View results for ${page.url}: ${page.violations.length} violation${page.violations.length === 1 ? '' : 's'}`}
           className="flex-1 min-w-0 flex items-center gap-3 p-3 text-left hover:bg-gray-700 rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
         >
           {icon}

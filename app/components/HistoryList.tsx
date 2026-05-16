@@ -143,7 +143,6 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
           type="button"
           onClick={() => onSelectScan(scan.id)}
           className="flex-1 min-w-0 text-left p-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded-l-md"
-          aria-label={`${domain}, scanned ${formatDate(scan.date)}, ${scan.pages.length} pages, ${total} violations`}
         >
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0 flex items-baseline gap-2">
@@ -196,7 +195,7 @@ export default function HistoryList({ scans, onSelectScan, onDelete }: HistoryLi
           No scans yet. Run a crawl to see it here.
         </p>
       ) : (
-        <ul className="space-y-3" role="list">
+        <ul className="space-y-3">
           {scans.map(scan => (
             <li key={scan.id}>
               <ScanRow scan={scan} onSelectScan={onSelectScan} onDelete={onDelete} />

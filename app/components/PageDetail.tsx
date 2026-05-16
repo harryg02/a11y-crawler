@@ -75,11 +75,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
       {/* Filter bar */}
       {page.violations.length > 0 && (
-        <div
-          className="flex flex-wrap gap-2 mb-6"
-          role="group"
-          aria-label="Filter violations by severity"
-        >
+        <div className="flex flex-wrap gap-2 mb-6">
           {filters.map(f => (
             <button
               key={f.id}
@@ -102,7 +98,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
       {/* Violation list */}
       {filtered.length > 0 ? (
-        <ul className="space-y-4" role="list">
+        <ul className="space-y-4">
           {filtered.map((violation, i) => (
             <li key={`${violation.id}-${i}`}>
               <ViolationCard violation={violation} defaultExpanded={filtered.length === 1} />
@@ -151,7 +147,7 @@ function ViolationCard({ violation, defaultExpanded = false }: { violation: Viol
 
           {/* Node paginator */}
           {total > 1 && (
-            <div className="flex items-center gap-1.5" role="group" aria-label="Navigate elements">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setNodeIndex(0)}
@@ -196,7 +192,7 @@ function ViolationCard({ violation, defaultExpanded = false }: { violation: Viol
 
           {/* WCAG tags */}
           {violation.wcagTags.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5" aria-label="WCAG criteria" role="list">
+            <ul className="flex flex-wrap gap-1.5">
               {violation.wcagTags.map(tag => (
                 <li key={tag} className="inline-flex items-center h-6 px-2 border border-gray-500 rounded text-sm text-gray-300">
                   {tag}
@@ -235,7 +231,6 @@ function ViolationCard({ violation, defaultExpanded = false }: { violation: Viol
               href={violation.helpUrl}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Learn more about "${violation.help}" (opens in new window)`}
               className="inline-flex items-center gap-1.5 text-base text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded"
             >
               Learn more

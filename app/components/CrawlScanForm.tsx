@@ -137,8 +137,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     onChange={setMaxDepth}
                     min={1}
                     max={10}
-                    ariaLabel="Interaction depth"
-                  />
+                    />
                 </div>
                 <div>
                   <label htmlFor="timeout" className="block text-white mb-1">
@@ -153,8 +152,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     onChange={setTimeout}
                     options={TIMEOUT_OPTIONS}
                     suffix="Min"
-                    ariaLabel="Time limit in minutes"
-                  />
+                    />
                 </div>
               </div>
 
@@ -170,7 +168,6 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   id="forbidden-words"
                   values={forbiddenWords}
                   onChange={setForbiddenWords}
-                  ariaLabel="Buttons to avoid"
                 />
               </div>
 
@@ -186,7 +183,6 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   id="exclude-scope"
                   values={excludedScopes}
                   onChange={setExcludedScopes}
-                  ariaLabel="URLs to skip"
                 />
               </div>
 
