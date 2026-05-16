@@ -7,7 +7,7 @@ import Button from './Button';
 interface ScanningProps {
   config: any;
   onFinish: () => void;
-  onViewResults: () => void;
+  onViewResults: (scanId: string | null) => void;
 }
 
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
@@ -15,6 +15,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
   const [isPaused, setIsPaused] = useState(false);
   const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -49,6 +50,9 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             const text = line.slice(6);
             if (text === '__SCAN_COMPLETE__') {
               setFinishReason('completed');
+              fetch('/api/history').then(r => r.json()).then((data: any[]) => {
+                setLatestScanId(data[0]?.id ?? null);
+              }).catch(() => {});
             } else if (text === '__SCAN_ERROR__') {
               setFinishReason('stopped');
             } else if (text) {
@@ -142,7 +146,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
               </Button>
-              <Button onClick={onViewResults}>
+              <Button onClick={() => onViewResults(latestScanId)}>
                 View Results
               </Button>
             </>

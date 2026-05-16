@@ -14,6 +14,7 @@ export default function Page() {
   const [view, setView] = useState<View>('crawl');
   const [crawlState, setCrawlState] = useState<CrawlState>('idle');
   const [crawlConfig, setCrawlConfig] = useState<any>(null);
+  const [initialScanId, setInitialScanId] = useState<string | null>(null);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
@@ -34,11 +35,11 @@ export default function Page() {
             setCrawlState={setCrawlState}
             config={crawlConfig}
             setConfig={setCrawlConfig}
-            onViewHistory={() => setView('history')}
+            onViewResults={(scanId) => { setInitialScanId(scanId); setView('history'); }}
           />
         </div>
 
-        {view === 'history' && <History />}
+        {view === 'history' && <History initialScanId={initialScanId} />}
         {view === 'settings' && <Settings />}
       </main>
     </div>

@@ -11,8 +11,10 @@ type HistoryView =
   | { type: 'scan'; scanId: string }
   | { type: 'page'; scanId: string; pageId: string };
 
-export default function History() {
-  const [view, setView] = useState<HistoryView>({ type: 'list' });
+export default function History({ initialScanId }: { initialScanId?: string | null }) {
+  const [view, setView] = useState<HistoryView>(
+    initialScanId ? { type: 'scan', scanId: initialScanId } : { type: 'list' }
+  );
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
