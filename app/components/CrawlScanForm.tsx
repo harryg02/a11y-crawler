@@ -74,7 +74,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           {/* Requires login */}
           <div>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex items-center gap-3 cursor-pointer min-h-11">
               <div className="relative w-5 h-5 shrink-0">
                 <input
                   type="checkbox"
@@ -211,7 +211,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
               {/* Watch mode */}
               <div>
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer min-h-11">
                   <div className="relative w-5 h-5 shrink-0">
                     <input
                       type="checkbox"
