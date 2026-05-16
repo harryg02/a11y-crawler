@@ -135,7 +135,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                     Interaction depth
                   </label>
                   <p className="text-gray-600 dark:text-gray-400 text-base mb-2">
-                    At depth 2: click a button, then click what it reveals on the same page.
+                    At depth 2: click a button, then click what it reveals on the same page. Higher values slow the scan significantly.
                   </p>
                   <NumberStepper
                     id="max-depth"
