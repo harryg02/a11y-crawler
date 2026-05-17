@@ -34,7 +34,7 @@ export default function Settings() {
                 type="button"
                 onClick={() => setTheme(value)}
                 aria-pressed={theme === value}
-                className={`px-5 py-2 text-base font-medium transition-colors first:rounded-l-[3px] last:rounded-r-[3px] focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:z-10 focus:relative ${
+                className={`px-5 py-2 text-base font-medium transition-colors first:rounded-l-[3px] last:rounded-r-[3px] focus:z-10 focus:relative ${
                   theme === value
                     ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
                     : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800'
