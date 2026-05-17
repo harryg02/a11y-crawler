@@ -115,44 +115,6 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 > To stop the server, press `Ctrl + C` in the terminal.
 
 
-
-## How to Use
-
-### 1. Crawl & Scan
-
-- Enter the URL of the site you want to scan
-- If the site requires login, check **This site requires login** and enter the login page URL
-- Optionally open **Advanced options** to adjust interaction depth, time limit, and buttons to avoid
-- Click **Start Scan**
-
-### 2. Login flow (if required)
-
-When the scan starts, a Chromium browser window will open automatically. If the site requires login:
-
-1. Log in manually in the browser window
-2. Click **I've logged in** in the app when ready
-
-The crawler will then begin scanning automatically.
-
-### 3. During the scan
-
-- Watch live log output in the app
-- Use **Pause** to temporarily stop the crawler between pages
-- Use **Stop** to end the scan early
-- Results are saved automatically when the scan finishes
-
-### 4. Viewing results
-
-Click **View Results** after a scan completes, or open the **History** tab at any time to browse past scans.
-
-Each result shows:
-- Total violations by severity (critical, serious, moderate, minor)
-- WCAG conformance levels affected
-- Per-page breakdown with the specific elements and selectors that failed
-- Fix guidance from axe-core for each violation
-
-
-
 ## What It Scans
 
 1. **Every page** reachable by following `<a>` links within the site's URL scope
