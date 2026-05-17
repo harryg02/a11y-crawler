@@ -20,77 +20,89 @@ This does not replace manual accessibility testing, such as screen reader behavi
 
 ## ⚠️ Safety Warning
 
-**The crawler clicks every interactive element it finds**, including buttons labelled "Delete", "Remove", "Pay", "Purchase", and other destructive actions.
+**If not specify, the crawler may click every interactive element it finds,** This may include "Delete", "Make Payment", etc.
 
 Before running:
 - Use a **test or staging environment**, never production
 - Use a **dedicated test account** with non-critical data
 - Keep the browser window visible so you can intervene if needed
-- Review the **Buttons to avoid** list in the UI before starting
+- Review the **Buttons to avoid** list in the "Advanced options" before starting
 
 ## Features
 
 - **Discover all pages and DOM states then run Axe-Core automatically on each link and DOM state**
 - **Link discovery** follows all `<a href>` links within a configurable scope
 - **Interactive element scanning** clicks buttons, tabs, dropdowns, checkboxes, radio buttons, selects, and elements with ARIA roles or event handlers
-- **Authenticated crawling** opens a real browser window, pauses for manual login, then resumes when you signal it with `touch .login-complete`
+- **Authenticated crawling** opens a real browser window, pauses for manual login.
 - **WCAG 2.1 AA scanning** runs axe-core with `wcag2a`, `wcag2aa`, and `wcag21aa` tags on every state
-- **High-risk element detection** flags pages with tables, forms, iframes, videos, and ARIA dialogs
 - **Cross-page violation aggregation** identifies violations that repeat across multiple pages (likely shared components)
 - **Structural DOM hashing** to identify identical page templates (e.g., dynamically generated course pages), bypassing redundant axe scans while still extracting unique outbound links to ensure complete site coverage.
-- **Route pattern grouping** deduplicates results from pages using the same template (e.g., `/course/:id/dashboard`)
-- **Visual feedback** highlights interactive elements before clicking (red border) so you can watch what the crawler is doing
+- **Visual feedback** In watch mode, highlights interactive elements before clicking (red border) so you can watch what the crawler is doing
 - **Destructive URL blocking** configurable blocklist for logout, delete, and other dangerous URL patterns
 
 ## Prerequisites
 
-- macOS 12 or later
-- [Node.js](https://nodejs.org/) 18 or later
+- macOS, Windows 10+, or Linux
+- [Node.js](https://nodejs.org/) 18 or later (LTS version recommended)
 
-### Installing Node.js on Mac
+### Installing Node.js
 
-**Option A — Direct download (recommended for beginners):**
+**macOS / Linux — direct download:**
 
-1. Go to [nodejs.org](https://nodejs.org/)
-2. Download the macOS installer (LTS version)
-3. Run the `.pkg` file and follow the installer
+1. Go to [nodejs.org](https://nodejs.org/) and download the LTS installer for your platform
+2. Run the installer and follow the steps
 
-**Option B — Homebrew:**
+**macOS — Homebrew:**
 
 ```bash
-# Install Homebrew if you don't have it
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Node.js
 brew install node
 ```
 
-Verify the installation:
+**Linux — package manager:**
+```
+Ubuntu/Debian: sudo apt install nodejs
+CentOS/Fedora/RHEL: sudo dnf install nodejs
+Arch Linux: sudo pacman -S nodejs npm
+```
+
+**Windows:**
+
+1. Go to [nodejs.org](https://nodejs.org/) and download the Windows LTS installer (`.msi`)
+2. Run the installer — keep all default options selected
+
+Verify the installation afterwards:
 
 ```bash
 node --version   # should print v18 or higher
 npm --version
 ```
 
----
 
 ## Installation
 
-```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd a11y-crawler
+### Quick start
 
-# 2. Install dependencies
+After installing Node.js, double-click the launcher for your platform:
+
+| Platform | File |
+|----------|------|
+| macOS | `start.command` |
+| Windows | `start.bat` |
+
+The launcher will automatically install dependencies, download the Chromium browser (first run only), start the app, and open it in your browser.
+
+> If something goes wrong, check `start-error.log` in the project folder for details.
+
+### Manual setup
+
+```bash
+# 1. Install dependencies
 npm install
 
-# 3. Install the Chromium browser used by the crawler
+# 2. Install the Chromium browser used by the crawler
 npx playwright install chromium
-```
 
-## Running the App
-
-```bash
+# 3. Start the app
 npm run dev
 ```
 
@@ -100,7 +112,7 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 
 > To stop the server, press `Ctrl + C` in the terminal.
 
----
+
 
 ## How to Use
 
@@ -137,15 +149,13 @@ Each result shows:
 - Per-page breakdown with the specific elements and selectors that failed
 - Fix guidance from axe-core for each violation
 
----
+
 
 ## What It Scans
 
 1. **Every page** reachable by following `<a>` links within the site's URL scope
 2. **Every interactive state** — clicks buttons, tabs, dropdowns, modals, and other elements to expose DOM states that only appear after interaction
-3. **The login page itself** — scanned before you log in, so pre-auth pages are also covered
 
----
 
 ## Limitations
 
@@ -153,7 +163,6 @@ Each result shows:
 - The crawler cannot access pages behind different user roles. Run separate scans with different accounts (e.g., student vs. instructor) to cover role-specific pages.
 - Some states are only reachable through specific action sequences (e.g., fill out a form, then submit). The crawler clicks elements individually from the initial page state.
 
----
 
 ## Tech Stack
 
@@ -163,7 +172,7 @@ Each result shows:
 - [Tailwind CSS](https://tailwindcss.com/) — styling
 - TypeScript
 
----
+
 
 ## License
 
