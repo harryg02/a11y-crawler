@@ -2,6 +2,8 @@
 
 An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable page and interactive state, and presents results in a browser-based dashboard.
 
+![A11y Crawler screenshot](screenshot.png)
+
 ## Why This Exists
 
 Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page — modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
