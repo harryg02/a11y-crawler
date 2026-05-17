@@ -6,7 +6,7 @@ An automated accessibility auditing tool that discovers all pages and interactiv
 
 ## Why This Exists
 
-Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page — modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
+Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page - modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
 
 During accessibility audits, a human tester must manually navigate to every page, click every interactive element, and run the axe browser extension on each state. This is slow, error-prone, and results in missed pages, especially on large applications with deep navigation structures.
 
@@ -49,18 +49,18 @@ Before running:
 
 ### Installing Node.js
 
-**macOS / Linux — direct download:**
+**macOS / Linux - direct download:**
 
 1. Go to [nodejs.org](https://nodejs.org/) and download the LTS installer for your platform
 2. Run the installer and follow the steps
 
-**macOS — Homebrew:**
+**macOS - Homebrew:**
 
 ```bash
 brew install node
 ```
 
-**Linux — package manager:**
+**Linux - package manager:**
 ```
 Ubuntu/Debian: sudo apt install nodejs
 CentOS/Fedora/RHEL: sudo dnf install nodejs
@@ -70,7 +70,7 @@ Arch Linux: sudo pacman -S nodejs npm
 **Windows:**
 
 1. Go to [nodejs.org](https://nodejs.org/) and download the Windows LTS installer (`.msi`)
-2. Run the installer — keep all default options selected
+2. Run the installer - keep all default options selected
 
 Verify the installation afterwards:
 
@@ -118,7 +118,7 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 ## What It Scans
 
 1. **Every page** reachable by following `<a>` links within the site's URL scope
-2. **Every interactive state** — clicks buttons, tabs, dropdowns, modals, and other elements to expose DOM states that only appear after interaction
+2. **Every interactive state** - clicks buttons, tabs, dropdowns, modals, and other elements to expose DOM states that only appear after interaction
 
 
 ## Limitations
@@ -130,10 +130,10 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 
 ## Tech Stack
 
-- [Next.js](https://nextjs.org/) — frontend dashboard
-- [Playwright](https://playwright.dev/) — browser automation
-- [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright) — WCAG accessibility scanning
-- [Tailwind CSS](https://tailwindcss.com/) — styling
+- [Next.js](https://nextjs.org/) - frontend dashboard
+- [Playwright](https://playwright.dev/) - browser automation
+- [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright) - WCAG accessibility scanning
+- [Tailwind CSS](https://tailwindcss.com/) - styling
 - TypeScript
 
 
