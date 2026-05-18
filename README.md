@@ -6,17 +6,17 @@ An automated accessibility auditing tool that discovers all pages and interactiv
 
 ## Why This Exists
 
-Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page - modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
+Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page. Modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
 
 During accessibility audits, a human tester must manually navigate to every page, click every interactive element, and run the axe browser extension on each state. This is slow, error-prone, and results in missed pages, especially on large applications with deep navigation structures.
 
 **a11y-crawler automates this process:**
 
-1. Discovers all pages by following every `<a>` link within the application scope
+1. Discovers all pages by following every `<a>` link within the application scope.
 2. Finds all interactive elements on each page (buttons, tabs, dropdowns, modals, selects, etc.)
-3. Clicks each interactive element and scans the resulting DOM state with axe-core
-4. Generates a report with violations grouped by route pattern, cross-page violation patterns, and high-risk element detection
-5. Opens a real browser window so you can log in manually, then signals the crawler to continue
+3. Clicks each interactive element and scans the resulting DOM state with axe-core.
+4. Generates a report with violations grouped by route pattern, and cross-page violation patterns.
+5. Opens a real browser window so you can log in to the web app manually, then signals the crawler to continue.
 
 This does not replace manual accessibility testing, such as screen reader behavior, keyboard navigation flow, and contextual judgment require human evaluation. This tool handles the automated scanning portion at scale, helps auditors discover pages they might miss, and lets them focus manual testing effort on the highest-risk areas.
 
