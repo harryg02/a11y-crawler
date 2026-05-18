@@ -82,6 +82,24 @@ npm --version
 
 ## Installation
 
+### Download as a ZIP (without Git)
+
+1. Go to the project page on GitHub
+2. Click the green **Code** button near the top right
+3. Click **Download ZIP**
+4. Unzip the downloaded file:
+   - **Windows:** right-click the ZIP → **Extract All**, then choose a location
+   - **macOS:** double-click the ZIP — it will unzip automatically
+5. You now have a folder called `a11y-crawler-main` (or similar) — remember where it is, you'll need it in the next step
+
+### Clone with Git (if you're comfortable with the terminal)
+
+```bash
+git clone https://github.com/harryg02/a11y-crawler.git
+cd a11y-crawler
+```
+
+
 ### Quick start
 
 After installing Node.js, double-click the launcher for your platform:
