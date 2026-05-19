@@ -45,9 +45,6 @@ export default function TagInput({
 
   return (
     <div className="flex flex-wrap items-center gap-2 w-full min-h-[50px] p-2 bg-transparent border-2 border-gray-400 rounded-[5px] hover:border-gray-600 focus-within:border-gray-900 hover:focus-within:border-gray-900 dark:border-gray-600 dark:hover:border-gray-400 dark:focus-within:border-white dark:hover:focus-within:border-white transition-colors">
-      {values.map((value, i) => (
-        <Pill key={`${value}-${i}`} label={value} onRemove={() => removePill(i)} />
-      ))}
       <input
         id={id}
         type="text"
@@ -56,8 +53,11 @@ export default function TagInput({
         onKeyDown={handleKeyDown}
         onBlur={addPill}
         aria-label={ariaLabel}
-        className="flex-1 min-w-[120px] h-8 px-2 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[#888] focus:outline-none"
+        className="order-last flex-1 min-w-30 h-8 px-2 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[#888] focus:outline-none"
       />
+      {values.map((value, i) => (
+        <Pill key={`${value}-${i}`} label={value} onRemove={() => removePill(i)} />
+      ))}
     </div>
   );
 }
