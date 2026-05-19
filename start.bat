@@ -63,6 +63,11 @@ if %errorlevel% neq 0 (
 )
 echo [OK] Browser ready
 
+:: ── Preflight: trigger Windows Firewall permission dialog early ─────────────
+echo   Checking browser permissions ^(approve any Windows Security popup^)...
+call npx playwright test tests/preflight.spec.ts --project=chromium --reporter=dot >nul 2>&1
+echo [OK] Browser permissions ready
+
 :: ── Open browser after server starts ──────────────────────────────────────
 start "" /b cmd /c "for /l %%i in (1,1,60) do (curl -s http://localhost:3000 >nul 2>&1 && start http://localhost:3000 && exit) & timeout /t 1 >nul"
 
