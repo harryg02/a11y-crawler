@@ -14,7 +14,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
