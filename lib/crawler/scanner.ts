@@ -85,14 +85,17 @@ export async function scanInteractiveElements(
   scannedInteractions: Set<string>,
   config: CrawlerConfig,
   depth = 0,
+  isStopped: () => boolean = () => false,
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
+  if (isStopped()) return [];
   const results: PageResult[] = [];
 
   const clickables = await collectClickables(page);
   console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`);
 
   for (const clickable of clickables) {
+    if (isStopped()) break;
     try {
       const beforeUrl = page.url();
       const el = page.locator(clickable.selector).first();
@@ -151,7 +154,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1);
+      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1, isStopped);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');

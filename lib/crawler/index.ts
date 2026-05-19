@@ -84,7 +84,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       allResults.push(result);
       console.log(`  → ${result.violations.length} violations`);
 
-      const interactiveResults = await scanInteractiveElements(page, scannedInteractions, config);
+      const interactiveResults = await scanInteractiveElements(page, scannedInteractions, config, 0, () => fs.existsSync(STOP_FILE));
       allResults.push(...interactiveResults);
 
     } catch (err) {
