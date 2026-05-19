@@ -211,7 +211,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
               {/* Watch mode */}
               <div>
-                <label className="flex items-center gap-3 cursor-pointer min-h-11">
+                <label className="flex items-center gap-3 cursor-pointer mb-1">
                   <div className="relative w-5 h-5 shrink-0">
                     <input
                       type="checkbox"
@@ -223,7 +223,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   </div>
                   <span className="text-gray-900 dark:text-white">Watch mode</span>
                 </label>
-                <p className="text-gray-600 dark:text-gray-400 text-base mt-2 ml-8">
+                <p className="text-gray-600 dark:text-gray-400 text-base ml-8">
                   Opens a visible browser so you can watch the crawler navigate and click through pages.
                 </p>
               </div>
