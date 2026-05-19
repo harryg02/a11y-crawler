@@ -30,6 +30,9 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Allow the API route to run headless for automated scans, headful for login flows */
+    headless: process.env.CRAWLER_HEADLESS !== 'false',
   },
 
   /* Configure projects for major browsers */

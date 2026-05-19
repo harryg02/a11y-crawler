@@ -1,160 +1,162 @@
-# a11y-crawler
+# A11y Crawler
 
-An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, then runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable states and pages. 
+An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable page and interactive state, and presents results in a browser-based dashboard.
+
+![A11y Crawler screenshot](screenshot.png)
 
 ## Why This Exists
 
-Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page — modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
+Modern web applications built with frameworks like React can have dozens or hundreds of pages, with multiple DOM states on a single page. Modals, dropdowns, tabs, accordions, and other interactive elements that each produce unique accessibility surfaces.
 
 During accessibility audits, a human tester must manually navigate to every page, click every interactive element, and run the axe browser extension on each state. This is slow, error-prone, and results in missed pages, especially on large applications with deep navigation structures.
 
 **a11y-crawler automates this process:**
 
-1. Discovers all pages by following every `<a>` link within the application scope
+1. Discovers all pages by following every `<a>` link within the application scope.
 2. Finds all interactive elements on each page (buttons, tabs, dropdowns, modals, selects, etc.)
-3. Clicks each interactive element and scans the resulting DOM state with axe-core
-4. Generates a report with violations grouped by route pattern, cross-page violation patterns, and high-risk element detection
-5. Pauses at login pages so you can manually enter credentials, then continues automatically
+3. Clicks each interactive element and scans the resulting DOM state with axe-core.
+4. Generates a report with violations grouped by route pattern, and cross-page violation patterns.
+5. Opens a real browser window so you can log in to the web app manually, then signals the crawler to continue.
 
 This does not replace manual accessibility testing, such as screen reader behavior, keyboard navigation flow, and contextual judgment require human evaluation. This tool handles the automated scanning portion at scale, helps auditors discover pages they might miss, and lets them focus manual testing effort on the highest-risk areas.
 
 ## ⚠️ Safety Warning
 
-**The crawler can clicks every interactive element it finds.** This includes buttons like "Delete", "Remove", "Grant Access", "Revoke Access", "Submit", "Make Payment", and any other destructive or state-changing actions.
+**If not specify, the crawler may click every interactive element it finds,** This may include "Delete", "Make Payment", etc.
 
-**Before running this tool:**
-
-- Review the `BLOCKED_PATTERNS` configuration and add any URL patterns that should never be visited (e.g., `/delete`, `/remove`, `/payment`)
+Before running:
 - Use a **test or staging environment**, never production
 - Use a **dedicated test account** with non-critical data
-- Be prepared to monitor the browser window — the crawler runs in a visible browser so you can intervene if needed
+- Keep the browser window visible so you can intervene if needed
+- Review the **Buttons to avoid** list in the "Advanced options" before starting
 
 ## Features
 
 - **Discover all pages and DOM states then run Axe-Core automatically on each link and DOM state**
 - **Link discovery** follows all `<a href>` links within a configurable scope
 - **Interactive element scanning** clicks buttons, tabs, dropdowns, checkboxes, radio buttons, selects, and elements with ARIA roles or event handlers
-- **Authenticated crawling** pauses at login pages for manual credential entry, then auto-resumes when login completes
-- **Session loss recovery** detects if the session expires mid-crawl and pauses for re-login
+- **Authenticated crawling** opens a real browser window, pauses for manual login.
 - **WCAG 2.1 AA scanning** runs axe-core with `wcag2a`, `wcag2aa`, and `wcag21aa` tags on every state
-- **High-risk element detection** flags pages with tables, forms, iframes, videos, and ARIA dialogs
 - **Cross-page violation aggregation** identifies violations that repeat across multiple pages (likely shared components)
 - **Structural DOM hashing** to identify identical page templates (e.g., dynamically generated course pages), bypassing redundant axe scans while still extracting unique outbound links to ensure complete site coverage.
-- **Route pattern grouping** deduplicates results from pages using the same template (e.g., `/course/:id/dashboard`)
-- **Visual feedback** highlights interactive elements before clicking (red border) so you can watch what the crawler is doing
+- **Visual feedback** In watch mode, highlights interactive elements before clicking (red border) so you can watch what the crawler is doing
 - **Destructive URL blocking** configurable blocklist for logout, delete, and other dangerous URL patterns
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 or higher
+- macOS, Windows 10+, or Linux
+- [Node.js](https://nodejs.org/) 18 or later (LTS version recommended)
 
-## Setup
+### Installing Node.js
+
+**macOS / Linux - direct download:**
+
+1. Go to [nodejs.org](https://nodejs.org/) and download the LTS installer for your platform
+2. Run the installer and follow the steps
+
+**macOS - Homebrew:**
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd a11y-crawler
+brew install node
+```
 
-# Install dependencies
+**Linux - package manager:**
+```
+Ubuntu/Debian: sudo apt install nodejs
+CentOS/Fedora/RHEL: sudo dnf install nodejs
+Arch Linux: sudo pacman -S nodejs npm
+```
+
+**Windows:**
+
+1. Go to [nodejs.org](https://nodejs.org/) and download the Windows LTS installer (`.msi`)
+2. Run the installer - keep all default options selected
+
+Verify the installation afterwards:
+
+```bash
+node --version   # should print v18 or higher
+npm --version
+```
+
+
+## Installation
+
+### Download as a ZIP (without Git)
+
+1. Go to the project page on GitHub
+2. Click the green **Code** button near the top right
+3. Click **Download ZIP**
+4. Unzip the downloaded file:
+   - **Windows:** right-click the ZIP → **Extract All**, then choose a location
+   - **macOS:** double-click the ZIP — it will unzip automatically
+5. You now have a folder called `a11y-crawler-main` (or similar) — remember where it is, you'll need it in the next step
+
+### Clone with Git (if you're comfortable with the terminal)
+
+```bash
+git clone https://github.com/harryg02/a11y-crawler.git
+cd a11y-crawler
+```
+
+
+### Quick start
+
+After installing Node.js, double-click the launcher for your platform:
+
+| Platform | File |
+|----------|------|
+| macOS | `start.command` |
+| Windows | `start.bat` |
+
+> **Windows:** Make sure the project folder path contains no spaces. e.g. `C:\Users\yourname\a11y-crawler` is fine, but `C:\My Projects\a11y crawler` will not work.
+
+The launcher will automatically install dependencies, download the Chromium browser (first run only), start the app, and open it in your browser.
+
+> If something goes wrong, check `start-error.log` in the project folder for details.
+
+### Manual setup
+
+```bash
+# 1. Install dependencies
 npm install
 
-# Install browser (first run only)
+# 2. Install the Chromium browser used by the crawler
 npx playwright install chromium
+
+# 3. Start the app
+npm run dev
 ```
 
-On Linux, if Chromium fails to launch with missing library errors:
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-```bash
-# Debian/Ubuntu
-sudo npx playwright install-deps
+The app runs entirely on your machine. Scan results are saved as JSON files in the `reports/` folder inside the project.
 
-# Arch Linux
-sudo pacman -S nss atk at-spi2-core cups libdrm libxkbcommon mesa libxdamage
-```
-
-## Configuration
-
-Edit the config section at the top of `tests/example.spec.ts`:
-
-```typescript
-const START_URL = 'https://your-app.example.com';   // starting URL
-const SCOPE = 'https://your-app.example.com/';       // only crawl URLs under this path
-const MAX_PAGES = Infinity;                           // set a number to limit pages crawled
-const SLOW_MO = 100;                                  // ms pause between actions (increase to watch more carefully)
-```
-
-Add any dangerous URL patterns to the blocklist:
-
-```typescript
-const BLOCKED_PATTERNS = [
-  '/logout',
-  '/delete',
-  '/remove',
-  '/signout',
-  '/sign-out',
-  '/log-out',
-  // add patterns specific to your application:
-  // '/payment',
-  // '/revoke',
-  // '/grant',
-];
-```
-
-## Usage
-
-```bash
-# Run the crawler (visible browser)
-npx playwright test --project=chromium --headed
-
-# The browser will open and navigate to START_URL
-# If redirected to a login page, enter your credentials in the browser
-# The crawler will automatically continue once login is detected
-```
-
-### Windows
-
-Not implemented yet
-
-### Linux / macOS
+> To stop the server, press `Ctrl + C` in the terminal.
 
 
-# run the command above directly
+## What It Scans
 
-## Output
+1. **Every page** reachable by following `<a>` links within the site's URL scope
+2. **Every interactive state** - clicks buttons, tabs, dropdowns, modals, and other elements to expose DOM states that only appear after interaction
 
-### Terminal
-
-Real-time progress including pages scanned, violations found, interactive elements clicked, and links discovered.
-
-### JSON Report
-
-A full structured report is saved to `reports/report-<timestamp>.json` containing:
-
-- Every page URL visited
-- Every interactive state scanned
-- All axe-core violations with WCAG criteria, severity, and instance count
-- High-risk element counts per page
-
-### Console Summary
-
-After the crawl completes:
-
-- **Repeat violations** — violations appearing on multiple pages (likely shared component issues — fix once, fix everywhere)
-- **High-risk elements** — pages containing tables, forms, iframes, and other complex components
-- **Results by route pattern** — deduplicated results grouped by URL template
 
 ## Limitations
 
-- **Automated testing catches approximately 30% of WCAG issues.** This tool cannot detect keyboard trap behavior, screen reader announcement errors, color-only information, or contextual heading structure problems. Manual testing with assistive technology is still required.
-- **Interactive state discovery is not exhaustive.** Some states are only reachable through specific sequences of actions (e.g., filling out a form then clicking submit). The crawler clicks elements individually from the initial page state.
-- **The crawler cannot access pages behind different user roles.** Run separate crawls with different accounts (e.g., student vs. instructor) to cover role-specific pages.
-- **Dynamic selectors may cause duplicate or missed element clicks.** Applications that generate random class names or IDs on each render may produce inconsistent results between runs.
+- Automated testing catches approximately 30% of WCAG issues. Keyboard navigation flow, screen reader announcements, and color-only information require manual testing with assistive technology.
+- The crawler cannot access pages behind different user roles. Run separate scans with different accounts (e.g., student vs. instructor) to cover role-specific pages.
+- Some states are only reachable through specific action sequences (e.g., fill out a form, then submit). The crawler clicks elements individually from the initial page state.
+
 
 ## Tech Stack
 
-- [Playwright](https://playwright.dev/) — browser automation
-- [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright) — WCAG accessibility scanning
+- [Next.js](https://nextjs.org/) - frontend dashboard
+- [Playwright](https://playwright.dev/) - browser automation
+- [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright) - WCAG accessibility scanning
+- [Tailwind CSS](https://tailwindcss.com/) - styling
 - TypeScript
+
+
 
 ## License
 

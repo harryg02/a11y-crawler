@@ -6,3 +6,28 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Crawler output
+/reports/
+/.login-complete
+/.pause
+/.stop
+
+# TypeScript
+*.tsbuildinfo
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Production builds
+build/
+dist/
+
+# Environment variables
+.env*.local
+.env.local
+
+# Vercel
+.vercel
