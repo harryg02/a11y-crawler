@@ -239,7 +239,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
 
           {/* Submit */}
           <div className="flex justify-end pt-4">
-            <Button type="submit">
+            <Button type="submit" disabled={!scope.trim()}>
               Start Scan
             </Button>
           </div>
