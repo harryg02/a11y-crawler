@@ -10,6 +10,7 @@ node_modules/
 # Crawler output
 /reports/
 /.login-complete
+/.pause
 
 # Next.js
 .next/
