@@ -180,7 +180,7 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
         <button
           type="button"
           onClick={copyUrl}
-          aria-label={copied ? 'URL copied' : 'Copy URL'}
+          aria-label={copied ? 'Copied' : 'Copy'}
           className="w-11 self-stretch flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white rounded-r-md"
         >
           {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
