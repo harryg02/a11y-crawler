@@ -13,10 +13,11 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped' | 'error'>('running');
+  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error'>('running');
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -49,7 +50,8 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             if (!line.startsWith('data: ')) continue;
             const text = line.slice(6);
             if (text === '__SCAN_COMPLETE__') {
-              setFinishReason('completed');
+              if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
+              setFinishReason(prev => prev === 'stopping' ? 'stopped' : 'completed');
               fetch('/api/history').then(r => r.json()).then((data: any[]) => {
                 setLatestScanId(data[0]?.id ?? null);
               }).catch(() => {});
@@ -66,10 +68,10 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
     }
 
     run();
-    return () => controller.abort();
+    return () => { controller.abort(); if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isFinished = finishReason !== 'running';
+  const isFinished = finishReason !== 'running' && finishReason !== 'stopping';
 
   // Auto-scroll log box to bottom, unless user has scrolled up
   const logRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             ? finishReason === 'completed' ? 'Scan Complete'
             : finishReason === 'error' ? 'Scan Failed'
             : 'Scan Stopped'
+            : finishReason === 'stopping' ? 'Stopping...'
             : 'Scanning'}
         </h1>
 
@@ -170,7 +173,17 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               >
                 {isPaused ? 'Resume' : 'Pause'}
               </Button>
-              <Button onClick={() => { abortRef.current?.abort(); setFinishReason('stopped'); }}>
+              <Button
+                disabled={finishReason === 'stopping'}
+                onClick={() => {
+                  fetch('/api/scan/stop', { method: 'POST' });
+                  setFinishReason('stopping');
+                  stopTimeoutRef.current = setTimeout(() => {
+                    abortRef.current?.abort();
+                    setFinishReason('stopped');
+                  }, 45000);
+                }}
+              >
                 Stop
               </Button>
             </>

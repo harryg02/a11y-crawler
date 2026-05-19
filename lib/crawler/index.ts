@@ -8,6 +8,7 @@ import { discoverLinks } from './linker';
 import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
 
 const PAUSE_FILE = path.join(process.cwd(), '.pause');
+const STOP_FILE  = path.join(process.cwd(), '.stop');
 
 async function waitIfPaused(page: Page): Promise<void> {
   if (!fs.existsSync(PAUSE_FILE)) return;
@@ -20,6 +21,7 @@ async function waitIfPaused(page: Page): Promise<void> {
 
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
+  if (fs.existsSync(STOP_FILE))  fs.unlinkSync(STOP_FILE);
 
   const visited = new Set<string>();
   const queue: string[] = [config.startUrl];
@@ -28,6 +30,11 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   const allResults: PageResult[] = [];
 
   while (queue.length > 0 && visited.size < config.maxPages) {
+    if (fs.existsSync(STOP_FILE)) {
+      fs.unlinkSync(STOP_FILE);
+      console.log('  → Stopped by user');
+      break;
+    }
     const url = queue.shift()!;
     const urlBase = getCanonicalUrl(url);
     if (visited.has(urlBase)) continue;

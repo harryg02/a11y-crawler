@@ -28,7 +28,9 @@ export function generateReport(
   };
 
   const jsonPath = path.join(reportDir, `report-${scanId}.json`);
+  console.log(`  → Writing report (${scan.pages.length} pages)...`);
   fs.writeFileSync(jsonPath, JSON.stringify(scan, null, 2));
+  console.log(`  → Report saved`);
 
   console.log('\n══════════════════════════════════');
   console.log(`CRAWL COMPLETE: ${allResults.length} pages scanned`);
