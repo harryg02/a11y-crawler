@@ -57,12 +57,14 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
     <div className="max-w-220 mx-auto p-8">
       {/* Page header */}
-      <h1 className="text-2xl font-medium text-gray-900 dark:text-white break-all mb-1">{baseUrl}</h1>
-      {interaction && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-          After clicking: <span className="font-medium">&ldquo;{interaction}&rdquo;</span>
-        </p>
-      )}
+      <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-2xl font-medium text-gray-900 dark:text-white mb-2">
+        <span className="break-all">{baseUrl}</span>
+        {interaction && (
+          <span className="inline-flex px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xl font-medium whitespace-nowrap">
+            clicked &ldquo;{interaction}&rdquo;
+          </span>
+        )}
+      </h1>
       <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
         {counts.all === 0
           ? 'No issues on this page'
