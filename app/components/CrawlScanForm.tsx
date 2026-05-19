@@ -28,6 +28,12 @@ interface CrawlScanProps {
   }) => void;
 }
 
+function normalizeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export default function CrawlScan({ onStart }: CrawlScanProps) {
   const [scope, setScope] = useState('');
   const [requiresLogin, setRequiresLogin] = useState(false);
@@ -47,7 +53,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
     <div className="min-h-screen flex items-center">
       <div className="w-170 max-w-170 mx-auto p-8">
         <h2 className="text-3xl font-medium mb-6">Crawl & Scan</h2>
-        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope, startingUrl, crawlBoundary, maxDepth, timeout, forbiddenWords, excludedScopes, watchMode }); }}>
+        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onStart({ scope: normalizeUrl(scope), startingUrl: normalizeUrl(startingUrl), crawlBoundary: normalizeUrl(crawlBoundary), maxDepth, timeout, forbiddenWords, excludedScopes, watchMode }); }}>
 
           {/* Site to Scan */}
           <div>
@@ -62,7 +68,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
               icon={<Link size={20} />}
               value={scope}
               onChange={setScope}
-              type="url"
+              onBlur={() => setScope(normalizeUrl(scope))}
               autoFocus
             />
             {/\.(html|php)$/i.test(scope) && (
@@ -103,7 +109,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   icon={<Link size={20} />}
                   value={startingUrl}
                   onChange={setStartingUrl}
-                  type="url"
+                  onBlur={() => setStartingUrl(normalizeUrl(startingUrl))}
                 />
               </div>
             )}
@@ -190,7 +196,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   icon={<Link size={20} />}
                   value={crawlBoundary}
                   onChange={setCrawlBoundary}
-                  type="url"
+                  onBlur={() => setCrawlBoundary(normalizeUrl(crawlBoundary))}
                 />
               </div>
 

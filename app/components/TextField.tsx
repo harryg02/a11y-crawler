@@ -6,6 +6,7 @@ interface TextFieldProps {
   icon?: ReactNode;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   type?: 'text' | 'url' | 'email' | 'number';
   id?: string;
   ariaLabel?: string;
@@ -16,6 +17,7 @@ export default function TextField({
   icon,
   value,
   onChange,
+  onBlur,
   type = 'text',
   id,
   ariaLabel,
@@ -33,6 +35,7 @@ export default function TextField({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         aria-label={ariaLabel}
         className="flex-1 bg-transparent h-12.5 text-gray-900 dark:text-white focus:outline-none"
         autoFocus={autoFocus}
