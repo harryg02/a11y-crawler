@@ -60,9 +60,9 @@ export default function DropdownInput({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="group flex items-center h-12.5 border-2 border-gray-400 hover:border-gray-600 focus-within:border-gray-900 dark:border-gray-600 dark:hover:border-gray-400 dark:focus-within:border-white transition-colors rounded-[5px] overflow-hidden">
+      <div className="group flex items-center h-12.5 border-2 border-gray-400 hover:border-gray-600 dark:border-gray-600 dark:hover:border-gray-400 transition-colors rounded-[5px] overflow-hidden">
         {/* Input + suffix */}
-        <div className="flex items-center flex-1 h-full">
+        <div className="flex items-center flex-1 h-full focus-within:ring-2 focus-within:ring-inset focus-within:ring-gray-900 dark:focus-within:ring-white">
           <input
             id={id}
             type="text"
@@ -79,15 +79,15 @@ export default function DropdownInput({
             </span>
           )}
         </div>
-        {/* Single separator that tracks the outer border color */}
-        <div className="w-0.5 self-stretch bg-gray-400 group-hover:bg-gray-600 group-focus-within:bg-gray-900 dark:bg-gray-600 dark:group-hover:bg-gray-400 dark:group-focus-within:bg-white transition-colors" aria-hidden="true" />
+        {/* Separator */}
+        <div className="w-0.5 self-stretch bg-gray-400 group-hover:bg-gray-600 dark:bg-gray-600 dark:group-hover:bg-gray-400 transition-colors" aria-hidden="true" />
         {/* Dropdown trigger */}
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          aria-label="Show options"
+          aria-label="Show time limit options"
           aria-expanded={open}
-          className="h-full px-3 flex items-center text-gray-900 bg-gray-200 dark:text-white dark:bg-gray-800 focus:outline-none"
+          className="h-full px-3 flex items-center text-gray-900 bg-gray-200 dark:text-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 dark:focus:ring-white"
         >
           <ChevronDown size={20} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
