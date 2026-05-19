@@ -12,6 +12,9 @@ node_modules/
 /.login-complete
 /.pause
 
+# TypeScript
+*.tsbuildinfo
+
 # Next.js
 .next/
 out/
