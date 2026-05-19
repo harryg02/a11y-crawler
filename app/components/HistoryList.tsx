@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronRight, Trash2 } from 'lucide-react';
-import { ScanRecord } from '../../lib/types';
+import { ScanSummary } from '../../lib/types';
 
 interface HistoryListProps {
-  scans: ScanRecord[];
+  scans: ScanSummary[];
   onSelectScan: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -26,9 +26,6 @@ function formatDuration(seconds: number): string {
   return sec === 0 ? `${min}m` : `${min}m ${sec}s`;
 }
 
-function getTotalViolations(scan: ScanRecord): number {
-  return scan.pages.reduce((sum, p) => sum + p.violations.length, 0);
-}
 
 // ── Accessible confirmation dialog ──────────────────────────────────────────
 
@@ -129,10 +126,9 @@ function ConfirmDeleteDialog({ domain, date, onConfirm, onCancel, triggerRef }: 
 
 // ── Scan row ─────────────────────────────────────────────────────────────────
 
-function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectScan: (id: string) => void; onDelete: (id: string) => void }) {
+function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanSummary; onSelectScan: (id: string) => void; onDelete: (id: string) => void }) {
   const [showDialog, setShowDialog] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const total = getTotalViolations(scan);
   const domain = getDomain(scan.url);
 
   return (
@@ -150,7 +146,7 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanRecord; onSelectS
               <p className="text-base text-gray-600 dark:text-gray-400 truncate">{formatDate(scan.date)}</p>
             </div>
             <p className="text-base text-gray-600 dark:text-gray-400 shrink-0 text-right">
-              {scan.pages.length} pages · {total} violations · {formatDuration(scan.durationSeconds)}
+              {scan.pageCount} pages · {scan.violationCount} violations · {formatDuration(scan.durationSeconds)}
             </p>
             <ChevronRight size={18} className="text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true" />
           </div>

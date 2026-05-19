@@ -30,6 +30,16 @@ export interface ScanRecord {
   pages: PageRecord[];
 }
 
+export interface ScanSummary {
+  id: string;
+  url: string;
+  scope: string;
+  date: string;
+  durationSeconds: number;
+  pageCount: number;
+  violationCount: number;
+}
+
 // Crawler-internal type used during the crawl before wrapping into ScanRecord
 export interface PageResult {
   url: string;
