@@ -42,7 +42,10 @@ echo -e "\r$(ok 'Browser ready')                                        "
 
 # ── Open browser after server is up ──────────────────────────────────────────
 (
-  sleep 8
+  for i in $(seq 1 60); do
+    curl -s http://localhost:3000 >/dev/null 2>&1 && break
+    sleep 1
+  done
   if command -v open &>/dev/null; then
     open http://localhost:3000          # macOS
   elif command -v xdg-open &>/dev/null; then

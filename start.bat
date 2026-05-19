@@ -64,7 +64,7 @@ if %errorlevel% neq 0 (
 echo [OK] Browser ready
 
 :: ── Open browser after server starts ──────────────────────────────────────
-start "" /b cmd /c "timeout /t 8 >nul & start http://localhost:3000"
+start "" /b cmd /c "for /l %%i in (1,1,60) do (curl -s http://localhost:3000 >nul 2>&1 && start http://localhost:3000 && exit) & timeout /t 1 >nul"
 
 echo.
 echo   Starting...  http://localhost:3000
