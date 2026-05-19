@@ -33,7 +33,11 @@ export async function POST(req: NextRequest) {
   };
 
   const encoder = new TextEncoder();
-  const playwrightBin = path.join(process.cwd(), 'node_modules', '.bin', 'playwright');
+  const isWindows = process.platform === 'win32';
+  const playwrightBin = path.join(
+    process.cwd(), 'node_modules', '.bin',
+    isWindows ? 'playwright.cmd' : 'playwright',
+  );
 
   const stream = new ReadableStream({
     start(controller) {
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
       const proc = spawn(
         playwrightBin,
         ['test', 'tests/crawler.spec.ts', '--project=chromium'],
-        { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd() },
+        { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd(), shell: isWindows },
       );
 
       function emit(line: string) {
@@ -58,6 +62,12 @@ export async function POST(req: NextRequest) {
 
       proc.stdout.on('data', pipeOutput);
       proc.stderr.on('data', pipeOutput);
+
+      proc.on('error', err => {
+        emit(`Crawler failed to start: ${err.message}`);
+        emit('__SCAN_ERROR__');
+        safeClose();
+      });
 
       proc.on('close', code => {
         emit(code === 0 ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__');
