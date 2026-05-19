@@ -145,6 +145,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
                   </p>
                   <NumberStepper
                     id="max-depth"
+                    label="interaction depth"
                     value={maxDepth}
                     onChange={setMaxDepth}
                     min={1}
