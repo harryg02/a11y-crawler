@@ -23,7 +23,7 @@ export default function History({ initialScanId }: { initialScanId?: string | nu
   // Load summaries once on mount
   useEffect(() => {
     fetch('/api/history')
-      .then(res => res.json())
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then((data: ScanSummary[]) => setScans(data))
       .catch(() => setScans([]))
       .finally(() => setListLoading(false));
@@ -36,7 +36,7 @@ export default function History({ initialScanId }: { initialScanId?: string | nu
     if (activeScan?.id === id) return;
     setScanLoading(true);
     fetch(`/api/history/${id}`)
-      .then(res => res.json())
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then((data: ScanRecord) => setActiveScan(data))
       .catch(() => setActiveScan(null))
       .finally(() => setScanLoading(false));
