@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import Button from './Button';
 
 interface ScanningProps {
@@ -107,10 +107,12 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             : 'Scanning'}
         </h1>
 
-        {/* Spinner or checkmark */}
+        {/* Spinner, checkmark, or X */}
         {isFinished ? (
           <div className="w-16 h-16 mb-8 rounded-full border-4 border-gray-900 dark:border-white flex items-center justify-center" aria-hidden="true">
-            <Check size={32} strokeWidth={3} />
+            {finishReason === 'error' || finishReason === 'unreachable'
+              ? <X size={32} strokeWidth={3} />
+              : <Check size={32} strokeWidth={3} />}
           </div>
         ) : (
           <div className="w-16 h-16 mb-8 border-4 border-gray-300 border-t-gray-900 dark:border-gray-700 dark:border-t-white rounded-full animate-spin" aria-hidden="true" />
