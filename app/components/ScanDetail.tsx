@@ -5,6 +5,7 @@ import { ChevronRight, Copy, Check } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 import BackBar from './BackBar';
+import { parsePageUrl } from './parsePageUrl';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -124,14 +125,6 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   );
 }
 
-function parsePageUrl(url: string): { baseUrl: string; interaction: string | null } {
-  const arrowIdx = url.indexOf(' → ');
-  if (arrowIdx === -1) return { baseUrl: url, interaction: null };
-  const baseUrl = url.slice(0, arrowIdx);
-  const rest = url.slice(arrowIdx + 3);
-  const match = rest.match(/^<[^>]+>\s*"(.+)"$/);
-  return { baseUrl, interaction: match ? match[1] : rest };
-}
 
 function PageRow({ page, onSelectPage }: { page: { id: string; url: string; violations: any[] }; onSelectPage: (id: string) => void }) {
   const [copied, setCopied] = useState(false);
@@ -139,7 +132,10 @@ function PageRow({ page, onSelectPage }: { page: { id: string; url: string; viol
   const { baseUrl, interaction } = parsePageUrl(page.url);
 
   function copyUrl() {
-    navigator.clipboard.writeText(page.url);
+    const text = interaction
+      ? `${baseUrl} (clicked "${interaction}")`
+      : baseUrl;
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }

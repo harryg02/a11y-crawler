@@ -71,7 +71,9 @@ export async function collectClickables(page: Page) {
       const classes = el.className && typeof el.className === 'string'
         ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.')
         : '';
-      const text = (el.textContent || '').trim().slice(0, 30);
+      const ariaLabel = el.getAttribute('aria-label');
+      const rawText = (el.textContent || '').replace(/[a-z]+(?:_[a-z]+)+/g, '').replace(/\s+/g, ' ').trim();
+      const text = (ariaLabel || rawText).slice(0, 50);
       elements.push({ selector: id ? `${tag}${id}` : `${tag}${classes}`, tag, text });
     }
     return elements;
@@ -142,7 +144,7 @@ export async function scanInteractiveElements(
       }
 
       const result = await scanPage(page);
-      result.url = `${beforeUrl} → <${clickable.tag}> "${clickable.text}"`;
+      result.url = `${beforeUrl} (clicked "${clickable.text}")`;
       results.push(result);
 
       if (result.violations.length > 0) {

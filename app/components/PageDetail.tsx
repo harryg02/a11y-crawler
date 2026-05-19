@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, ExternalLink } from 'lucide-react';
 import BackBar from './BackBar';
 import { PageRecord, ScanRecord, Violation } from '../../lib/types';
+import { parsePageUrl } from './parsePageUrl';
 
 interface PageDetailProps {
   page: PageRecord;
@@ -28,6 +29,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
   const [filter, setFilter] = useState<SeverityFilter>('all');
 
   const domain = getDomain(scan.url);
+  const { baseUrl, interaction } = parsePageUrl(page.url);
 
   const counts = {
     all:      page.violations.reduce((sum, v) => sum + v.nodes.length, 0),
@@ -55,7 +57,12 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
 
     <div className="max-w-220 mx-auto p-8">
       {/* Page header */}
-      <h1 className="text-2xl font-medium text-gray-900 dark:text-white break-all mb-1">{page.url}</h1>
+      <h1 className="text-2xl font-medium text-gray-900 dark:text-white break-all mb-1">{baseUrl}</h1>
+      {interaction && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+          After clicking: <span className="font-medium">&ldquo;{interaction}&rdquo;</span>
+        </p>
+      )}
       <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
         {counts.all === 0
           ? 'No issues on this page'
