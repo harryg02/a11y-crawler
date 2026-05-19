@@ -49,7 +49,13 @@ test('crawl and scan', async ({ playwright }) => {
 
   const startTime = Date.now();
   const results = await crawl(page, config);
-  generateReport([...preLoginResults, ...results], config, startTime);
+  const allResults = [...preLoginResults, ...results];
+
+  if (allResults.length === 0) {
+    console.log('__SCAN_UNREACHABLE__');
+  } else {
+    generateReport(allResults, config, startTime);
+  }
 
   await browser.close();
 });

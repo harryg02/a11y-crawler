@@ -13,7 +13,7 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error'>('running');
+  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error' | 'unreachable'>('running');
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -55,6 +55,9 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               fetch('/api/history').then(r => r.json()).then((data: any[]) => {
                 setLatestScanId(data[0]?.id ?? null);
               }).catch(() => {});
+            } else if (text === '__SCAN_UNREACHABLE__') {
+              if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
+              setFinishReason('unreachable');
             } else if (text === '__SCAN_ERROR__') {
               setFinishReason('error');
             } else if (text) {
@@ -96,8 +99,9 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
         <h1 className="text-3xl font-medium mb-8 text-gray-900 dark:text-white">
           {isFinished
-            ? finishReason === 'completed' ? 'Scan Complete'
-            : finishReason === 'error' ? 'Scan Failed'
+            ? finishReason === 'completed'    ? 'Scan Complete'
+            : finishReason === 'error'        ? 'Scan Failed'
+            : finishReason === 'unreachable'  ? 'Cannot Reach Website'
             : 'Scan Stopped'
             : finishReason === 'stopping' ? 'Stopping...'
             : 'Scanning'}
@@ -153,9 +157,11 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
               </Button>
-              <Button onClick={() => onViewResults(latestScanId)}>
-                View Results
-              </Button>
+              {finishReason !== 'unreachable' && (
+                <Button onClick={() => onViewResults(latestScanId)}>
+                  View Results
+                </Button>
+              )}
             </>
           ) : (
             <>

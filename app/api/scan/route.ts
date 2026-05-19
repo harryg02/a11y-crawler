@@ -52,12 +52,17 @@ export async function POST(req: NextRequest) {
         { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd(), shell: isWindows },
       );
 
+      let scanUnreachable = false;
+
       function emit(line: string) {
         if (!closed) controller.enqueue(encoder.encode(`data: ${line}\n\n`));
       }
 
       function pipeOutput(data: Buffer) {
-        data.toString().split('\n').forEach(line => { if (line.trim()) emit(line); });
+        data.toString().split('\n').forEach(line => {
+          if (line.trim() === '__SCAN_UNREACHABLE__') scanUnreachable = true;
+          else if (line.trim()) emit(line);
+        });
       }
 
       proc.stdout.on('data', pipeOutput);
@@ -70,7 +75,8 @@ export async function POST(req: NextRequest) {
       });
 
       proc.on('close', code => {
-        emit(code === 0 ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__');
+        if (scanUnreachable)  emit('__SCAN_UNREACHABLE__');
+        else emit(code === 0 ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__');
         safeClose();
       });
 
