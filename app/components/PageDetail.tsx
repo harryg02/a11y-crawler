@@ -200,28 +200,30 @@ function ViolationCard({ violation, defaultExpanded = false }: { violation: Viol
           )}
 
           {/* Current node */}
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Element</dt>
-              <dd>
-                <pre className="bg-gray-100 dark:bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-green-700 dark:text-green-300 leading-relaxed">
-                  <code>{node.html}</code>
-                </pre>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Selector</dt>
-              <dd>
-                <pre className="bg-gray-100 dark:bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-blue-700 dark:text-blue-300 leading-relaxed">
-                  <code>{node.selector}</code>
-                </pre>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fix</dt>
-              <dd className="text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{node.failureSummary}</dd>
-            </div>
-          </dl>
+          {node && (
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Element</dt>
+                <dd>
+                  <pre className="bg-gray-100 dark:bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-green-700 dark:text-green-300 leading-relaxed">
+                    <code>{node.html}</code>
+                  </pre>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Selector</dt>
+                <dd>
+                  <pre className="bg-gray-100 dark:bg-gray-900 rounded p-3 whitespace-pre-wrap break-all text-base text-blue-700 dark:text-blue-300 leading-relaxed">
+                    <code>{node.selector}</code>
+                  </pre>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fix</dt>
+                <dd className="text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{node.failureSummary}</dd>
+              </div>
+            </dl>
+          )}
 
           {/* Learn more */}
           <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
