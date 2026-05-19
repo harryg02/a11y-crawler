@@ -39,7 +39,7 @@ echo [OK] Node.js %NODE_VER%
 
 :: ── Install dependencies ───────────────────────────────────────────────────
 echo   Checking dependencies...
-call npm install --silent 2>>start-error.log
+call npm install 2>>start-error.log
 if %errorlevel% neq 0 (
     echo.
     echo   Could not install dependencies.
