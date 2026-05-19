@@ -13,7 +13,7 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped'>('running');
+  const [finishReason, setFinishReason] = useState<'running' | 'completed' | 'stopped' | 'error'>('running');
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -54,7 +54,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
                 setLatestScanId(data[0]?.id ?? null);
               }).catch(() => {});
             } else if (text === '__SCAN_ERROR__') {
-              setFinishReason('stopped');
+              setFinishReason('error');
             } else if (text) {
               setLogs(prev => [...prev, text]);
             }
@@ -93,7 +93,11 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
       <div className="max-w-150 w-full mx-auto py-8 flex flex-col items-center text-center">
 
         <h1 className="text-3xl font-medium mb-8 text-gray-900 dark:text-white">
-          {isFinished ? (finishReason === 'completed' ? 'Scan Complete' : 'Scan Stopped') : 'Scanning'}
+          {isFinished
+            ? finishReason === 'completed' ? 'Scan Complete'
+            : finishReason === 'error' ? 'Scan Failed'
+            : 'Scan Stopped'
+            : 'Scanning'}
         </h1>
 
         {/* Spinner or checkmark */}
