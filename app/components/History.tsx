@@ -6,15 +6,12 @@ import ScanDetail from './ScanDetail';
 import PageDetail from './PageDetail';
 import { ScanRecord, ScanSummary } from '../../lib/types';
 
-type HistoryView =
+export type HistoryView =
   | { type: 'list' }
   | { type: 'scan'; scanId: string }
   | { type: 'page'; scanId: string; pageId: string };
 
-export default function History({ initialScanId }: { initialScanId?: string | null }) {
-  const [view, setView] = useState<HistoryView>(
-    initialScanId ? { type: 'scan', scanId: initialScanId } : { type: 'list' }
-  );
+export default function History({ view, setView }: { view: HistoryView; setView: (v: HistoryView) => void }) {
   const [scans, setScans] = useState<ScanSummary[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [activeScan, setActiveScan] = useState<ScanRecord | null>(null);
