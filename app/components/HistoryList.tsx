@@ -187,7 +187,7 @@ export default function HistoryList({ scans, onSelectScan, onDelete }: HistoryLi
       <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">History</h1>
 
       {scans.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400 text-center mt-16">
+        <p className="text-gray-600 dark:text-gray-400 text-xl text-center mt-16">
           No scans yet. Run a crawl to see it here.
         </p>
       ) : (
