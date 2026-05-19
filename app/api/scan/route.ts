@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
       function pipeOutput(data: Buffer) {
         data.toString().split('\n').forEach(line => {
-          if (line.trim() === '__SCAN_UNREACHABLE__') scanUnreachable = true;
+          if (line.includes('__SCAN_UNREACHABLE__')) scanUnreachable = true;
           else if (line.trim()) emit(line);
         });
       }

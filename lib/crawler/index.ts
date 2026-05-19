@@ -93,7 +93,11 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
         console.log('  → FATAL: Browser closed. Ending crawl.');
         break;
       }
-      console.log(`  → ERROR: ${(err as Error).message.slice(0, 100)}`);
+      if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ERR_ADDRESS_UNREACHABLE') || msg.includes('ERR_CONNECTION_REFUSED')) {
+        console.log(`  → UNREACHABLE: ${url}`);
+        break;
+      }
+      console.log(`  → ERROR: ${msg.slice(0, 100)}`);
     }
   }
 
