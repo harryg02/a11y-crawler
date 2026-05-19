@@ -26,11 +26,9 @@ export function getConfig(): CrawlerConfig {
     requiresLogin:       process.env.CRAWLER_REQUIRES_LOGIN === 'true',
     blockedPatterns:     [
       '/logout', '/delete', '/remove', '/signout', '/sign-out', '/log-out',
-      ...(process.env.CRAWLER_BLOCKED ? JSON.parse(process.env.CRAWLER_BLOCKED) : []),
+      ...(process.env.CRAWLER_BLOCKED ? (() => { try { return JSON.parse(process.env.CRAWLER_BLOCKED!); } catch { return []; } })() : []),
     ],
-    excludedScopes:      process.env.CRAWLER_EXCLUDED
-      ? JSON.parse(process.env.CRAWLER_EXCLUDED)
-      : [
+    excludedScopes:      (() => { try { return process.env.CRAWLER_EXCLUDED ? JSON.parse(process.env.CRAWLER_EXCLUDED) : null; } catch { return null; } })() ?? [
         'https://www.w3.org/WAI/demos/bad/before/tickets.html',
         'https://www.w3.org/WAI/demos/bad/before/survey.html',
         'https://www.w3.org/WAI/demos/bad/before/reports/',
