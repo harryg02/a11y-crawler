@@ -109,6 +109,8 @@ After installing Node.js, double-click the launcher for your platform:
 | macOS | `start.command` |
 | Windows | `start.bat` |
 
+> **Windows:** Make sure the project folder path contains no spaces. e.g. `C:\Users\yourname\a11y-crawler` is fine, but `C:\My Projects\a11y crawler` will not work.
+
 The launcher will automatically install dependencies, download the Chromium browser (first run only), start the app, and open it in your browser.
 
 > If something goes wrong, check `start-error.log` in the project folder for details.
