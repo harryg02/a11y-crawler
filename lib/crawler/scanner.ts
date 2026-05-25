@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { getRoutePattern, getCanonicalUrl } from './urlUtils';
+import { checkpoint } from './checkpoint';
 
 export async function scanPage(page: Page): Promise<PageResult> {
   const results = await new AxeBuilder({ page })
@@ -84,18 +85,17 @@ export async function scanInteractiveElements(
   page: Page,
   scannedInteractions: Set<string>,
   config: CrawlerConfig,
-  depth = 0,
-  isStopped: () => boolean = () => false,
+  depth = 0
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
-  if (isStopped()) return [];
+  if (await checkpoint(page) === 'stop') return [];
   const results: PageResult[] = [];
 
   const clickables = await collectClickables(page);
   console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`);
 
   for (const clickable of clickables) {
-    if (isStopped()) break;
+    if (await checkpoint(page) === 'stop') break;
     try {
       const beforeUrl = page.url();
       const el = page.locator(clickable.selector).first();
@@ -154,7 +154,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1, isStopped);
+      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');
