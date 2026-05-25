@@ -94,9 +94,18 @@ export async function scanInteractiveElements(
   const clickables = await collectClickables(page);
   console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`);
 
+  const originalUrl = page.url();
+
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
     try {
+      // Safety check: if a previous click completely derailed us (e.g. goBack failed), 
+      // force navigation back to the original page before continuing.
+      if (getCanonicalUrl(page.url()) !== getCanonicalUrl(originalUrl)) {
+        await page.goto(originalUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        await page.waitForTimeout(500);
+      }
+
       const beforeUrl = page.url();
       const el = page.locator(clickable.selector).first();
       if (!(await el.isVisible())) continue;
@@ -129,7 +138,12 @@ export async function scanInteractiveElements(
       const isFullNavigation = getCanonicalUrl(afterUrl) !== getCanonicalUrl(beforeUrl);
 
       if (isFullNavigation) {
-        await page.goBack({ waitUntil: 'networkidle' });
+        try {
+          await page.goBack({ waitUntil: 'networkidle', timeout: 5000 });
+        } catch {
+          // If goBack fails (e.g. history got wiped or timeout), force goto
+          await page.goto(beforeUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        }
         await page.waitForTimeout(300);
         continue;
       }
