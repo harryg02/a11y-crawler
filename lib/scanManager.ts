@@ -9,7 +9,7 @@ export const scanEvents = new EventEmitter();
 
 // Signal files — must match the constants in lib/crawler/index.ts
 const PAUSE_FILE = path.join(process.cwd(), '.pause');
-const STOP_FILE  = path.join(process.cwd(), '.stop');
+const STOP_FILE = path.join(process.cwd(), '.stop');
 
 // In-memory reference to the active process so we can kill it
 let activeProcess: ChildProcess | null = null;
@@ -35,7 +35,7 @@ export function startScan(config: any) {
   }
 
   const scanId = `scan-${Date.now()}`;
-  
+
   db.prepare('INSERT INTO active_scan (id, config, status) VALUES (?, ?, ?)').run(
     scanId,
     JSON.stringify(config),
@@ -110,7 +110,7 @@ export function startScan(config: any) {
 export function stopScan() {
   const active = getActiveScan();
   if (!active) return;
-  
+
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('stopping', active.id);
   insertLog(active.id, 'Scan stopping...', 'system');
 
@@ -124,18 +124,18 @@ export function stopScan() {
 export function pauseScan() {
   const active = getActiveScan();
   if (!active) return;
-  
+
   // Write the .pause signal file — the crawler polls for this between pages
   fs.writeFileSync(PAUSE_FILE, '');
 
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('paused', active.id);
-  insertLog(active.id, 'Scan paused.', 'system');
+  // insertLog(active.id, 'Scan paused.', 'system');
 }
 
 export function resumeScan() {
   const active = getActiveScan();
   if (!active) return;
-  
+
   // Delete the .pause signal file — the crawler will detect this and resume
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
 
