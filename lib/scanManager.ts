@@ -1,10 +1,15 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import db from './db';
 import { EventEmitter } from 'events';
 
 // Global event emitter for pushing live logs to SSE connections
 export const scanEvents = new EventEmitter();
+
+// Signal files — must match the constants in lib/crawler/index.ts
+const PAUSE_FILE = path.join(process.cwd(), '.pause');
+const STOP_FILE  = path.join(process.cwd(), '.stop');
 
 // In-memory reference to the active process so we can kill it
 let activeProcess: ChildProcess | null = null;
@@ -107,26 +112,22 @@ export function stopScan() {
   if (!active) return;
   
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('stopping', active.id);
-  
-  if (activeProcess) {
-    activeProcess.kill('SIGTERM');
-  } else if (active.pid) {
-    try {
-      process.kill(active.pid, 'SIGTERM');
-    } catch (e) {
-      // Process already dead
-    }
-  }
-  
-  insertLog(active.id, 'Scan stopped by user.', 'system');
-  db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('stopped', active.id);
-  activeProcess = null;
+  insertLog(active.id, 'Scan stopping...', 'system');
+
+  // Write the .stop signal file — the crawler checks this between pages
+  fs.writeFileSync(STOP_FILE, '');
+
+  // Also remove .pause file if it exists, so the crawler can unblock and see the stop
+  if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
 }
 
 export function pauseScan() {
   const active = getActiveScan();
   if (!active) return;
   
+  // Write the .pause signal file — the crawler polls for this between pages
+  fs.writeFileSync(PAUSE_FILE, '');
+
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('paused', active.id);
   insertLog(active.id, 'Scan paused.', 'system');
 }
@@ -135,6 +136,9 @@ export function resumeScan() {
   const active = getActiveScan();
   if (!active) return;
   
+  // Delete the .pause signal file — the crawler will detect this and resume
+  if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
+
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('running', active.id);
   insertLog(active.id, 'Scan resumed.', 'system');
 }
