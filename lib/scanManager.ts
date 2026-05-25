@@ -155,3 +155,35 @@ export function resumeScan() {
 export function getScanLogs(scanId: string) {
   return db.prepare('SELECT message FROM scan_logs WHERE scan_id = ? ORDER BY id ASC').all(scanId) as { message: string }[];
 }
+
+// ----------------------------------------------------------------------------
+// Startup Recovery (Orphan Process Cleanup)
+// Runs exactly once when this module is first imported (i.e. Next.js server boots)
+// ----------------------------------------------------------------------------
+try {
+  const stuckScans = db.prepare('SELECT id, pid FROM active_scan WHERE status IN (?, ?, ?)').all('running', 'paused', 'stopping') as any[];
+  
+  for (const scan of stuckScans) {
+    if (scan.pid) {
+      try {
+        // Check if the OS process is still alive
+        process.kill(scan.pid, 0); 
+        
+        // If we reach here, it didn't throw, meaning the process is a ghost running in the background.
+        // We must kill it forcefully.
+        console.log(`[Startup Recovery] Found ghost Playwright process (PID: ${scan.pid}). Killing it.`);
+        process.kill(scan.pid, 'SIGKILL');
+      } catch (e) {
+        // process.kill(pid, 0) threw an error, which means the process is already dead.
+        console.log(`[Startup Recovery] Process ${scan.pid} is already dead.`);
+      }
+    }
+    
+    // Reset the database state so the UI unlocks
+    db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('error', scan.id);
+    insertLog(scan.id, 'Scan aborted: The server was restarted unexpectedly.', 'system');
+    insertLog(scan.id, '__SCAN_ERROR__', 'system');
+  }
+} catch (err) {
+  console.error('[Startup Recovery] Failed to clean up stuck scans:', err);
+}
