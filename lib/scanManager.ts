@@ -34,6 +34,15 @@ export function startScan(config: any) {
     throw new Error('A scan is already running');
   }
 
+  // Cleanup: Keep only the 20 most recent scans in the DB to prevent bloat.
+  // Because of ON DELETE CASCADE, this automatically wipes thousands of old log lines.
+  db.prepare(`
+    DELETE FROM active_scan 
+    WHERE id NOT IN (
+      SELECT id FROM active_scan ORDER BY created_at DESC LIMIT 20
+    )
+  `).run();
+
   const scanId = `scan-${Date.now()}`;
 
   db.prepare('INSERT INTO active_scan (id, config, status) VALUES (?, ?, ?)').run(
