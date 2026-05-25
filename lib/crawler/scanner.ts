@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { getRoutePattern, getCanonicalUrl } from './urlUtils';
+import { checkpoint } from './checkpoint';
 
 export async function scanPage(page: Page): Promise<PageResult> {
   const results = await new AxeBuilder({ page })
@@ -84,19 +85,27 @@ export async function scanInteractiveElements(
   page: Page,
   scannedInteractions: Set<string>,
   config: CrawlerConfig,
-  depth = 0,
-  isStopped: () => boolean = () => false,
+  depth = 0
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
-  if (isStopped()) return [];
+  if (await checkpoint(page) === 'stop') return [];
   const results: PageResult[] = [];
 
   const clickables = await collectClickables(page);
   console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`);
 
+  const originalUrl = page.url();
+
   for (const clickable of clickables) {
-    if (isStopped()) break;
+    if (await checkpoint(page) === 'stop') break;
     try {
+      // Safety check: if a previous click completely derailed us (e.g. goBack failed), 
+      // force navigation back to the original page before continuing.
+      if (getCanonicalUrl(page.url()) !== getCanonicalUrl(originalUrl)) {
+        await page.goto(originalUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        await page.waitForTimeout(500);
+      }
+
       const beforeUrl = page.url();
       const el = page.locator(clickable.selector).first();
       if (!(await el.isVisible())) continue;
@@ -129,7 +138,12 @@ export async function scanInteractiveElements(
       const isFullNavigation = getCanonicalUrl(afterUrl) !== getCanonicalUrl(beforeUrl);
 
       if (isFullNavigation) {
-        await page.goBack({ waitUntil: 'networkidle' });
+        try {
+          await page.goBack({ waitUntil: 'networkidle', timeout: 5000 });
+        } catch {
+          // If goBack fails (e.g. history got wiped or timeout), force goto
+          await page.goto(beforeUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        }
         await page.waitForTimeout(300);
         continue;
       }
@@ -154,7 +168,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1, isStopped);
+      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');

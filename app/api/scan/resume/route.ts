@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { resumeScan } from '../../../../lib/scanManager';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
-  const signalFile = path.join(process.cwd(), '.pause');
-  if (fs.existsSync(signalFile)) fs.unlinkSync(signalFile);
-  return NextResponse.json({ ok: true });
+  try {
+    resumeScan();
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

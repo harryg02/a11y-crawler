@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { stopScan } from '../../../../lib/scanManager';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
-  fs.writeFileSync(path.join(process.cwd(), '.stop'), '');
-  return NextResponse.json({ ok: true });
+  try {
+    stopScan();
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

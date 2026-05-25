@@ -9,9 +9,15 @@ node_modules/
 
 # Crawler output
 /reports/
+/scans/
 /.login-complete
 /.pause
 /.stop
+
+# SQLite Database
+database.sqlite
+database.sqlite-wal
+database.sqlite-shm
 
 # TypeScript
 *.tsbuildinfo
