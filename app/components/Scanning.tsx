@@ -31,7 +31,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config),
           });
-          if (!res.ok) { setFinishReason('stopped'); return; }
+          if (!res.ok && res.status !== 409) { setFinishReason('stopped'); return; }
         }
 
         const streamRes = await fetch('/api/scan/stream', { signal: controller.signal });
