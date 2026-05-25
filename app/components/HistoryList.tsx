@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronRight, Trash2 } from 'lucide-react';
 import { ScanSummary } from '../../lib/types';
+import Button from './Button';
 
 interface HistoryListProps {
   scans: ScanSummary[];
@@ -103,21 +104,19 @@ function ConfirmDeleteDialog({ domain, date, onConfirm, onCancel, triggerRef }: 
           The scan result for <span className="text-gray-900 dark:text-white font-medium">{domain}</span> on <span className="text-gray-900 dark:text-white font-medium">{date}</span> will be permanently deleted. This cannot be undone.
         </p>
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
             ref={cancelRef}
-            type="button"
+            variant="secondary"
             onClick={() => close('cancel')}
-            className="h-10 px-4 rounded-md text-base font-medium bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-600 hover:border-gray-600 dark:hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
             onClick={() => close('confirm')}
-            className="h-10 px-4 rounded-md text-base font-medium bg-red-700 text-white border-2 border-red-600 hover:bg-red-600 hover:border-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
           >
             Delete
-          </button>
+          </Button>
         </div>
       </div>
     </div>

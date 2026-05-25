@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, forwardRef } from 'react';
 
 interface ButtonProps {
     children: ReactNode;
@@ -8,24 +8,26 @@ interface ButtonProps {
     disabled?: boolean;
     type?: 'button' | 'submit';
     ariaLabel?: string;
-    variant?: 'primary' | 'secondary';
+    variant?: 'primary' | 'secondary' | 'danger';
 }
 
 const variantClasses = {
     primary: 'bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-300',
     secondary: 'bg-gray-200 border-2 border-gray-400 text-gray-900 hover:border-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:hover:border-gray-400',
+    danger: 'bg-red-700 text-white hover:bg-red-600 dark:bg-red-800 dark:hover:bg-red-700',
 };
 
-export default function Button({
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     children,
     onClick,
     disabled = false,
     type = 'button',
     ariaLabel,
     variant = 'primary',
-}: ButtonProps) {
+}, ref) => {
     return (
         <button
+            ref={ref}
             type={type}
             onClick={onClick}
             disabled={disabled}
@@ -44,4 +46,6 @@ export default function Button({
             {children}
         </button>
     );
-}
+});
+
+export default Button;
