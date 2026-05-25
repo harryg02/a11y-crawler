@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Radar, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
 import Tab from './components/Tab';
 import CrawlScan from './components/CrawlScan';
@@ -15,6 +15,32 @@ export default function Page() {
   const [crawlState, setCrawlState] = useState<CrawlState>('idle');
   const [crawlConfig, setCrawlConfig] = useState<any>(null);
   const [historyView, setHistoryView] = useState<HistoryView>({ type: 'list' });
+
+  // Load view from local storage
+  useEffect(() => {
+    const savedView = localStorage.getItem('a11y-crawler-view');
+    if (savedView === 'crawl' || savedView === 'history' || savedView === 'settings') {
+      setView(savedView);
+    }
+  }, []);
+
+  // Sync view to local storage
+  useEffect(() => {
+    localStorage.setItem('a11y-crawler-view', view);
+  }, [view]);
+
+  // Check if scan is running, If the server replies { running: true }, the page forcefully switches you to the Scanning view.
+  useEffect(() => {
+    fetch('/api/scan/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.running) {
+          setCrawlState('scanning');
+          setView('crawl');
+        }
+      })
+      .catch(() => { });
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">

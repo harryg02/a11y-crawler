@@ -1,97 +1,21 @@
-import { NextRequest } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { startScan, getActiveScan } from '../../../lib/scanManager';
 
 export const dynamic = 'force-dynamic';
 
-interface ScanConfig {
-  scope: string;
-  startingUrl: string;
-  crawlBoundary: string;
-  maxDepth: number;
-  timeout: number;
-  forbiddenWords: string[];
-  excludedScopes: string[];
-  watchMode: boolean;
-}
-
 export async function POST(req: NextRequest) {
-  const config: ScanConfig = await req.json();
+  try {
+    const config = await req.json();
 
-  const requiresLogin = Boolean(config.startingUrl);
+    const existing = getActiveScan();
+    if (existing && existing.status !== 'error' && existing.status !== 'completed' && existing.status !== 'stopped' && existing.status !== 'unreachable') {
+      return NextResponse.json({ error: 'A scan is already running' }, { status: 409 });
+    }
 
-  const crawlerEnv: Record<string, string> = {
-    CRAWLER_SCOPE: config.scope,
-    CRAWLER_BOUNDARY: config.crawlBoundary || config.scope,
-    CRAWLER_START_URL: config.startingUrl || config.scope,
-    CRAWLER_MAX_DEPTH: String(config.maxDepth),
-    CRAWLER_TIMEOUT: String(config.timeout * 60 * 1000),
-    CRAWLER_BLOCKED: JSON.stringify(config.forbiddenWords ?? []),
-    CRAWLER_EXCLUDED: JSON.stringify(config.excludedScopes ?? []),
-    CRAWLER_WATCH_MODE: config.watchMode ? 'true' : 'false',
-    CRAWLER_REQUIRES_LOGIN: requiresLogin ? 'true' : 'false',
-  };
+    const scanId = startScan(config);
 
-  const encoder = new TextEncoder();
-  const isWindows = process.platform === 'win32';
-  const playwrightBin = path.join(
-    process.cwd(), 'node_modules', '.bin',
-    isWindows ? 'playwright.cmd' : 'playwright',
-  );
-
-  const stream = new ReadableStream({
-    start(controller) {
-      let closed = false;
-      function safeClose() {
-        if (!closed) { closed = true; controller.close(); }
-      }
-
-      const proc = spawn(
-        playwrightBin,
-        ['test', 'tests/crawler.spec.ts', '--project=chromium'],
-        { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd(), shell: isWindows },
-      );
-
-      let scanUnreachable = false;
-
-      function emit(line: string) {
-        if (!closed) controller.enqueue(encoder.encode(`data: ${line}\n\n`));
-      }
-
-      function pipeOutput(data: Buffer) {
-        data.toString().split('\n').forEach(line => {
-          if (line.includes('__SCAN_UNREACHABLE__')) scanUnreachable = true;
-          else if (line.trim()) emit(line);
-        });
-      }
-
-      proc.stdout.on('data', pipeOutput);
-      proc.stderr.on('data', pipeOutput);
-
-      proc.on('error', err => {
-        emit(`Crawler failed to start: ${err.message}`);
-        emit('__SCAN_ERROR__');
-        safeClose();
-      });
-
-      proc.on('close', code => {
-        if (scanUnreachable)  emit('__SCAN_UNREACHABLE__');
-        else emit(code === 0 ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__');
-        safeClose();
-      });
-
-      req.signal.addEventListener('abort', () => {
-        proc.kill('SIGTERM');
-        safeClose();
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  });
+    return NextResponse.json({ success: true, scanId });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

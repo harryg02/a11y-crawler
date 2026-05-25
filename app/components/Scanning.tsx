@@ -25,16 +25,25 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
     async function run() {
       try {
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config),
-          signal: controller.signal,
-        });
+        if (config !== null) {
+          const res = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+          });
+          if (!res.ok) { setFinishReason('stopped'); return; }
+        }
 
-        if (!res.ok || !res.body) { setFinishReason('stopped'); return; }
+        const streamRes = await fetch('/api/scan/stream', { signal: controller.signal });
+        if (!streamRes.ok || !streamRes.body) {
+          if (streamRes.status === 204) {
+            // No active scan
+            setFinishReason('stopped');
+          }
+          return;
+        }
 
-        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+        const reader = streamRes.body.pipeThrough(new TextDecoderStream()).getReader();
         let buffer = '';
 
         while (true) {
@@ -119,7 +128,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
         )}
 
         {/* Login prompt — only shown when site requires login, scan is running, and user hasn't confirmed yet */}
-        {!isFinished && config.startingUrl && !loggedIn && (
+        {!isFinished && config?.startingUrl && !loggedIn && (
           <div className="mb-8 text-center">
             <p className="text-gray-600 dark:text-gray-400 text-base mb-3">
               Log in at the browser window, then click when ready:
