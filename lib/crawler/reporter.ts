@@ -19,6 +19,10 @@ export function generateReport(
     scope: config.scope,
     date: new Date().toISOString(),
     durationSeconds: startTimeMs ? Math.round((Date.now() - startTimeMs) / 1000) : 0,
+    config: {
+      maxDepth: config.maxInteractionDepth,
+      timeout: config.timeout,
+    },
     pages: allResults.map((r, i) => ({
       id: `p${i}`,
       url: r.url,
