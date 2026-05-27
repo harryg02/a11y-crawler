@@ -33,6 +33,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
             disabled={disabled}
             aria-label={ariaLabel}
             className={`
+        inline-flex items-center justify-center
         py-2 px-5
         rounded-full
         font-medium text-base
