@@ -5,12 +5,13 @@ import { ChevronLeft } from 'lucide-react';
 interface BackBarProps {
   label: string;
   onClick: () => void;
+  rightAction?: React.ReactNode;
 }
 
-export default function BackBar({ label, onClick }: BackBarProps) {
+export default function BackBar({ label, onClick, rightAction }: BackBarProps) {
   return (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:bg-gray-950 dark:border-gray-800">
-      <div className="max-w-220 mx-auto px-6 py-1">
+      <div className="max-w-220 mx-auto px-6 py-1 flex items-center justify-between min-h-13">
         <button
           type="button"
           onClick={onClick}
@@ -19,6 +20,11 @@ export default function BackBar({ label, onClick }: BackBarProps) {
           <ChevronLeft size={18} aria-hidden="true" />
           <span>{label}</span>
         </button>
+        {rightAction && (
+          <div className="flex items-center">
+            {rightAction}
+          </div>
+        )}
       </div>
     </div>
   );

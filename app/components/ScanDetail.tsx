@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, Copy, Check } from 'lucide-react';
+import { ChevronRight, Copy, Check, Download } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 import BackBar from './BackBar';
+import Button from './Button';
 import { parsePageUrl } from './parsePageUrl';
+import { exportScanToCsv } from '../../lib/csvExport';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -53,7 +55,16 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
   return (
     <div>
-      <BackBar label="Back to History" onClick={onBack} />
+      <BackBar
+        label="Back to History"
+        onClick={onBack}
+        rightAction={
+          <Button variant="secondary" onClick={() => exportScanToCsv(scan)}>
+            <Download size={16} aria-hidden="true" className="mr-2" />
+            Export CSV
+          </Button>
+        }
+      />
 
       <div className="max-w-220 mx-auto p-8">
         {/* Scan metadata */}
