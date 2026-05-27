@@ -97,6 +97,19 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
                   </div>
                 ))}
               </div>
+
+              <details className="mt-4 group">
+                <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white list-none flex items-center gap-1">
+                  <span className="group-open:rotate-90 transition-transform text-[10px]" aria-hidden="true">▶</span>
+                  What do these mean?
+                </summary>
+                <ul className="mt-2 space-y-1.5 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded-md border border-gray-300 dark:border-gray-700">
+                  <li><span className="text-red-700 dark:text-red-400">Critical:</span> Blocks access to content or function. Fix immediately.</li>
+                  <li><span className="text-orange-700 dark:text-orange-400">Serious:</span> Major barriers, but painful workarounds might exist.</li>
+                  <li><span className="text-yellow-800 dark:text-yellow-400">Moderate:</span> Some barriers, most users can navigate around it.</li>
+                  <li><span className="text-blue-700 dark:text-blue-400">Minor:</span> Nuisance or annoyance. Content is still accessible.</li>
+                </ul>
+              </details>
             </div>
 
             {/* WCAG conformance */}
