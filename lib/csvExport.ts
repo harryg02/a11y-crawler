@@ -13,7 +13,7 @@ function escapeCsv(value: string | undefined | null): string {
 }
 
 export function exportScanToCsv(scan: ScanRecord) {
-  const headers = ['URL', 'Action', 'Error', 'Element', 'Selector', 'Fix'];
+  const headers = ['URL', 'Action', 'Error', 'WCAG', 'Element', 'Selector', 'Fix'];
   const rows: string[][] = [];
 
   for (const page of scan.pages) {
@@ -24,12 +24,14 @@ export function exportScanToCsv(scan: ScanRecord) {
       // Capitalize first letter of impact (e.g. "Serious")
       const impactLabel = violation.impact.charAt(0).toUpperCase() + violation.impact.slice(1);
       const errorText = `${impactLabel}: ${violation.help}`;
+      const wcagText = violation.wcagTags ? violation.wcagTags.join(', ') : '';
 
       for (const node of violation.nodes) {
         rows.push([
           baseUrl,
           actionText,
           errorText,
+          wcagText,
           node.html,
           node.selector,
           node.failureSummary
