@@ -87,7 +87,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
             {/* Total */}
             <div className="= min-w-[110px]">
-              <p className="text-6xl font-bold text-gray-900 dark:text-white tabular-nums">{pagesAffected}/{totalPages}</p>
+              <p className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{pagesAffected}/{totalPages}</p>
               <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Pages affected <br /> ({pct}% of all pages)</h3>
             </div>
 
