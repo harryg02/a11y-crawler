@@ -44,6 +44,17 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
       if (config.watchMode) await page.waitForTimeout(config.slowMo);
 
+      // If the start URL redirected to a different origin (e.g. www → non-www),
+      // realign crawlBoundary so discovered links aren't filtered out.
+      if (visited.size === 1) {
+        const actualOrigin = new URL(page.url()).origin;
+        const startOrigin  = new URL(url).origin;
+        if (actualOrigin !== startOrigin) {
+          config.crawlBoundary = config.crawlBoundary.replace(startOrigin, actualOrigin);
+          visited.add(getCanonicalUrl(page.url()));
+        }
+      }
+
       const links = await discoverLinks(page, config);
       for (const link of links) {
         const linkBase = getCanonicalUrl(link);
