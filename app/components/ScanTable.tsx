@@ -21,7 +21,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   const columns = [
     columnHelper.accessor('url', {
       header: 'URL',
-      cell: info => <div className="max-w-[200px] truncate" title={info.getValue()}>{info.getValue()}</div>,
+      cell: info => <div className="break-all">{info.getValue()}</div>,
     }),
     columnHelper.accessor('action', {
       header: 'Action',
@@ -37,11 +37,11 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     }),
     columnHelper.accessor('element', {
       header: 'Element',
-      cell: info => <div className="max-w-[200px] font-mono text-xs overflow-hidden text-ellipsis whitespace-nowrap" title={info.getValue()}>{info.getValue()}</div>,
+      cell: info => <div className="font-mono text-xs break-all">{info.getValue()}</div>,
     }),
     columnHelper.accessor('selector', {
       header: 'Selector',
-      cell: info => <div className="max-w-[150px] font-mono text-xs overflow-hidden text-ellipsis whitespace-nowrap" title={info.getValue()}>{info.getValue()}</div>,
+      cell: info => <div className="font-mono text-xs break-all">{info.getValue()}</div>,
     }),
     columnHelper.accessor('fix', {
       header: 'Fix',
@@ -76,7 +76,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     <button
       onClick={row.getToggleExpandedHandler()}
       style={{ cursor: row.getCanExpand() ? 'pointer' : 'normal' }}
-      className="flex items-start gap-1 font-medium text-blue-700 dark:text-blue-400 hover:underline text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+      className="flex items-start gap-1 font-medium text-blue-700 dark:text-blue-400 hover:underline text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded select-text"
     >
       <span className="mt-0.5 shrink-0" aria-hidden="true">
         {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
