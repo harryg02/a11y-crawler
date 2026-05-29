@@ -84,7 +84,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
         {/* Stats dashboard */}
         <section>
-          <div className="flex py-6 gap-14 mb-8 flex-wrap">
+          <div className="flex py-6 gap-14 flex-wrap">
 
             {/* Total */}
             <div className="= min-w-[110px]">
@@ -139,13 +139,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           </div>
         </section>
 
-        {/* Scan Results Table */}
-        <section>
-          <h2 className="text-xl font-medium mb-4">
-            Violations
-          </h2>
-          <ScanTable data={buildScanRows(scan)} />
-        </section>
+
 
         {/* 
         <section className="mt-12">
@@ -162,6 +156,13 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         </section>
         */}
       </div>
+      {/* Scan Results Table */}
+      <section className='px-10'>
+        <h2 className="text-xl font-medium mb-4">
+          Violations
+        </h2>
+        <ScanTable data={buildScanRows(scan)} />
+      </section>
     </div>
   );
 }
