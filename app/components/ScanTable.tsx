@@ -99,95 +99,89 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   const trClass = "hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors divide-x divide-gray-200 dark:divide-gray-800";
   const tdClass = "px-4 py-3 align-top";
 
-  // Build table rows with compact URL grouping:
-  // When a URL group is expanded, the URL cell shares the first child's <tr>
-  // via rowSpan, instead of rendering as its own empty row.
-  const buildRows = () => {
-    const rows = table.getRowModel().rows;
-    const result: React.ReactNode[] = [];
-    let i = 0;
+  // Count how many actual <tr> elements a row subtree will produce.
+  // Collapsed groups and leaf rows each produce 1 <tr>.
+  // Expanded groups produce the sum of their children's counts (the group
+  // row itself is merged into the first child, so it doesn't add a <tr>).
+  const countTrs = (row: any): number => {
+    if (!row.getIsGrouped() || !row.getIsExpanded() || row.subRows.length === 0) return 1;
+    return row.subRows.reduce((sum: number, child: any) => sum + countTrs(child), 0);
+  };
 
-    while (i < rows.length) {
-      const row = rows[i];
+  type PrependCell = {
+    key: string;
+    rowSpan: number;
+    content: React.ReactNode;
+    columnId: string;
+  };
 
-      // Handle URL-level group rows specially
-      if (row.getIsGrouped() && row.groupingColumnId === 'url') {
-        if (!row.getIsExpanded()) {
-          // Collapsed: render as a normal single row
-          result.push(
-            <tr key={row.id} className={trClass}>
-              {row.getVisibleCells().map(cell => (
-                <td key={cell.id} className={tdClass}>
-                  {renderCellContent(cell, row)}
-                </td>
-              ))}
-            </tr>
-          );
-          i++;
-          continue;
-        }
-
-        // Expanded: count all visible descendant rows in the flat list
-        let span = 0;
-        for (let j = i + 1; j < rows.length && rows[j].depth > 0; j++) {
-          span++;
-        }
-
-        if (span === 0) {
-          // Edge case: expanded but no visible children — render normally
-          result.push(
-            <tr key={row.id} className={trClass}>
-              {row.getVisibleCells().map(cell => (
-                <td key={cell.id} className={tdClass}>
-                  {renderCellContent(cell, row)}
-                </td>
-              ))}
-            </tr>
-          );
-          i++;
-          continue;
-        }
-
-        // Inline the URL cell into the first child row via rowSpan
-        const urlCell = row.getVisibleCells().find((c: any) => c.column.id === 'url');
-
-        for (let k = 0; k < span; k++) {
-          const childRow = rows[i + 1 + k];
-          result.push(
-            <tr key={childRow.id} className={trClass}>
-              {k === 0 && (
-                <td rowSpan={span} className={tdClass}>
-                  {urlCell && renderGroupButton(row, urlCell)}
-                </td>
-              )}
-              {childRow.getVisibleCells()
-                .filter((c: any) => c.column.id !== 'url')
-                .map((cell: any) => (
-                  <td key={cell.id} className={tdClass}>
-                    {renderCellContent(cell, childRow)}
-                  </td>
-                ))}
-            </tr>
-          );
-        }
-
-        i += 1 + span;
-        continue;
-      }
-
-      // Non-URL-group rows (fallback for ungrouped data)
+  // Recursively render a row subtree with compact group expansion.
+  // When any group is expanded, its grouped-column cell is inlined into the
+  // first descendant leaf/collapsed-group via rowSpan, instead of rendering
+  // the group header as its own <tr>.
+  //
+  // prependCells:     cells to prepend to the FIRST <tr> of this subtree
+  //                   (accumulated from ancestor expanded groups).
+  // excludeColumnIds: columns already handled by an ancestor's rowSpan —
+  //                   these should NOT be rendered in child <td>s.
+  const renderSubtree = (
+    row: any,
+    result: React.ReactNode[],
+    prependCells: PrependCell[],
+    excludeColumnIds: Set<string>,
+  ) => {
+    // Terminal case: leaf row, collapsed group, or empty group → single <tr>
+    if (!row.getIsGrouped() || !row.getIsExpanded() || row.subRows.length === 0) {
       result.push(
         <tr key={row.id} className={trClass}>
-          {row.getVisibleCells().map(cell => (
-            <td key={cell.id} className={tdClass}>
-              {renderCellContent(cell, row)}
+          {prependCells.map(p => (
+            <td key={p.key} rowSpan={p.rowSpan > 1 ? p.rowSpan : undefined} className={tdClass}>
+              {p.content}
             </td>
           ))}
+          {row.getVisibleCells()
+            .filter((c: any) => !excludeColumnIds.has(c.column.id))
+            .map((cell: any) => (
+              <td key={cell.id} className={tdClass}>
+                {renderCellContent(cell, row)}
+              </td>
+            ))}
         </tr>
       );
-      i++;
+      return;
     }
 
+    // Expanded group: compact its grouped-column cell into the first child
+    const groupColumnId: string = row.groupingColumnId;
+    const groupCell = row.getVisibleCells().find((c: any) => c.column.id === groupColumnId);
+    const totalTrs = countTrs(row);
+
+    const newPrepend: PrependCell = {
+      key: `group-${row.id}`,
+      rowSpan: totalTrs,
+      content: groupCell ? renderGroupButton(row, groupCell) : null,
+      columnId: groupColumnId,
+    };
+
+    const childExclude = new Set([...excludeColumnIds, groupColumnId]);
+
+    row.subRows.forEach((child: any, idx: number) => {
+      if (idx === 0) {
+        // First child inherits all accumulated prepend cells + this group's cell
+        renderSubtree(child, result, [...prependCells, newPrepend], childExclude);
+      } else {
+        // Subsequent children: no prepend cells (covered by ancestor rowSpans)
+        renderSubtree(child, result, [], childExclude);
+      }
+    });
+  };
+
+  const buildRows = () => {
+    const result: React.ReactNode[] = [];
+    const topRows = table.getGroupedRowModel().rows;
+    for (const row of topRows) {
+      renderSubtree(row, result, [], new Set());
+    }
     return result;
   };
 
