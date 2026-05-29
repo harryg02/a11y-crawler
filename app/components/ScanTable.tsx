@@ -15,7 +15,13 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 const columnHelper = createColumnHelper<ScanRow>();
 
 export default function ScanTable({ data }: { data: ScanRow[] }) {
-  const [expanded, setExpanded] = useState({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const state: Record<string, boolean> = {};
+    for (const url of new Set(data.map(r => r.url))) {
+      state[`url:${url}`] = true;
+    }
+    return state;
+  });
   const [grouping, setGrouping] = useState<string[]>(['url', 'error']);
 
   const columns = [
