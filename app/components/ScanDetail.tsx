@@ -7,7 +7,8 @@ import Pill from './Pill';
 import BackBar from './BackBar';
 import Button from './Button';
 import { parsePageUrl } from './parsePageUrl';
-import { exportScanToCsv } from '../../lib/csvExport';
+import { exportScanToCsv, buildScanRows } from '../../lib/csvExport';
+import ScanTable from './ScanTable';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -138,8 +139,16 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           </div>
         </section>
 
-        {/* Pages list */}
+        {/* Scan Results Table */}
         <section>
+          <h2 className="text-xl font-medium mb-4">
+            Violations
+          </h2>
+          <ScanTable data={buildScanRows(scan)} />
+        </section>
+
+        {/* 
+        <section className="mt-12">
           <h2 className="text-xl font-medium mb-3">
             Pages Scanned ({scan.pages.length})
           </h2>
@@ -151,6 +160,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
             ))}
           </ul>
         </section>
+        */}
       </div>
     </div>
   );
