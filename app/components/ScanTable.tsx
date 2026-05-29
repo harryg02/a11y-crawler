@@ -76,7 +76,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
       <table className="min-w-full text-left text-sm text-gray-900 dark:text-gray-100">
         <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
           {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
+            <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
               {headerGroup.headers.map(header => (
                 <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap">
                   {header.isPlaceholder
@@ -93,7 +93,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
           {table.getRowModel().rows.map(row => {
             return (
-              <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors divide-x divide-gray-200 dark:divide-gray-800">
                 {row.getVisibleCells().map(cell => {
                   return (
                     <td key={cell.id} className="px-4 py-3 align-top">
