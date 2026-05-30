@@ -11,7 +11,7 @@ interface BackBarProps {
 export default function BackBar({ label, onClick, rightAction }: BackBarProps) {
   return (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:bg-gray-950 dark:border-gray-800">
-      <div className="max-w-220 mx-auto px-6 py-1 flex items-center justify-between min-h-13">
+      <div className="max-w-240 mx-auto px-6 py-1 flex items-center justify-between min-h-13">
         <button
           type="button"
           onClick={onClick}

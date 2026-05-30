@@ -67,7 +67,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         }
       />
 
-      <div className="max-w-220 mx-auto p-8">
+      <div className="max-w-240 mx-auto p-8">
         {/* Scan metadata */}
         <div className="mb-6">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -84,7 +84,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
         {/* Stats dashboard */}
         <section>
-          <div className="flex py-6 gap-14 flex-wrap">
+          <div className="flex py-6 gap-20 flex-wrap">
 
             {/* Total */}
             <div className="= min-w-[110px]">
