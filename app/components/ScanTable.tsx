@@ -192,7 +192,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+    <div className="overflow-x-auto rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900">
       <table className="min-w-full table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
         <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
           {table.getHeaderGroups().map(headerGroup => (
