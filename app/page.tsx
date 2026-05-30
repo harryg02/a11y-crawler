@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Radar, History as HistoryIcon, Settings as SettingsIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Radar, History as HistoryIcon, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Tab from './components/Tab';
 import CrawlScan from './components/CrawlScan';
 import History, { type HistoryView } from './components/History';
@@ -56,7 +56,7 @@ export default function Page() {
             aria-expanded={!collapsed}
             className="flex items-center justify-center w-9 h-9 shrink-0 rounded-[5px] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           >
-            {collapsed ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}
+            {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
           </button>
         </div>
         <Tab icon={<Radar size={24} />} label="Crawl & Scan" active={view === 'crawl'} collapsed={collapsed} onClick={() => setView('crawl')} />
