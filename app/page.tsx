@@ -48,20 +48,22 @@ export default function Page() {
       {/* Sidebar */}
       <aside className="shrink-0 p-4 flex flex-col gap-3 border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto">
         <div className={`flex items-center mb-1 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          {!collapsed && <h1 className="text-2xl font-medium px-2">A11y Crawler</h1>}
+          <h1 className={`text-2xl font-medium px-2 ${collapsed ? 'sr-only' : ''}`}>A11y Crawler</h1>
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="flex items-center justify-center w-9 h-9 shrink-0 rounded-[5px] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           >
             {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+            <span className="sr-only">{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
           </button>
         </div>
-        <Tab icon={<Radar size={24} />} label="Crawl & Scan" active={view === 'crawl'} collapsed={collapsed} onClick={() => setView('crawl')} />
-        <Tab icon={<HistoryIcon size={24} />} label="History" active={view === 'history'} collapsed={collapsed} onClick={() => { setHistoryView({ type: 'list' }); setView('history'); }} />
-        <Tab icon={<SettingsIcon size={24} />} label="Settings" active={view === 'settings'} collapsed={collapsed} onClick={() => setView('settings')} />
+        <nav className="flex flex-col gap-3">
+          <Tab icon={<Radar size={24} />} label="Crawl & Scan" active={view === 'crawl'} collapsed={collapsed} onClick={() => setView('crawl')} />
+          <Tab icon={<HistoryIcon size={24} />} label="History" active={view === 'history'} collapsed={collapsed} onClick={() => { setHistoryView({ type: 'list' }); setView('history'); }} />
+          <Tab icon={<SettingsIcon size={24} />} label="Settings" active={view === 'settings'} collapsed={collapsed} onClick={() => setView('settings')} />
+        </nav>
       </aside>
 
       {/* Main content */}
