@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronRight, Copy, Check, Download } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
@@ -53,6 +53,10 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   const totalPages = scan.pages.length;
   const pct = totalPages === 0 ? 0 : Math.round((pagesAffected / totalPages) * 100);
   const domain = getDomain(scan.url);
+
+  // Stable reference so re-renders (e.g. toggling the sidebar) don't make
+  // TanStack Table see "new data" and reset the expanded rows.
+  const scanRows = useMemo(() => buildScanRows(scan), [scan]);
 
   return (
     <div>
@@ -161,7 +165,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         <h2 className="text-xl font-medium mb-4">
           Violations
         </h2>
-        <ScanTable data={buildScanRows(scan)} />
+        <ScanTable data={scanRows} />
       </section>
     </div>
   );

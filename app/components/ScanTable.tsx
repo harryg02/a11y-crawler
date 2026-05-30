@@ -88,6 +88,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     },
     onExpandedChange: setExpanded,
     onGroupingChange: setGrouping,
+    autoResetExpanded: false,
     getCoreRowModel: getCoreRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
