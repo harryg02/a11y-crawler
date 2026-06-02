@@ -79,15 +79,15 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     }),
     columnHelper.accessor('element', {
       header: 'Element',
-      cell: info => <div className="font-mono text-xs break-all">{info.getValue()}</div>,
+      cell: info => <div className="font-mono  break-all">{info.getValue()}</div>,
     }),
     columnHelper.accessor('selector', {
       header: 'Selector',
-      cell: info => <div className="font-mono text-xs break-all">{info.getValue()}</div>,
+      cell: info => <div className="font-mono  break-all">{info.getValue()}</div>,
     }),
     columnHelper.accessor('fix', {
       header: 'Fix',
-      cell: info => <div className="max-w-[200px] text-xs break-words">{info.getValue()}</div>,
+      cell: info => <div className="max-w-[200px]  break-words">{info.getValue()}</div>,
     }),
   ];
 
@@ -125,16 +125,43 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
         {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </span>
       <span>{flexRender(cell.column.columnDef.cell, cell.getContext())}</span>
-      <span className="ml-1 text-[11px] font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full inline-flex items-center">
+      <span className="ml-1  font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full inline-flex items-center">
         {row.subRows.length}
       </span>
     </button>
   );
 
+  // For a collapsed group, summarize a node-level column across its leaf rows.
+  // If every leaf shares the value it's a real shared fact (e.g. WCAG) and is
+  // shown plainly; if values differ (e.g. Element, or a Fix whose failure
+  // summary varies per element) the first is shown as a muted sample with a
+  // "+N more" affordance, so a sample never masquerades as the whole set.
+  const renderAggregatedPreview = (row: any, columnId: string) => {
+    const values: string[] = row
+      .getLeafRows()
+      .map((r: any) => String(r.original[columnId] ?? ''));
+    const first = values.find(Boolean);
+    if (!first) return null;
+
+    const uniform = values.every(v => v === first);
+    const mono = columnId === 'element' || columnId === 'selector';
+    const valueClass = `truncate ${mono ? 'font-mono ' : ''}`;
+
+    if (uniform) {
+      return <div className={valueClass} title={first}>{first}</div>;
+    }
+    return (
+      <div className="text-gray-500 dark:text-gray-400">
+        <div className={valueClass} title={first}>{first}</div>
+        <div className=" mt-0.5">+{values.length - 1} more</div>
+      </div>
+    );
+  };
+
   // Render a single cell's content
   const renderCellContent = (cell: any, row: any) => {
     if (cell.getIsGrouped()) return renderGroupButton(row, cell);
-    if (cell.getIsAggregated()) return null;
+    if (cell.getIsAggregated()) return renderAggregatedPreview(row, cell.column.id);
     if (cell.getIsPlaceholder()) return null;
     return flexRender(cell.column.columnDef.cell, cell.getContext());
   };
