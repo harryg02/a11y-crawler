@@ -145,14 +145,18 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
 
     const uniform = values.every(v => v === first);
     const mono = columnId === 'element' || columnId === 'selector';
-    const valueClass = `truncate ${mono ? 'font-mono ' : ''}`;
 
     if (uniform) {
-      return <div className={valueClass} title={first}>{first}</div>;
+      // No "+N more" affordance here, so show the full value (no truncation).
+      return (
+        <div className={mono ? 'font-mono break-all' : 'break-words'} title={first}>
+          {first}
+        </div>
+      );
     }
     return (
       <div className="text-gray-500 dark:text-gray-400">
-        <div className={valueClass} title={first}>{first}</div>
+        <div className={`truncate ${mono ? 'font-mono' : ''}`} title={first}>{first}</div>
         <div className=" mt-0.5">+{values.length - 1} more</div>
       </div>
     );
