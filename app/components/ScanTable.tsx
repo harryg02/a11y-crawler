@@ -14,11 +14,17 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 
 const columnHelper = createColumnHelper<ScanRow>();
 
+// A "page state" is a base URL plus the interaction (click) that produced it.
+// The same base URL reached via different clicks is a different DOM, so the
+// URL-level grouping key folds in the action to keep those states separate.
+// The NUL joiner can't occur in a URL or label, making it collision-free.
+const pageGroupKey = (url: string, action: string) => `${url}\u0000${action}`;
+
 export default function ScanTable({ data }: { data: ScanRow[] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const state: Record<string, boolean> = {};
-    for (const url of new Set(data.map(r => r.url))) {
-      state[`url:${url}`] = true;
+    for (const key of new Set(data.map(r => pageGroupKey(r.url, r.action)))) {
+      state[`url:${key}`] = true;
     }
     return state;
   });
@@ -51,15 +57,21 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   const columns = [
     columnHelper.accessor('url', {
       header: 'URL',
+      // Group by page state (base URL + action) so the same URL reached via
+      // different clicks forms separate groups instead of one merged row.
+      getGroupingValue: row => pageGroupKey(row.url, row.action),
       cell: info => {
-        // Fold the page "action" (e.g. clicked "View gallery") in as context
-        // beneath the URL, since it describes the page state, not a violation.
+        // The grouping value is composite, so derive the display values from the
+        // leaf rows. Each page-state group has a single action (folded in here
+        // as context beneath the URL, since it describes the page, not a fault).
+        const leaves = info.row.getLeafRows();
+        const baseUrl = leaves[0]?.original.url ?? String(info.getValue());
         const actions = Array.from(
-          new Set(info.row.getLeafRows().map(r => r.original.action).filter(Boolean))
+          new Set(leaves.map(r => r.original.action).filter(Boolean))
         );
         return (
           <div className="break-all">
-            <div>{info.getValue()}</div>
+            <div>{baseUrl}</div>
             {actions.map(action => (
               <div key={action} className="mt-0.5 font-normal text-gray-500 dark:text-gray-400">
                 {action}
