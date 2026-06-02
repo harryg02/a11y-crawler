@@ -149,16 +149,20 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   // summary varies per element) the first is shown as a muted sample with a
   // "+N more" affordance, so a sample never masquerades as the whole set.
   const renderAggregatedPreview = (row: any, columnId: string) => {
-    const values: string[] = row
-      .getLeafRows()
-      .map((r: any) => String(r.original[columnId] ?? ''));
-    const first = values.find(Boolean);
+    // Count distinct values, not leaf rows: many nodes can share one value
+    // (e.g. every node of an error has the same error text), so "+N more"
+    // must reflect how many *distinct* values exist, not how many rows.
+    const distinct = Array.from(
+      new Set(
+        row.getLeafRows().map((r: any) => String(r.original[columnId] ?? '')).filter(Boolean)
+      )
+    ) as string[];
+    const first = distinct[0];
     if (!first) return null;
 
-    const uniform = values.every(v => v === first);
     const mono = columnId === 'element' || columnId === 'selector';
 
-    if (uniform) {
+    if (distinct.length === 1) {
       // No "+N more" affordance here, so show the full value (no truncation).
       return (
         <div className={mono ? 'font-mono break-all' : 'break-words'} title={first}>
@@ -169,7 +173,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     return (
       <div className="text-gray-500 dark:text-gray-400">
         <div className={`truncate ${mono ? 'font-mono' : ''}`} title={first}>{first}</div>
-        <div className=" mt-0.5">+{values.length - 1} more</div>
+        <div className=" mt-0.5">+{distinct.length - 1} more</div>
       </div>
     );
   };
@@ -177,8 +181,12 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   // Render a single cell's content
   const renderCellContent = (cell: any, row: any) => {
     if (cell.getIsGrouped()) return renderGroupButton(row, cell);
-    if (cell.getIsAggregated()) return renderAggregatedPreview(row, cell.column.id);
-    if (cell.getIsPlaceholder()) return null;
+    // Aggregated = non-grouping column on a group row; placeholder = a deeper
+    // grouping column (e.g. error) on an ancestor group row (e.g. a collapsed
+    // URL). Both summarize the group's leaves, so both get the "+N more" preview.
+    if (cell.getIsAggregated() || cell.getIsPlaceholder()) {
+      return renderAggregatedPreview(row, cell.column.id);
+    }
     return flexRender(cell.column.columnDef.cell, cell.getContext());
   };
 
