@@ -51,11 +51,23 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   const columns = [
     columnHelper.accessor('url', {
       header: 'URL',
-      cell: info => <div className="break-all">{info.getValue()}</div>,
-    }),
-    columnHelper.accessor('action', {
-      header: 'Action',
-      cell: info => info.getValue(),
+      cell: info => {
+        // Fold the page "action" (e.g. clicked "View gallery") in as context
+        // beneath the URL, since it describes the page state, not a violation.
+        const actions = Array.from(
+          new Set(info.row.getLeafRows().map(r => r.original.action).filter(Boolean))
+        );
+        return (
+          <div className="break-all">
+            <div>{info.getValue()}</div>
+            {actions.map(action => (
+              <div key={action} className="mt-0.5 font-normal text-gray-500 dark:text-gray-400">
+                {action}
+              </div>
+            ))}
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('error', {
       header: 'Error',
@@ -239,7 +251,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
                 {headerGroup.headers.map(header => (
-                  <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/7)]">
+                  <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
