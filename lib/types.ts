@@ -27,6 +27,10 @@ export interface ScanRecord {
   scope: string;
   date: string;
   durationSeconds: number;
+  config?: {
+    maxDepth?: number;
+    timeout?: number;
+  };
   pages: PageRecord[];
 }
 

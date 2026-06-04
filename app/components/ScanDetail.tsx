@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronRight, Copy, Check } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronRight, Copy, Check, Download } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 import BackBar from './BackBar';
+import Button from './Button';
 import { parsePageUrl } from './parsePageUrl';
+import { exportScanToCsv, buildScanRows } from '../../lib/csvExport';
+import ScanTable from './ScanTable';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -26,7 +29,9 @@ function getDomain(url: string): string {
 function formatDuration(seconds: number): string {
   const min = Math.floor(seconds / 60);
   const sec = seconds % 60;
-  return sec === 0 ? `${min} min` : `${min} min ${sec} sec`;
+  if (min === 0) return `${sec} sec`;
+  if (sec === 0) return `${min} min`;
+  return `${min} min ${sec} sec`;
 }
 
 export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailProps) {
@@ -49,78 +54,119 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   const pct = totalPages === 0 ? 0 : Math.round((pagesAffected / totalPages) * 100);
   const domain = getDomain(scan.url);
 
+  // Stable reference so re-renders (e.g. toggling the sidebar) don't make
+  // TanStack Table see "new data" and reset the expanded rows.
+  const scanRows = useMemo(() => buildScanRows(scan), [scan]);
+
   return (
     <div>
-      <BackBar label="Back to History" onClick={onBack} />
+      <BackBar
+        label="Back to History"
+        onClick={onBack}
+        rightAction={
+          <Button variant="secondary" onClick={() => exportScanToCsv(scan)}>
+            <Download size={16} aria-hidden="true" className="mr-2" />
+            Export CSV
+          </Button>
+        }
+      />
 
-    <div className="max-w-220 mx-auto p-8">
-      {/* Scan metadata */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-medium text-gray-900 dark:text-white">{domain}</h1>
-        <p className="text-base text-gray-600 dark:text-gray-400 mt-1 break-all">{scan.url}</p>
-        <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
-          {formatDate(scan.date)} · {formatDuration(scan.durationSeconds)}
-        </p>
-      </div>
-
-      {/* Stats dashboard */}
-      <section>
-        <div className="flex py-8 gap-14 mb-8 flex-wrap">
-
-          {/* Total */}
-          <div className="= min-w-[110px]">
-            <p className="text-6xl font-bold text-gray-900 dark:text-white tabular-nums">{pct}%</p>
-            <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">of {totalPages} pages affected</h3>
+      <div className="max-w-240 mx-auto p-8">
+        {/* Scan metadata */}
+        <div className="mb-6">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <h1 className="text-3xl font-medium text-gray-900 dark:text-white">{domain}</h1>
+            <p className="text-base text-gray-600 dark:text-gray-400 break-all">{scan.url}</p>
           </div>
-
-          {/* Severity breakdown */}
-          <div className="flex-1 min-w-[220px]">
-            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Elements by Severity</h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-              {([
-                { label: 'Critical', color: 'text-red-700 dark:text-red-400',      count: counts.critical },
-                { label: 'Serious',  color: 'text-orange-700 dark:text-orange-400', count: counts.serious  },
-                { label: 'Moderate', color: 'text-yellow-800 dark:text-yellow-400', count: counts.moderate },
-                { label: 'Minor',    color: 'text-blue-700 dark:text-blue-400',     count: counts.minor    },
-              ] as const).map(({ label, color, count }) => (
-                <div key={label} className="flex items-baseline gap-1 text-base">
-                  <span className={`${color} shrink-0`}>{label}</span>
-                  <span className="flex-1 border-b-2 border-dotted border-gray-400 mb-[3px]" aria-hidden="true" />
-                  <span className="text-gray-900 dark:text-white font-medium tabular-nums">{count}</span>
-                </div>
-              ))}
-            </div>
+          <div className="text-base text-gray-600 dark:text-gray-400 mt-4 space-y-0.5">
+            <p>Completed {formatDate(scan.date)} (took {formatDuration(scan.durationSeconds)})</p>
+            {scan.config && (
+              <p>Interaction depth: {scan.config.maxDepth ?? 'Default'}</p>
+            )}
           </div>
-
-          {/* WCAG conformance */}
-          <div className="min-w-[160px]">
-            <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
-            <div className="flex flex-wrap gap-2">
-              {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
-              {wcagLevels.has('AA') && <Pill label="WCAG 2.1 AA" />}
-              {wcagLevels.size === 0 && (
-                <span className="text-base text-gray-600 dark:text-gray-400">Best practice only</span>
-              )}
-            </div>
-          </div>
-
         </div>
-      </section>
 
-      {/* Pages list */}
-      <section>
-        <h2 className="text-xl font-medium mb-3">
-          Pages Scanned ({scan.pages.length})
+        {/* Stats dashboard */}
+        <section>
+          <div className="flex py-6 gap-20 flex-wrap">
+
+            {/* Total */}
+            <div className="= min-w-[110px]">
+              <p className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{pagesAffected}/{totalPages}</p>
+              <h3 className="text-base text-gray-600 dark:text-gray-400 mt-1">Pages affected <br /> ({pct}% of all pages)</h3>
+            </div>
+
+            {/* Severity breakdown */}
+            <div className="flex-1 min-w-[220px]">
+              <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Elements by Severity</h3>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                {([
+                  { label: 'Critical', color: 'text-red-700 dark:text-red-400', count: counts.critical },
+                  { label: 'Serious', color: 'text-orange-700 dark:text-orange-400', count: counts.serious },
+                  { label: 'Moderate', color: 'text-yellow-800 dark:text-yellow-400', count: counts.moderate },
+                  { label: 'Minor', color: 'text-blue-700 dark:text-blue-400', count: counts.minor },
+                ] as const).map(({ label, color, count }) => (
+                  <div key={label} className="flex items-baseline gap-1 text-base">
+                    <span className={`${color} shrink-0`}>{label}</span>
+                    <span className="flex-1 border-b-2 border-dotted border-gray-400 mb-[3px]" aria-hidden="true" />
+                    <span className="text-gray-900 dark:text-white font-medium tabular-nums">{count}</span>
+                  </div>
+                ))}
+              </div>
+
+              <details className="mt-4 group">
+                <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white list-none flex items-center gap-1">
+                  <span className="group-open:rotate-90 transition-transform text-[10px]" aria-hidden="true">▶</span>
+                  What do these mean?
+                </summary>
+                <ul className="mt-2 space-y-1.5 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded-md border border-gray-300 dark:border-gray-700">
+                  <li><span className="text-red-700 dark:text-red-400">Critical:</span> Blocks access to content or function. Fix immediately.</li>
+                  <li><span className="text-orange-700 dark:text-orange-400">Serious:</span> Major barriers, but painful workarounds might exist.</li>
+                  <li><span className="text-yellow-800 dark:text-yellow-400">Moderate:</span> Some barriers, most users can navigate around it.</li>
+                  <li><span className="text-blue-700 dark:text-blue-400">Minor:</span> Nuisance or annoyance. Content is still accessible.</li>
+                </ul>
+              </details>
+            </div>
+
+            {/* WCAG conformance */}
+            <div className="min-w-[160px]">
+              <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
+              <div className="flex flex-wrap gap-2">
+                {wcagLevels.has('A') && <Pill label="WCAG 2.1 A" />}
+                {wcagLevels.has('AA') && <Pill label="WCAG 2.1 AA" />}
+                {wcagLevels.size === 0 && (
+                  <span className="text-base text-gray-600 dark:text-gray-400">Best practice only</span>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+
+        {/* 
+        <section className="mt-12">
+          <h2 className="text-xl font-medium mb-3">
+            Pages Scanned ({scan.pages.length})
+          </h2>
+          <ul className="space-y-2">
+            {scan.pages.map(page => (
+              <li key={page.id}>
+                <PageRow page={page} onSelectPage={onSelectPage} />
+              </li>
+            ))}
+          </ul>
+        </section>
+        */}
+      </div>
+      {/* Scan Results Table */}
+      <section className='px-10'>
+        <h2 className="text-xl font-medium mb-4">
+          Violations
         </h2>
-        <ul className="space-y-2">
-          {scan.pages.map(page => (
-            <li key={page.id}>
-              <PageRow page={page} onSelectPage={onSelectPage} />
-            </li>
-          ))}
-        </ul>
+        <ScanTable data={scanRows} />
       </section>
-    </div>
     </div>
   );
 }

@@ -50,7 +50,7 @@ export default function History({ view, setView }: { view: HistoryView; setView:
 
   if (view.type === 'list') {
     if (listLoading) return (
-      <div className="max-w-220 mx-auto p-8">
+      <div className="max-w-240 mx-auto p-8">
         <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">History</h1>
         <p className="text-gray-600 dark:text-gray-400 text-center mt-16">Loading...</p>
       </div>
@@ -65,7 +65,7 @@ export default function History({ view, setView }: { view: HistoryView; setView:
   }
 
   if (scanLoading || !activeScan) return (
-    <div className="max-w-220 mx-auto p-8">
+    <div className="max-w-240 mx-auto p-8">
       <p className="text-gray-600 dark:text-gray-400 text-center mt-16">Loading...</p>
     </div>
   );

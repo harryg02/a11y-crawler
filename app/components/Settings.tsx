@@ -29,7 +29,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-220 mx-auto p-8">
+    <div className="max-w-240 mx-auto p-8">
       <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">Settings</h1>
 
       <div>

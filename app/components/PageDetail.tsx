@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, Ex
 import BackBar from './BackBar';
 import { PageRecord, ScanRecord, Violation } from '../../lib/types';
 import { parsePageUrl } from './parsePageUrl';
+import Pill from './Pill';
 
 interface PageDetailProps {
   page: PageRecord;
@@ -55,7 +56,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
     <div>
       <BackBar label={`Back to ${domain} scan`} onClick={onBack} />
 
-    <div className="max-w-220 mx-auto p-8">
+    <div className="max-w-240 mx-auto p-8">
       {/* Page header */}
       <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-2xl font-medium text-gray-900 dark:text-white mb-2">
         <span className="break-all">{baseUrl}</span>
@@ -187,14 +188,18 @@ function ViolationCard({ violation, defaultExpanded = false }: { violation: Viol
               </button>
             </div>
           )}
+          <h3 className="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Violations Found In</h3>
 
           {/* WCAG tags */}
           {violation.wcagTags.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
               {violation.wcagTags.map(tag => (
-                <li key={tag} className="inline-flex items-center h-6 px-2 rounded text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                  {tag}
+                <li key={tag}>
+                  <Pill label={tag} />
                 </li>
+                // <li key={tag} className="inline-flex items-center h-6 px-2 rounded text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                //   {tag}
+                // </li>
               ))}
             </ul>
           )}

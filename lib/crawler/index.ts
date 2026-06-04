@@ -6,18 +6,9 @@ import type { CrawlerConfig } from './config';
 import { scanPage, scanInteractiveElements } from './scanner';
 import { discoverLinks } from './linker';
 import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
+import { checkpoint, PAUSE_FILE, STOP_FILE } from './checkpoint';
 
-const PAUSE_FILE = path.join(process.cwd(), '.pause');
-const STOP_FILE  = path.join(process.cwd(), '.stop');
 
-async function waitIfPaused(page: Page): Promise<void> {
-  if (!fs.existsSync(PAUSE_FILE)) return;
-  console.log('  → PAUSED (waiting for resume)');
-  while (fs.existsSync(PAUSE_FILE)) {
-    await page.waitForTimeout(500);
-  }
-  console.log('  → RESUMED');
-}
 
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
@@ -30,11 +21,8 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   const allResults: PageResult[] = [];
 
   while (queue.length > 0 && visited.size < config.maxPages) {
-    if (fs.existsSync(STOP_FILE)) {
-      fs.unlinkSync(STOP_FILE);
-      console.log('  → Stopped by user');
-      break;
-    }
+    if (await checkpoint(page) === 'stop') break;
+
     const url = queue.shift()!;
     const urlBase = getCanonicalUrl(url);
     if (visited.has(urlBase)) continue;
@@ -48,7 +36,6 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     }
     visited.add(urlBase);
 
-    await waitIfPaused(page);
 
     const urlPattern = getRoutePattern(url);
     console.log(`[${visited.size}/${config.maxPages}] Scanning: ${url}`);
@@ -56,6 +43,17 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
       if (config.watchMode) await page.waitForTimeout(config.slowMo);
+
+      // If the start URL redirected to a different origin (e.g. www → non-www),
+      // realign crawlBoundary so discovered links aren't filtered out.
+      if (visited.size === 1) {
+        const actualOrigin = new URL(page.url()).origin;
+        const startOrigin  = new URL(url).origin;
+        if (actualOrigin !== startOrigin) {
+          config.crawlBoundary = config.crawlBoundary.replace(startOrigin, actualOrigin);
+          visited.add(getCanonicalUrl(page.url()));
+        }
+      }
 
       const links = await discoverLinks(page, config);
       for (const link of links) {
@@ -84,7 +82,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       allResults.push(result);
       console.log(`  → ${result.violations.length} violations`);
 
-      const interactiveResults = await scanInteractiveElements(page, scannedInteractions, config, 0, () => fs.existsSync(STOP_FILE));
+      const interactiveResults = await scanInteractiveElements(page, scannedInteractions, config, 0);
       allResults.push(...interactiveResults);
 
     } catch (err) {
