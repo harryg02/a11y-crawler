@@ -12,38 +12,57 @@ function escapeCsv(value: string | undefined | null): string {
   return stringValue;
 }
 
-export function exportScanToCsv(scan: ScanRecord) {
-  const headers = ['URL', 'Action', 'Error', 'WCAG', 'Element', 'Selector', 'Fix'];
-  const rows: string[][] = [];
+export interface ScanRow {
+  url: string;
+  action: string;
+  error: string;
+  wcag: string;
+  element: string;
+  selector: string;
+  fix: string;
+  impact: string;
+}
+
+export function buildScanRows(scan: ScanRecord): ScanRow[] {
+  const rows: ScanRow[] = [];
 
   for (const page of scan.pages) {
     const { baseUrl, interaction } = parsePageUrl(page.url);
     const actionText = interaction ? `clicked "${interaction}"` : '';
 
     for (const violation of page.violations) {
-      // Capitalize first letter of impact (e.g. "Serious")
       const impactLabel = violation.impact.charAt(0).toUpperCase() + violation.impact.slice(1);
       const errorText = `${impactLabel}: ${violation.help}`;
       const wcagText = violation.wcagTags ? violation.wcagTags.join(', ') : '';
 
       for (const node of violation.nodes) {
-        rows.push([
-          baseUrl,
-          actionText,
-          errorText,
-          wcagText,
-          node.html,
-          node.selector,
-          node.failureSummary
-        ]);
+        rows.push({
+          url: baseUrl,
+          action: actionText,
+          error: errorText,
+          wcag: wcagText,
+          element: node.html,
+          selector: node.selector,
+          fix: node.failureSummary,
+          impact: violation.impact,
+        });
       }
     }
   }
 
+  return rows;
+}
+
+export function exportScanToCsv(scan: ScanRecord) {
+  const headers = ['URL', 'Action', 'Error', 'WCAG', 'Element', 'Selector', 'Fix'];
+  const rows = buildScanRows(scan);
+
   // Create CSV string
   const csvContent = [
     headers.map(escapeCsv).join(','),
-    ...rows.map(row => row.map(escapeCsv).join(','))
+    ...rows.map(row => [
+      row.url, row.action, row.error, row.wcag, row.element, row.selector, row.fix
+    ].map(escapeCsv).join(','))
   ].join('\n');
 
   // Trigger download

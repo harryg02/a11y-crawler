@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronRight, Copy, Check, Download } from 'lucide-react';
 import { ScanRecord } from '../../lib/types';
 import Pill from './Pill';
 import BackBar from './BackBar';
 import Button from './Button';
 import { parsePageUrl } from './parsePageUrl';
-import { exportScanToCsv } from '../../lib/csvExport';
+import { exportScanToCsv, buildScanRows } from '../../lib/csvExport';
+import ScanTable from './ScanTable';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -53,6 +54,10 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   const pct = totalPages === 0 ? 0 : Math.round((pagesAffected / totalPages) * 100);
   const domain = getDomain(scan.url);
 
+  // Stable reference so re-renders (e.g. toggling the sidebar) don't make
+  // TanStack Table see "new data" and reset the expanded rows.
+  const scanRows = useMemo(() => buildScanRows(scan), [scan]);
+
   return (
     <div>
       <BackBar
@@ -66,7 +71,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         }
       />
 
-      <div className="max-w-220 mx-auto p-8">
+      <div className="max-w-240 mx-auto p-8">
         {/* Scan metadata */}
         <div className="mb-6">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -83,7 +88,7 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
 
         {/* Stats dashboard */}
         <section>
-          <div className="flex py-6 gap-14 mb-8 flex-wrap">
+          <div className="flex py-6 gap-20 flex-wrap">
 
             {/* Total */}
             <div className="= min-w-[110px]">
@@ -138,8 +143,10 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           </div>
         </section>
 
-        {/* Pages list */}
-        <section>
+
+
+        {/* 
+        <section className="mt-12">
           <h2 className="text-xl font-medium mb-3">
             Pages Scanned ({scan.pages.length})
           </h2>
@@ -151,7 +158,15 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
             ))}
           </ul>
         </section>
+        */}
       </div>
+      {/* Scan Results Table */}
+      <section className='px-10'>
+        <h2 className="text-xl font-medium mb-4">
+          Violations
+        </h2>
+        <ScanTable data={scanRows} />
+      </section>
     </div>
   );
 }

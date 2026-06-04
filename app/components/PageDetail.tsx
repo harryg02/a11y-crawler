@@ -56,7 +56,7 @@ export default function PageDetail({ page, scan, onBack }: PageDetailProps) {
     <div>
       <BackBar label={`Back to ${domain} scan`} onClick={onBack} />
 
-    <div className="max-w-220 mx-auto p-8">
+    <div className="max-w-240 mx-auto p-8">
       {/* Page header */}
       <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-2xl font-medium text-gray-900 dark:text-white mb-2">
         <span className="break-all">{baseUrl}</span>

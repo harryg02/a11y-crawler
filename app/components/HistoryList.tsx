@@ -182,7 +182,7 @@ function ScanRow({ scan, onSelectScan, onDelete }: { scan: ScanSummary; onSelect
 
 export default function HistoryList({ scans, onSelectScan, onDelete }: HistoryListProps) {
   return (
-    <div className="max-w-220 mx-auto p-8">
+    <div className="max-w-240 mx-auto p-8">
       <h1 className="text-3xl font-medium mb-6 text-gray-900 dark:text-white">History</h1>
 
       {scans.length === 0 ? (
