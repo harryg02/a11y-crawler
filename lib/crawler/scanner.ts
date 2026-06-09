@@ -1,9 +1,14 @@
-import type { Page } from '@playwright/test';
+import type { Page, Frame } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { getRoutePattern, getCanonicalUrl } from './urlUtils';
 import { checkpoint } from './checkpoint';
+
+// Interactions run against either the top-level page or an embedded iframe
+// (e.g. an LTI tool hosted on a different origin). Both Page and Frame expose
+// the same evaluate/locator/url surface we rely on here.
+export type ScanTarget = Page | Frame;
 
 export async function scanPage(page: Page): Promise<PageResult> {
   const results = await new AxeBuilder({ page })
@@ -38,10 +43,10 @@ export async function scanPage(page: Page): Promise<PageResult> {
   };
 }
 
-export async function highlight(page: Page, selector: string, color: string, watchMode: boolean) {
+export async function highlight(target: ScanTarget, selector: string, color: string, watchMode: boolean) {
   if (!watchMode) return;
   try {
-    const el = page.locator(selector).first();
+    const el = target.locator(selector).first();
     await el.evaluate((node: HTMLElement, c: string) => {
       const rect = node.getBoundingClientRect();
       const div = document.createElement('div');
@@ -50,12 +55,12 @@ export async function highlight(page: Page, selector: string, color: string, wat
       node.scrollIntoView({ block: 'center' });
       setTimeout(() => div.remove(), 400);
     }, color);
-    await page.waitForTimeout(400);
+    await target.waitForTimeout(400);
   } catch {}
 }
 
-export async function collectClickables(page: Page) {
-  return page.evaluate(() => {
+export async function collectClickables(target: ScanTarget) {
+  return target.evaluate(() => {
     const elements: { selector: string; tag: string; text: string }[] = [];
     const candidates = document.querySelectorAll(
       'button, [role="button"], [role="tab"], [role="menuitem"], ' +
@@ -83,6 +88,7 @@ export async function collectClickables(page: Page) {
 
 export async function scanInteractiveElements(
   page: Page,
+  target: ScanTarget,
   scannedInteractions: Set<string>,
   config: CrawlerConfig,
   depth = 0
@@ -91,40 +97,43 @@ export async function scanInteractiveElements(
   if (await checkpoint(page) === 'stop') return [];
   const results: PageResult[] = [];
 
-  const clickables = await collectClickables(page);
-  console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}`);
+  // `target` is the page or the embedded frame whose elements we interact with.
+  // Navigation/history (goto, goBack) always happens at the page level.
+  const frameLabel = target === page.mainFrame() || target === page ? '' : ` [frame: ${target.url()}]`;
+  const clickables = await collectClickables(target);
+  console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}${frameLabel}`);
 
-  const originalUrl = page.url();
+  const originalUrl = target.url();
 
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
     try {
-      // Safety check: if a previous click completely derailed us (e.g. goBack failed), 
+      // Safety check: if a previous click completely derailed us (e.g. goBack failed),
       // force navigation back to the original page before continuing.
-      if (getCanonicalUrl(page.url()) !== getCanonicalUrl(originalUrl)) {
+      if (getCanonicalUrl(target.url()) !== getCanonicalUrl(originalUrl)) {
         await page.goto(originalUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
         await page.waitForTimeout(500);
       }
 
-      const beforeUrl = page.url();
-      const el = page.locator(clickable.selector).first();
+      const beforeUrl = target.url();
+      const el = target.locator(clickable.selector).first();
       if (!(await el.isVisible())) continue;
 
       const isGlobal = await el.evaluate((node: HTMLElement) => {
         return !!node.closest('header, nav, footer, [role="banner"], [role="navigation"], [role="contentinfo"]');
       }).catch(() => false);
 
-      const routePattern = getRoutePattern(page.url());
+      const routePattern = getRoutePattern(target.url());
       const interactionKey = isGlobal
         ? `GLOBAL|${clickable.tag}:${clickable.text}`
         : `${routePattern}|${clickable.tag}:${clickable.text}`;
       if (scannedInteractions.has(interactionKey)) continue;
       scannedInteractions.add(interactionKey);
 
-      await highlight(page, clickable.selector, 'red', config.watchMode);
+      await highlight(target, clickable.selector, 'red', config.watchMode);
       console.log(`${'    ' + '  '.repeat(depth)}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
 
-      const domBefore = await page.evaluate(() => {
+      const domBefore = await target.evaluate(() => {
         let hash = 0;
         const str = document.body.innerHTML;
         for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
@@ -134,7 +143,7 @@ export async function scanInteractiveElements(
       await el.click({ timeout: 3000 });
       await page.waitForTimeout(500);
 
-      const afterUrl = page.url();
+      const afterUrl = target.url();
       const isFullNavigation = getCanonicalUrl(afterUrl) !== getCanonicalUrl(beforeUrl);
 
       if (isFullNavigation) {
@@ -148,7 +157,7 @@ export async function scanInteractiveElements(
         continue;
       }
 
-      const domAfter = await page.evaluate(() => {
+      const domAfter = await target.evaluate(() => {
         let hash = 0;
         const str = document.body.innerHTML;
         for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
@@ -168,7 +177,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, scannedInteractions, config, depth + 1);
+      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');

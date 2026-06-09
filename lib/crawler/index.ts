@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page, Frame } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import type { PageResult } from '../types';
@@ -10,6 +10,22 @@ import { checkpoint, PAUSE_FILE, STOP_FILE } from './checkpoint';
 
 
 
+// Combined DOM hash across all frames, so a change confined to an embedded
+// iframe still produces a different hash from a previously seen page.
+async function hashAllFrames(frames: Frame[]): Promise<number> {
+  let combined = 0;
+  for (const frame of frames) {
+    const h = await frame.evaluate(() => {
+      let hash = 0;
+      const str = document.body?.innerHTML ?? '';
+      for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+      return hash;
+    }).catch(() => 0);
+    combined = ((combined << 5) - combined + h) | 0;
+  }
+  return combined;
+}
+
 export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
   if (fs.existsSync(STOP_FILE))  fs.unlinkSync(STOP_FILE);
@@ -19,6 +35,9 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   const scannedInteractions = new Set<string>();
   const patternHashes = new Map<string, number>();
   const allResults: PageResult[] = [];
+  // In-scope prefixes. Grows as we discover embedded tool frames so that, once
+  // we navigate into the tool's own origin, its pages stay crawlable too.
+  const boundaries = new Set<string>([config.crawlBoundary]);
 
   while (queue.length > 0 && visited.size < config.maxPages) {
     if (await checkpoint(page) === 'stop') break;
@@ -41,7 +60,11 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     console.log(`[${visited.size}/${config.maxPages}] Scanning: ${url}`);
 
     try {
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+      // LTI launches and other apps that boot a cross-origin iframe rarely reach
+      // 'networkidle', so navigate on 'domcontentloaded' and treat idle as a
+      // best-effort settle rather than a hard requirement.
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
       if (config.watchMode) await page.waitForTimeout(config.slowMo);
 
       // If the start URL redirected to a different origin (e.g. www → non-www),
@@ -55,22 +78,31 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
         }
       }
 
-      const links = await discoverLinks(page, config);
-      for (const link of links) {
-        const linkBase = getCanonicalUrl(link);
-        if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
-          console.log(`    + queued: ${link}`);
-          queue.push(link);
+      // Embedded frames (e.g. an LTI tool on another origin) bring their origin
+      // into scope so we crawl within the tool rather than the host site.
+      const frames = page.frames().filter(f => /^https?:/.test(f.url()));
+      for (const frame of frames) {
+        if (frame !== page.mainFrame()) boundaries.add(new URL(frame.url()).origin);
+      }
+
+      // Discover links across every frame, scoped to the accumulated boundaries.
+      let totalLinks = 0;
+      for (const frame of frames) {
+        const links = await discoverLinks(frame, config, [...boundaries]);
+        totalLinks += links.length;
+        for (const link of links) {
+          const linkBase = getCanonicalUrl(link);
+          if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
+            console.log(`    + queued: ${link}`);
+            queue.push(link);
+          }
         }
       }
-      console.log(`  → ${links.length} links found, ${queue.length} in queue`);
+      console.log(`  → ${totalLinks} links found across ${frames.length} frame(s), ${queue.length} in queue`);
 
-      const domHash = await page.evaluate(() => {
-        let hash = 0;
-        const str = document.body.innerHTML;
-        for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-        return hash;
-      });
+      // Hash the DOM of all frames so iframe-only changes aren't treated as
+      // identical to a previously seen page on the same route pattern.
+      const domHash = await hashAllFrames(frames);
 
       if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
         console.log(`  → Same DOM as previous ${urlPattern} — skipping Axe/Interactive scans`);
@@ -78,12 +110,16 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       }
       patternHashes.set(urlPattern, domHash);
 
+      // scanPage runs Axe across the whole page (including frames).
       const result = await scanPage(page);
       allResults.push(result);
       console.log(`  → ${result.violations.length} violations`);
 
-      const interactiveResults = await scanInteractiveElements(page, scannedInteractions, config, 0);
-      allResults.push(...interactiveResults);
+      // Interact with clickables in every frame, not just the top document.
+      for (const frame of page.frames().filter(f => /^https?:/.test(f.url()))) {
+        const interactiveResults = await scanInteractiveElements(page, frame, scannedInteractions, config, 0);
+        allResults.push(...interactiveResults);
+      }
 
     } catch (err) {
       const msg = (err as Error).message;
