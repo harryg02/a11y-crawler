@@ -20,6 +20,12 @@ export function getCanonicalUrl(url: string): string {
   return url.split('?')[0];
 }
 
+// Collapse digits so that structurally-identical controls that differ only by a
+// number/date (calendar days, table rows, paginated items) share one signature.
+export function normalizeSignature(s: string): string {
+  return s.toLowerCase().replace(/\d+/g, '#');
+}
+
 export function getRoutePattern(url: string): string {
   const currentUrl = new URL(url);
   let pattern = currentUrl.pathname;

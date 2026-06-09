@@ -2,13 +2,20 @@ import type { Page, Frame } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
-import { getRoutePattern, getCanonicalUrl } from './urlUtils';
+import { getRoutePattern, getCanonicalUrl, normalizeSignature } from './urlUtils';
 import { checkpoint } from './checkpoint';
 
 // Interactions run against either the top-level page or an embedded iframe
 // (e.g. an LTI tool hosted on a different origin). Both Page and Frame expose
 // the same evaluate/locator/url surface we rely on here.
 export type ScanTarget = Page | Frame;
+
+// Per-page-load interaction limits, shared across the recursive depth calls so
+// repeated controls (calendar days, table rows) can't trigger a runaway loop.
+interface InteractionBudget {
+  remaining: number;
+  signatureCounts: Map<string, number>;
+}
 
 export async function scanPage(page: Page): Promise<PageResult> {
   const results = await new AxeBuilder({ page })
@@ -91,11 +98,16 @@ export async function scanInteractiveElements(
   target: ScanTarget,
   scannedInteractions: Set<string>,
   config: CrawlerConfig,
-  depth = 0
+  depth = 0,
+  budget?: InteractionBudget,
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
   if (await checkpoint(page) === 'stop') return [];
   const results: PageResult[] = [];
+
+  // Created once at the top-level call and threaded through the recursion so
+  // the caps apply to the whole interaction tree for this page load.
+  budget ??= { remaining: config.maxInteractionsPerPage, signatureCounts: new Map() };
 
   // `target` is the page or the embedded frame whose elements we interact with.
   // Navigation/history (goto, goBack) always happens at the page level.
@@ -107,6 +119,10 @@ export async function scanInteractiveElements(
 
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
+    if (budget.remaining <= 0) {
+      console.log(`${'    ' + '  '.repeat(depth)}→ interaction budget reached (${config.maxInteractionsPerPage}) — stopping interactions on this page`);
+      break;
+    }
     try {
       // Safety check: if a previous click completely derailed us (e.g. goBack failed),
       // force navigation back to the original page before continuing.
@@ -128,7 +144,18 @@ export async function scanInteractiveElements(
         ? `GLOBAL|${clickable.tag}:${clickable.text}`
         : `${routePattern}|${clickable.tag}:${clickable.text}`;
       if (scannedInteractions.has(interactionKey)) continue;
+
+      // Cap how many near-identical controls we click on this page. The
+      // signature is structural (tag + digit-normalized selector) and ignores
+      // the visible text, so a whole calendar/table/list of cells that share a
+      // selector pattern collapses to one group and only a few get sampled.
+      const signature = `${isGlobal ? 'GLOBAL' : routePattern}|${clickable.tag}|${normalizeSignature(clickable.selector)}`;
+      const sigCount = budget.signatureCounts.get(signature) ?? 0;
+      if (sigCount >= config.maxRepeatedInteractions) continue;
+      budget.signatureCounts.set(signature, sigCount + 1);
+
       scannedInteractions.add(interactionKey);
+      budget.remaining--;
 
       await highlight(target, clickable.selector, 'red', config.watchMode);
       console.log(`${'    ' + '  '.repeat(depth)}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
@@ -177,7 +204,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1);
+      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1, budget);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');
