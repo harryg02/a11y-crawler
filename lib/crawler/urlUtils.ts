@@ -4,7 +4,8 @@ const ID_PATTERNS = [
 ];
 
 export function isBlocked(url: string, patterns: string[]): boolean {
-  return patterns.some(pattern => url.toLowerCase().includes(pattern));
+  const lower = url.toLowerCase();
+  return patterns.some(pattern => pattern && lower.includes(pattern.toLowerCase()));
 }
 
 export function isExcluded(url: string, scopes: string[]): boolean {

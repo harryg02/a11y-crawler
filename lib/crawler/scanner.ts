@@ -127,6 +127,16 @@ export async function scanInteractiveElements(
       console.log(`${'    ' + '  '.repeat(depth)}→ interaction budget reached (${config.maxInteractionsPerPage}) — stopping interactions on this page`);
       break;
     }
+    // Honour the "Buttons to avoid" list: never click a control whose accessible
+    // text contains a blocked word (e.g. "Sign out"). blockedPatterns was only
+    // applied to URLs, so such buttons were still being clicked. Match
+    // case-insensitively on both sides.
+    const label = clickable.text.toLowerCase();
+    const blockedWord = config.blockedPatterns.find(p => p && label.includes(p.toLowerCase()));
+    if (blockedWord) {
+      console.log(`${'    ' + '  '.repeat(depth)}→ Skipping avoided button ("${blockedWord}"): <${clickable.tag}> "${clickable.text}"`);
+      continue;
+    }
     try {
       // If a previous click navigated the top page away, restore the pinned URL.
       // For an embedded frame the old frame handle is now stale, so stop here.
