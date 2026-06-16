@@ -115,7 +115,11 @@ export async function scanInteractiveElements(
   const clickables = await collectClickables(target);
   console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}${frameLabel}`);
 
-  const originalUrl = target.url();
+  // The top browser URL must not change while we interact: an embedded tool
+  // (LTI iframe) is explored in place. We pin to the page's URL and undo any
+  // click that navigates the top page away from it.
+  const isSubFrame = target !== page && target !== page.mainFrame();
+  const pinnedUrl = page.url();
 
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
@@ -124,14 +128,15 @@ export async function scanInteractiveElements(
       break;
     }
     try {
-      // Safety check: if a previous click completely derailed us (e.g. goBack failed),
-      // force navigation back to the original page before continuing.
-      if (getCanonicalUrl(target.url()) !== getCanonicalUrl(originalUrl)) {
-        await page.goto(originalUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+      // If a previous click navigated the top page away, restore the pinned URL.
+      // For an embedded frame the old frame handle is now stale, so stop here.
+      if (getCanonicalUrl(page.url()) !== getCanonicalUrl(pinnedUrl)) {
+        await page.goto(pinnedUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
         await page.waitForTimeout(500);
+        if (isSubFrame) break;
       }
 
-      const beforeUrl = target.url();
+      const beforeUrl = page.url();
       const el = target.locator(clickable.selector).first();
       if (!(await el.isVisible())) continue;
 
@@ -170,17 +175,20 @@ export async function scanInteractiveElements(
       await el.click({ timeout: 3000 });
       await page.waitForTimeout(500);
 
-      const afterUrl = target.url();
-      const isFullNavigation = getCanonicalUrl(afterUrl) !== getCanonicalUrl(beforeUrl);
+      // A change to the *top* URL means the click escaped the scoped page (e.g.
+      // the tool tried to take over the tab). Undo it. An in-place navigation
+      // inside the iframe leaves the top URL unchanged and is explored normally.
+      const isTopNavigation = getCanonicalUrl(page.url()) !== getCanonicalUrl(beforeUrl);
 
-      if (isFullNavigation) {
+      if (isTopNavigation) {
         try {
-          await page.goBack({ waitUntil: 'networkidle', timeout: 5000 });
-        } catch {
-          // If goBack fails (e.g. history got wiped or timeout), force goto
-          await page.goto(beforeUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+          await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 });
+        } catch { /* fall through to the pinned-URL restore below */ }
+        if (getCanonicalUrl(page.url()) !== getCanonicalUrl(pinnedUrl)) {
+          await page.goto(pinnedUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
         }
         await page.waitForTimeout(300);
+        if (isSubFrame) break; // frame handle is stale after a top-level navigation
         continue;
       }
 

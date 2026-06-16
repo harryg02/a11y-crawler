@@ -78,27 +78,23 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
         }
       }
 
-      // Embedded frames (e.g. an LTI tool on another origin) bring their origin
-      // into scope so we crawl within the tool rather than the host site.
+      // Keep every http frame for DOM hashing and in-place interaction, but only
+      // follow links from the MAIN frame and only within the configured scope.
+      // We never queue an embedded tool's URLs (e.g. an LTI iframe on another
+      // origin like yellowdig.app) for top-level navigation, so the browser URL
+      // bar stays on the scoped page. The tool is explored by clicking inside
+      // its iframe in place (see scanInteractiveElements), not by visiting it.
       const frames = page.frames().filter(f => /^https?:/.test(f.url()));
-      for (const frame of frames) {
-        if (frame !== page.mainFrame()) boundaries.add(new URL(frame.url()).origin);
-      }
 
-      // Discover links across every frame, scoped to the accumulated boundaries.
-      let totalLinks = 0;
-      for (const frame of frames) {
-        const links = await discoverLinks(frame, config, [...boundaries]);
-        totalLinks += links.length;
-        for (const link of links) {
-          const linkBase = getCanonicalUrl(link);
-          if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
-            console.log(`    + queued: ${link}`);
-            queue.push(link);
-          }
+      const links = await discoverLinks(page.mainFrame(), config, [...boundaries]);
+      for (const link of links) {
+        const linkBase = getCanonicalUrl(link);
+        if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
+          console.log(`    + queued: ${link}`);
+          queue.push(link);
         }
       }
-      console.log(`  → ${totalLinks} links found across ${frames.length} frame(s), ${queue.length} in queue`);
+      console.log(`  → ${links.length} in-scope links found (main frame), ${queue.length} in queue`);
 
       // Hash the DOM of all frames so iframe-only changes aren't treated as
       // identical to a previously seen page on the same route pattern.
