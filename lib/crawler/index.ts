@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
-import { scanPage, scanInteractiveElements } from './scanner';
+import { scanPage, scanInteractiveElements, newInteractionTally } from './scanner';
 import { discoverLinks } from './linker';
 import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
 import { checkpoint, PAUSE_FILE, STOP_FILE } from './checkpoint';
@@ -38,13 +38,35 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   // In-scope prefixes. Grows as we discover embedded tool frames so that, once
   // we navigate into the tool's own origin, its pages stay crawlable too.
   const boundaries = new Set<string>([config.crawlBoundary]);
+  let endReason = '';
+  // Watch mode: the last URL the crawler itself navigated to. If the live
+  // browser URL differs at the top of an iteration, the user typed a new
+  // address, and we crawl from there instead of the queued URL.
+  let lastControlledUrl = '';
+  // Crawl-wide interaction totals, for the final completion summary.
+  const tally = newInteractionTally();
 
   while (queue.length > 0 && visited.size < config.maxPages) {
-    if (await checkpoint(page) === 'stop') break;
+    if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
 
-    const url = queue.shift()!;
+    // Watch mode: if the user manually navigated the browser to a new address
+    // since the last page, crawl that current location instead of the queued
+    // URL. Scope/boundary is unchanged, so an out-of-scope address is scanned
+    // once and its links are not followed.
+    let url: string;
+    let manualNav = false;
+    const live = page.url();
+    if (config.watchMode && lastControlledUrl && /^https?:/.test(live)
+        && getCanonicalUrl(live) !== getCanonicalUrl(lastControlledUrl)) {
+      url = live;
+      manualNav = true;
+      console.log(`  → Manual navigation detected — crawling current location: ${live} (scope unchanged)`);
+    } else {
+      url = queue.shift()!;
+    }
+
     const urlBase = getCanonicalUrl(url);
-    if (visited.has(urlBase)) continue;
+    if (!manualNav && visited.has(urlBase)) continue;
     if (isBlocked(url, config.blockedPatterns)) {
       console.log(`  → SKIPPED (blocked): ${url}`);
       continue;
@@ -66,6 +88,9 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
       if (config.watchMode) await page.waitForTimeout(config.slowMo);
+      // Record where the crawler is now, so a different URL at the next
+      // iteration is recognised as the user navigating manually.
+      lastControlledUrl = page.url();
 
       // If the start URL redirected to a different origin (e.g. www → non-www),
       // realign crawlBoundary so discovered links aren't filtered out.
@@ -87,14 +112,21 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       const frames = page.frames().filter(f => /^https?:/.test(f.url()));
 
       const links = await discoverLinks(page.mainFrame(), config, [...boundaries]);
+      const totalAnchors = await page.mainFrame()
+        .evaluate(() => document.querySelectorAll('a[href]').length).catch(() => 0);
+      let newlyQueued = 0;
       for (const link of links) {
         const linkBase = getCanonicalUrl(link);
         if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
           console.log(`    + queued: ${link}`);
           queue.push(link);
+          newlyQueued++;
         }
       }
-      console.log(`  → ${links.length} in-scope links found (main frame), ${queue.length} in queue`);
+      console.log(`  → links: ${links.length}/${totalAnchors} within scope, ${newlyQueued} newly queued, ${queue.length} now in queue`);
+      if (totalAnchors > 0 && links.length === 0) {
+        console.log(`     (page has ${totalAnchors} link(s) but none under boundary ${config.crawlBoundary})`);
+      }
 
       // Hash the DOM of all frames so iframe-only changes aren't treated as
       // identical to a previously seen page on the same route pattern.
@@ -113,7 +145,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
 
       // Interact with clickables in every frame, not just the top document.
       for (const frame of page.frames().filter(f => /^https?:/.test(f.url()))) {
-        const interactiveResults = await scanInteractiveElements(page, frame, scannedInteractions, config, 0);
+        const interactiveResults = await scanInteractiveElements(page, frame, scannedInteractions, config, 0, undefined, tally);
         allResults.push(...interactiveResults);
       }
 
@@ -121,15 +153,33 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       const msg = (err as Error).message;
       if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
         console.log('  → FATAL: Browser closed. Ending crawl.');
+        endReason = 'browser/page closed mid-crawl';
         break;
       }
       if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ERR_ADDRESS_UNREACHABLE') || msg.includes('ERR_CONNECTION_REFUSED')) {
         console.log(`  → UNREACHABLE: ${url}`);
+        endReason = `site unreachable (${url})`;
         break;
       }
-      console.log(`  → ERROR: ${msg.slice(0, 100)}`);
+      console.log(`  → ERROR: ${msg}`);
     }
   }
+
+  const allPagesScanned = queue.length === 0 && endReason === '';
+  if (!endReason) {
+    endReason = visited.size >= config.maxPages
+      ? `reached page limit (maxPages=${config.maxPages})`
+      : 'all discovered in-scope pages scanned';
+  }
+
+  console.log(`\n══════════════════════════════════`);
+  console.log(`CRAWL SUMMARY`);
+  console.log(`  Ended because: ${endReason}`);
+  console.log(`  Pages scanned: ${visited.size}${allPagesScanned ? ' (queue fully drained — every in-scope page visited)' : `, ${queue.length} still queued (not scanned)`}`);
+  console.log(`  Distinct controls clicked: ${tally.clicked}`);
+  console.log(`  Scan results collected (pages + interaction states): ${allResults.length}`);
+  console.log(`  Finalizing scan...`);
+  console.log(`══════════════════════════════════`);
 
   return allResults;
 }

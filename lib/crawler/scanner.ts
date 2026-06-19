@@ -17,6 +17,21 @@ interface InteractionBudget {
   signatureCounts: Map<string, number>;
 }
 
+// Crawl-wide running totals across every page/frame, for the final summary.
+export interface InteractionTally {
+  clicked: number;
+  avoided: number;
+  duplicate: number;
+  capped: number;
+  hidden: number;
+  noChange: number;
+  navReverted: number;
+}
+
+export function newInteractionTally(): InteractionTally {
+  return { clicked: 0, avoided: 0, duplicate: 0, capped: 0, hidden: 0, noChange: 0, navReverted: 0 };
+}
+
 export async function scanPage(page: Page): Promise<PageResult> {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
@@ -100,6 +115,7 @@ export async function scanInteractiveElements(
   config: CrawlerConfig,
   depth = 0,
   budget?: InteractionBudget,
+  tally?: InteractionTally,
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
   if (await checkpoint(page) === 'stop') return [];
@@ -121,6 +137,9 @@ export async function scanInteractiveElements(
   const isSubFrame = target !== page && target !== page.mainFrame();
   const pinnedUrl = page.url();
 
+  const pad = '    ' + '  '.repeat(depth);
+  const stats = { clicked: 0, avoided: 0, duplicate: 0, capped: 0, hidden: 0, navReverted: 0, noChange: 0 };
+
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
     if (budget.remaining <= 0) {
@@ -134,7 +153,8 @@ export async function scanInteractiveElements(
     const label = clickable.text.toLowerCase();
     const blockedWord = config.blockedPatterns.find(p => p && label.includes(p.toLowerCase()));
     if (blockedWord) {
-      console.log(`${'    ' + '  '.repeat(depth)}→ Skipping avoided button ("${blockedWord}"): <${clickable.tag}> "${clickable.text}"`);
+      stats.avoided++;
+      console.log(`${pad}→ Skipping avoided button ("${blockedWord}"): <${clickable.tag}> "${clickable.text}"`);
       continue;
     }
     try {
@@ -148,7 +168,7 @@ export async function scanInteractiveElements(
 
       const beforeUrl = page.url();
       const el = target.locator(clickable.selector).first();
-      if (!(await el.isVisible())) continue;
+      if (!(await el.isVisible())) { stats.hidden++; continue; }
 
       const isGlobal = await el.evaluate((node: HTMLElement) => {
         return !!node.closest('header, nav, footer, [role="banner"], [role="navigation"], [role="contentinfo"]');
@@ -158,7 +178,7 @@ export async function scanInteractiveElements(
       const interactionKey = isGlobal
         ? `GLOBAL|${clickable.tag}:${clickable.text}`
         : `${routePattern}|${clickable.tag}:${clickable.text}`;
-      if (scannedInteractions.has(interactionKey)) continue;
+      if (scannedInteractions.has(interactionKey)) { stats.duplicate++; continue; }
 
       // Cap how many near-identical controls we click on this page. The
       // signature is structural (tag + digit-normalized selector) and ignores
@@ -166,14 +186,19 @@ export async function scanInteractiveElements(
       // selector pattern collapses to one group and only a few get sampled.
       const signature = `${isGlobal ? 'GLOBAL' : routePattern}|${clickable.tag}|${normalizeSignature(clickable.selector)}`;
       const sigCount = budget.signatureCounts.get(signature) ?? 0;
-      if (sigCount >= config.maxRepeatedInteractions) continue;
+      if (sigCount >= config.maxRepeatedInteractions) {
+        stats.capped++;
+        console.log(`${pad}→ Skipping repeated control (cap ${config.maxRepeatedInteractions} reached for similar elements): <${clickable.tag}> "${clickable.text}"`);
+        continue;
+      }
       budget.signatureCounts.set(signature, sigCount + 1);
 
       scannedInteractions.add(interactionKey);
       budget.remaining--;
+      stats.clicked++;
 
       await highlight(target, clickable.selector, 'red', config.watchMode);
-      console.log(`${'    ' + '  '.repeat(depth)}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
+      console.log(`${pad}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
 
       const domBefore = await target.evaluate(() => {
         let hash = 0;
@@ -191,6 +216,8 @@ export async function scanInteractiveElements(
       const isTopNavigation = getCanonicalUrl(page.url()) !== getCanonicalUrl(beforeUrl);
 
       if (isTopNavigation) {
+        stats.navReverted++;
+        console.log(`${pad}  ↩ click on "${clickable.text}" navigated the tab to ${page.url()} — reverting to ${pinnedUrl} (destination NOT crawled)`);
         try {
           await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 });
         } catch { /* fall through to the pinned-URL restore below */ }
@@ -210,7 +237,8 @@ export async function scanInteractiveElements(
       });
 
       if (domBefore === domAfter) {
-        console.log(`${'    ' + '  '.repeat(depth)}  (no DOM change — skipping)`);
+        stats.noChange++;
+        console.log(`${pad}  (no DOM change — skipping)`);
         continue;
       }
 
@@ -222,15 +250,28 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1, budget);
+      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1, budget, tally);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
 
-    } catch {
+    } catch (err) {
+      console.log(`${pad}  (interaction error, skipping element: ${(err as Error).message.slice(0, 80)})`);
       continue;
     }
+  }
+
+  console.log(`${pad}↳ interactions done${frameLabel}: ${clickables.length} found, ${stats.clicked} clicked; skipped {avoided ${stats.avoided}, duplicate ${stats.duplicate}, repeated-cap ${stats.capped}, hidden ${stats.hidden}, no-change ${stats.noChange}}, nav-reverted ${stats.navReverted}; budget left ${budget.remaining}/${config.maxInteractionsPerPage}`);
+
+  if (tally) {
+    tally.clicked += stats.clicked;
+    tally.avoided += stats.avoided;
+    tally.duplicate += stats.duplicate;
+    tally.capped += stats.capped;
+    tally.hidden += stats.hidden;
+    tally.noChange += stats.noChange;
+    tally.navReverted += stats.navReverted;
   }
 
   return results;
