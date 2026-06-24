@@ -138,6 +138,9 @@ export async function scanInteractiveElements(
 
   const pad = '    ' + '  '.repeat(depth);
   const stats = { clicked: 0, avoided: 0, duplicate: 0, capped: 0, hidden: 0, navReverted: 0, noChange: 0 };
+  // Set when an in-place click changes the page (URL unchanged). If a later
+  // sibling is then hidden because the view was replaced, we reload to restore.
+  let pageDirty = false;
 
   // Re-scan the DOM after each pass: clicking can reveal new top-level
   // clickables, so keep going until a pass clicks nothing new. The crawl-wide
@@ -179,9 +182,24 @@ export async function scanInteractiveElements(
         if (isSubFrame) break;
       }
 
+      let el = target.locator(clickable.selector).first();
+      let visible = await el.isVisible().catch(() => false);
+      // A previous in-place click can replace the view (URL unchanged) and hide
+      // the remaining siblings. At the top level — where the pinned URL *is* the
+      // original state — reload to restore it so we still reach every control
+      // that was discovered on this page.
+      if (!visible && pageDirty && !isSubFrame && depth === 0
+          && getCanonicalUrl(page.url()) === getCanonicalUrl(pinnedUrl)) {
+        console.log(`${pad}  ⟳ restoring page to reach hidden control "${clickable.text}"`);
+        await page.goto(pinnedUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+        pageDirty = false;
+        el = target.locator(clickable.selector).first();
+        visible = await el.isVisible().catch(() => false);
+      }
+      if (!visible) { stats.hidden++; continue; }
+
       const beforeUrl = page.url();
-      const el = target.locator(clickable.selector).first();
-      if (!(await el.isVisible())) { stats.hidden++; continue; }
 
       const isGlobal = await el.evaluate((node: HTMLElement) => {
         return !!node.closest('header, nav, footer, [role="banner"], [role="navigation"], [role="contentinfo"]');
@@ -264,6 +282,9 @@ export async function scanInteractiveElements(
         console.log(`${pad}  (no DOM change — skipping)`);
         continue;
       }
+
+      // The click changed the page in place; a later sibling may now be hidden.
+      if (!isSubFrame && depth === 0) pageDirty = true;
 
       const result = await scanPage(page);
       result.url = `${beforeUrl} (clicked "${clickable.text}")`;
