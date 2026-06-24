@@ -111,18 +111,24 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       // its iframe in place (see scanInteractiveElements), not by visiting it.
       const frames = page.frames().filter(f => /^https?:/.test(f.url()));
 
+      // Add an in-scope URL to the crawl queue if new. Used for discovered
+      // <a> links and for pages reached by clicking a button/JS navigation.
+      const enqueue = (link: string, source = 'link'): boolean => {
+        const inScope = [...boundaries].some(b => link === b || link.startsWith(b.replace(/\/?$/, '/')));
+        if (!inScope || link.includes('#')
+            || isBlocked(link, config.blockedPatterns) || isExcluded(link, config.excludedScopes)) return false;
+        const base = getCanonicalUrl(link);
+        if (visited.has(base) || queue.some(q => getCanonicalUrl(q) === base)) return false;
+        queue.push(link);
+        console.log(`    + queued (${source}): ${link}`);
+        return true;
+      };
+
       const links = await discoverLinks(page.mainFrame(), config, [...boundaries]);
       const totalAnchors = await page.mainFrame()
         .evaluate(() => document.querySelectorAll('a[href]').length).catch(() => 0);
       let newlyQueued = 0;
-      for (const link of links) {
-        const linkBase = getCanonicalUrl(link);
-        if (!visited.has(linkBase) && !queue.some(q => getCanonicalUrl(q) === linkBase)) {
-          console.log(`    + queued: ${link}`);
-          queue.push(link);
-          newlyQueued++;
-        }
-      }
+      for (const link of links) if (enqueue(link)) newlyQueued++;
       console.log(`  → links: ${links.length}/${totalAnchors} within scope, ${newlyQueued} newly queued, ${queue.length} now in queue`);
       if (totalAnchors > 0 && links.length === 0) {
         console.log(`     (page has ${totalAnchors} link(s) but none under boundary ${config.crawlBoundary})`);
@@ -145,7 +151,10 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
 
       // Interact with clickables in every frame, not just the top document.
       for (const frame of page.frames().filter(f => /^https?:/.test(f.url()))) {
-        const interactiveResults = await scanInteractiveElements(page, frame, scannedInteractions, config, 0, undefined, tally);
+        const interactiveResults = await scanInteractiveElements(
+          page, frame, scannedInteractions, config, 0, undefined, tally,
+          (navUrl) => enqueue(navUrl, 'click'),
+        );
         allResults.push(...interactiveResults);
       }
 

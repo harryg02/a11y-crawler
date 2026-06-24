@@ -116,6 +116,7 @@ export async function scanInteractiveElements(
   depth = 0,
   budget?: InteractionBudget,
   tally?: InteractionTally,
+  enqueue?: (url: string) => void,
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
   if (await checkpoint(page) === 'stop') return [];
@@ -128,8 +129,6 @@ export async function scanInteractiveElements(
   // `target` is the page or the embedded frame whose elements we interact with.
   // Navigation/history (goto, goBack) always happens at the page level.
   const frameLabel = target === page.mainFrame() || target === page ? '' : ` [frame: ${target.url()}]`;
-  const clickables = await collectClickables(target);
-  console.log(`${'    ' + '  '.repeat(depth)}Interactive elements found: ${clickables.length}${frameLabel}`);
 
   // The top browser URL must not change while we interact: an embedded tool
   // (LTI iframe) is explored in place. We pin to the page's URL and undo any
@@ -139,6 +138,20 @@ export async function scanInteractiveElements(
 
   const pad = '    ' + '  '.repeat(depth);
   const stats = { clicked: 0, avoided: 0, duplicate: 0, capped: 0, hidden: 0, navReverted: 0, noChange: 0 };
+
+  // Re-scan the DOM after each pass: clicking can reveal new top-level
+  // clickables, so keep going until a pass clicks nothing new. The crawl-wide
+  // dedup (scannedInteractions) and the per-group cap guarantee termination.
+  const MAX_PASSES = 100;
+  let passCount = 0;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    if (budget.remaining <= 0) break;
+    let clickables;
+    try { clickables = await collectClickables(target); }
+    catch { break; } // frame detached (e.g. after a navigation) — stop scanning it
+    if (pass === 0) console.log(`${pad}Interactive elements found: ${clickables.length}${frameLabel}`);
+    passCount = pass + 1;
+    let progressed = 0;
 
   for (const clickable of clickables) {
     if (await checkpoint(page) === 'stop') break;
@@ -196,9 +209,10 @@ export async function scanInteractiveElements(
       scannedInteractions.add(interactionKey);
       budget.remaining--;
       stats.clicked++;
+      progressed++;
 
       await highlight(target, clickable.selector, 'red', config.watchMode);
-      console.log(`${pad}→ Clicking: <${clickable.tag}> "${clickable.text}"`);
+      console.log(`${pad}→ Clicking (#${stats.clicked} this frame): <${clickable.tag}> "${clickable.text}"`);
 
       const domBefore = await target.evaluate(() => {
         let hash = 0;
@@ -216,8 +230,17 @@ export async function scanInteractiveElements(
       const isTopNavigation = getCanonicalUrl(page.url()) !== getCanonicalUrl(beforeUrl);
 
       if (isTopNavigation) {
+        const navUrl = page.url();
         stats.navReverted++;
-        console.log(`${pad}  ↩ click on "${clickable.text}" navigated the tab to ${page.url()} — reverting to ${pinnedUrl} (destination NOT crawled)`);
+        if (!isSubFrame && enqueue) {
+          // Main frame: a click reached a new page. Hand the destination to the
+          // crawl queue (it applies scope/dedup), then go back and keep clicking.
+          enqueue(navUrl);
+          console.log(`${pad}  ↪ click on "${clickable.text}" navigated to ${navUrl} — queued; returning to ${pinnedUrl}`);
+        } else {
+          // Embedded sub-frame trying to take over the tab — just undo it.
+          console.log(`${pad}  ↩ click on "${clickable.text}" navigated the tab to ${navUrl} — reverting to ${pinnedUrl}`);
+        }
         try {
           await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 });
         } catch { /* fall through to the pinned-URL restore below */ }
@@ -250,7 +273,7 @@ export async function scanInteractiveElements(
         console.log(`${'    ' + '  '.repeat(depth)}  ⚠ ${result.violations.length} violations`);
       }
 
-      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1, budget, tally);
+      const deeperResults = await scanInteractiveElements(page, target, scannedInteractions, config, depth + 1, budget, tally, enqueue);
       results.push(...deeperResults);
 
       await page.keyboard.press('Escape');
@@ -262,7 +285,14 @@ export async function scanInteractiveElements(
     }
   }
 
-  console.log(`${pad}↳ interactions done${frameLabel}: ${clickables.length} found, ${stats.clicked} clicked; skipped {avoided ${stats.avoided}, duplicate ${stats.duplicate}, repeated-cap ${stats.capped}, hidden ${stats.hidden}, no-change ${stats.noChange}}, nav-reverted ${stats.navReverted}; budget left ${budget.remaining}/${config.maxInteractionsPerPage}`);
+    // No new clickable was acted on this pass — the DOM is exhausted.
+    if (progressed === 0) break;
+  }
+
+  const budgetStr = Number.isFinite(config.maxInteractionsPerPage)
+    ? `${budget.remaining}/${config.maxInteractionsPerPage} left`
+    : 'unlimited';
+  console.log(`${pad}↳ interactions done${frameLabel}: ${stats.clicked} clicked over ${passCount} pass(es); skipped {avoided ${stats.avoided}, duplicate ${stats.duplicate}, repeated-cap ${stats.capped}, hidden ${stats.hidden}, no-change ${stats.noChange}}, nav-reverted ${stats.navReverted}; budget ${budgetStr}`);
 
   if (tally) {
     tally.clicked += stats.clicked;
