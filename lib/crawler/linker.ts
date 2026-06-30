@@ -1,16 +1,27 @@
-import type { Page } from '@playwright/test';
+import type { Page, Frame } from '@playwright/test';
 import type { CrawlerConfig } from './config';
 import { isBlocked, isExcluded } from './urlUtils';
 
-export async function discoverLinks(page: Page, config: CrawlerConfig): Promise<string[]> {
-  const hrefs = await page.evaluate(() =>
+// `target` may be the top page or an embedded frame (e.g. an LTI tool iframe).
+// `boundaries` is the set of in-scope prefixes: the configured crawl boundary
+// plus the origin of any embedded tool frame we've discovered, so we crawl
+// within the tool (across its own pages) without wandering into the host site.
+export async function discoverLinks(
+  target: Page | Frame,
+  config: CrawlerConfig,
+  boundaries: string[],
+): Promise<string[]> {
+  const hrefs = await target.evaluate(() =>
     Array.from(document.querySelectorAll('a[href]'))
       .map(a => (a as HTMLAnchorElement).href)
   );
 
+  const inBoundary = (href: string) =>
+    boundaries.some(b => href === b || href.startsWith(b.replace(/\/?$/, '/')));
+
   return [...new Set(
     hrefs.filter(href =>
-      (href === config.crawlBoundary || href.startsWith(config.crawlBoundary.replace(/\/?$/, '/'))) &&
+      inBoundary(href) &&
       !href.includes('#') &&
       !href.startsWith('mailto:') &&
       !href.startsWith('tel:') &&

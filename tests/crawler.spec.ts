@@ -37,6 +37,15 @@ test('crawl and scan', async ({ playwright }) => {
     fs.unlinkSync(signalFile);
     console.log('Login complete. Switching to headless crawl...');
 
+    // Logging in often redirects the browser (auth flow, or landing on a
+    // dashboard). Start the crawl from wherever the user actually ended up,
+    // not the originally-typed URL. Scope/boundary is left unchanged.
+    const postLoginUrl = loginPage.url();
+    if (/^https?:/.test(postLoginUrl) && postLoginUrl.split('?')[0] !== config.startUrl.split('?')[0]) {
+      console.log(`Post-login URL changed — starting crawl from current location: ${postLoginUrl}`);
+      config.startUrl = postLoginUrl;
+    }
+
     // Save cookies/session, then close headed browser
     storageState = await headedCtx.storageState();
     await headedBrowser.close();

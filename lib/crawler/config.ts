@@ -6,6 +6,8 @@ export interface CrawlerConfig {
   watchMode: boolean;
   slowMo: number;
   maxInteractionDepth: number;
+  maxInteractionsPerPage: number;
+  maxRepeatedInteractions: number;
   timeout: number;
   requiresLogin: boolean;
   blockedPatterns: string[];
@@ -22,6 +24,10 @@ export function getConfig(): CrawlerConfig {
     watchMode:           process.env.CRAWLER_WATCH_MODE !== 'false',
     slowMo:              process.env.CRAWLER_SLOW_MO ? Number(process.env.CRAWLER_SLOW_MO) : 100,
     maxInteractionDepth: process.env.CRAWLER_MAX_DEPTH ? Number(process.env.CRAWLER_MAX_DEPTH) : 3,
+    // Backstop against runaway interaction loops (e.g. clicking every cell of a
+    // calendar/table). Per page: total clicks, and clicks of one repeated control.
+    maxInteractionsPerPage:  process.env.CRAWLER_MAX_INTERACTIONS ? Number(process.env.CRAWLER_MAX_INTERACTIONS) : Infinity,
+    maxRepeatedInteractions: process.env.CRAWLER_MAX_REPEATED ? Number(process.env.CRAWLER_MAX_REPEATED) : 3,
     timeout:             process.env.CRAWLER_TIMEOUT ? Number(process.env.CRAWLER_TIMEOUT) : 1_800_000,
     requiresLogin:       process.env.CRAWLER_REQUIRES_LOGIN === 'true',
     blockedPatterns:     [

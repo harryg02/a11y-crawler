@@ -4,7 +4,8 @@ const ID_PATTERNS = [
 ];
 
 export function isBlocked(url: string, patterns: string[]): boolean {
-  return patterns.some(pattern => url.toLowerCase().includes(pattern));
+  const lower = url.toLowerCase();
+  return patterns.some(pattern => pattern && lower.includes(pattern.toLowerCase()));
 }
 
 export function isExcluded(url: string, scopes: string[]): boolean {
@@ -18,6 +19,12 @@ export function isExcluded(url: string, scopes: string[]): boolean {
 
 export function getCanonicalUrl(url: string): string {
   return url.split('?')[0];
+}
+
+// Collapse digits so that structurally-identical controls that differ only by a
+// number/date (calendar days, table rows, paginated items) share one signature.
+export function normalizeSignature(s: string): string {
+  return s.toLowerCase().replace(/\d+/g, '#');
 }
 
 export function getRoutePattern(url: string): string {
