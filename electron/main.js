@@ -29,7 +29,46 @@ const APP_ROOT = path.join(__dirname, '..');
 let nextProc = null;
 let mainWindow = null;
 
+// The folder to keep app data beside for a "green"/portable build. This is the
+// folder the user unzipped, which differs by packaging format:
+//   • Linux AppImage: execPath points into a temp mount, so use the real
+//     .AppImage location from the APPIMAGE env var.
+//   • macOS .app: execPath is inside the bundle; put data beside the .app.
+//   • Windows/Linux unpacked (zip/dir): next to the executable.
+function portableBaseDir() {
+  if (process.env.APPIMAGE) return path.dirname(process.env.APPIMAGE);
+  if (process.platform === 'darwin') {
+    const appBundle = path.resolve(path.dirname(process.execPath), '..', '..'); // -> *.app
+    return path.dirname(appBundle); // folder containing the .app
+  }
+  return path.dirname(process.execPath);
+}
+
+function isWritable(dir) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const probe = path.join(dir, `.wtest-${process.pid}`);
+    fs.writeFileSync(probe, '');
+    fs.unlinkSync(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Resolve the writable data dir:
+//   1. An explicit A11Y_DATA_DIR always wins.
+//   2. Packaged + the app's own folder is writable (a green/portable unzip) ->
+//      keep data (DB, reports, downloaded Chromium) beside the binary so the
+//      whole thing is self-contained and leaves nothing behind.
+//   3. Otherwise (installed to Program Files, read-only mount, dev) -> the
+//      per-user data dir.
 function dataDir() {
+  if (process.env.A11Y_DATA_DIR) return process.env.A11Y_DATA_DIR;
+  if (app.isPackaged) {
+    const portable = path.join(portableBaseDir(), 'a11y-crawler-data');
+    if (isWritable(portable)) return portable;
+  }
   return app.getPath('userData');
 }
 

@@ -32,18 +32,29 @@ is still exercised by the Playwright test ([tests/crawler.spec.ts](tests/crawler
 
 All mutable state (SQLite DB, `reports/`, `.pause`/`.stop`/`.login-complete`
 signal files) is resolved through [lib/paths.ts](lib/paths.ts), which reads
-`A11Y_DATA_DIR`. Electron sets this to `app.getPath('userData')` so the read-only
-app bundle is never written to. Without the env var (plain `next dev`/`start`) it
-falls back to the project directory — original behaviour preserved.
+`A11Y_DATA_DIR`. Electron ([electron/main.js](electron/main.js) `dataDir()`) sets
+that variable so the read-only app bundle is never written to. Without it (plain
+`next dev`/`start`) it falls back to the project directory.
+
+Where `dataDir()` points, in order:
+
+1. An explicit `A11Y_DATA_DIR` if set.
+2. **Portable / green build:** a packaged app whose own folder is writable (i.e.
+   an unzipped `zip`/`tar.gz`/AppImage) keeps data in `a11y-crawler-data` **beside
+   the binary** — DB, reports, and the downloaded Chromium all travel with the app
+   folder and nothing is left on the machine. Resolved per format: next to the
+   `.exe`, beside the `.app`, or beside the `.AppImage` (via `$APPIMAGE`).
+3. Otherwise (installed into Program Files, a read-only mount, or dev): the
+   per-user dir, `app.getPath('userData')`.
 
 ### Environment variables Electron sets (packaged mode)
 
 | Var | Purpose |
 |-----|---------|
-| `A11Y_DATA_DIR` | Writable data dir (userData) |
+| `A11Y_DATA_DIR` | Writable data dir (beside the binary if portable, else userData) |
 | `A11Y_CRAWLER_SCRIPT` | Path to the bundled `crawler.cjs` in resources |
 | `A11Y_NODE_BIN` | Binary used to spawn the crawler (the Electron exe, run as node) |
-| `PLAYWRIGHT_BROWSERS_PATH` | Where Chromium is installed (userData/ms-playwright) |
+| `PLAYWRIGHT_BROWSERS_PATH` | Where Chromium is installed (`<dataDir>/ms-playwright`) |
 | `ELECTRON_RUN_AS_NODE` | Makes the Electron binary behave as plain Node |
 
 ## Running
