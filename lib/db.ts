@@ -1,11 +1,9 @@
 import Database from 'better-sqlite3';
-import path from 'path';
+import { dbPath } from './paths';
 
-// Ensure the data directory exists
-const dbPath = path.join(process.cwd(), 'database.sqlite');
-
-// Initialize the database
-const db = new Database(dbPath);
+// Initialize the database (path resolves to the Electron userData dir when
+// packaged, or the project dir under plain next dev/start).
+const db = new Database(dbPath());
 
 // Enable WAL mode for better performance and concurrent access
 db.pragma('journal_mode = WAL');

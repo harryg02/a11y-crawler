@@ -3,13 +3,14 @@ import path from 'path';
 import fs from 'fs';
 import db from './db';
 import { EventEmitter } from 'events';
+import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile, getDataDir } from './paths';
 
 // Global event emitter for pushing live logs to SSE connections
 export const scanEvents = new EventEmitter();
 
-// Signal files — must match the constants in lib/crawler/index.ts
-const PAUSE_FILE = path.join(process.cwd(), '.pause');
-const STOP_FILE = path.join(process.cwd(), '.stop');
+// Signal files — must match the constants in lib/crawler/checkpoint.ts
+const PAUSE_FILE = pauseFile();
+const STOP_FILE = stopFile();
 
 // In-memory reference to the active process so we can kill it
 let activeProcess: ChildProcess | null = null;
@@ -65,16 +66,20 @@ export function startScan(config: any) {
     CRAWLER_REQUIRES_LOGIN: requiresLogin ? 'true' : 'false',
   };
 
-  const isWindows = process.platform === 'win32';
-  const playwrightBin = path.join(
-    process.cwd(), 'node_modules', '.bin',
-    isWindows ? 'playwright.cmd' : 'playwright',
-  );
+  // Run the standalone, pre-bundled crawler (lib/crawler/run.ts → crawler.cjs).
+  //  - In dev / next start: process.execPath is node and the bundle sits in the
+  //    project's .crawler-build dir.
+  //  - In a packaged Electron app: the main process sets A11Y_CRAWLER_SCRIPT to
+  //    the unpacked bundle path and A11Y_NODE_BIN to the Electron binary (which
+  //    runs as node via the inherited ELECTRON_RUN_AS_NODE flag).
+  const nodeBin = process.env.A11Y_NODE_BIN || process.execPath;
+  const crawlerScript = process.env.A11Y_CRAWLER_SCRIPT
+    || path.join(process.cwd(), '.crawler-build', 'crawler.cjs');
 
   activeProcess = spawn(
-    playwrightBin,
-    ['test', 'tests/crawler.spec.ts', '--project=chromium'],
-    { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd(), shell: isWindows }
+    nodeBin,
+    [crawlerScript],
+    { env: { ...process.env, ...crawlerEnv }, cwd: getDataDir() },
   );
 
   db.prepare('UPDATE active_scan SET pid = ? WHERE id = ?').run(activeProcess.pid, scanId);

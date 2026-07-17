@@ -1,16 +1,15 @@
 import fs from 'fs';
-import path from 'path';
 import type { PageResult, ScanRecord } from '../types';
 import type { CrawlerConfig } from './config';
 import { getRoutePattern } from './urlUtils';
+import { reportsDir, reportPath } from '../paths';
 
 export function generateReport(
   allResults: PageResult[],
   config: CrawlerConfig,
   startTimeMs?: number,
 ): ScanRecord {
-  const reportDir = path.join(process.cwd(), 'reports');
-  if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir);
+  reportsDir(); // ensure the reports directory exists
 
   const scanId = `scan-${Date.now()}`;
   const scan: ScanRecord = {
@@ -31,7 +30,7 @@ export function generateReport(
     })),
   };
 
-  const jsonPath = path.join(reportDir, `report-${scanId}.json`);
+  const jsonPath = reportPath(scanId);
   console.log(`  → Writing report (${scan.pages.length} pages)...`);
   fs.writeFileSync(jsonPath, JSON.stringify(scan, null, 2));
   console.log(`  → Report saved`);

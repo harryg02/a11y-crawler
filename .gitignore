@@ -30,6 +30,7 @@ next-env.d.ts
 # Production builds
 build/
 dist/
+.crawler-build/
 
 # Environment variables
 .env*.local

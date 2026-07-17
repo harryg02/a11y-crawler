@@ -1,9 +1,9 @@
 import fs from 'fs';
-import path from 'path';
 import type { Page } from '@playwright/test';
+import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile } from '../paths';
 
-export const PAUSE_FILE = path.join(process.cwd(), '.pause');
-export const STOP_FILE = path.join(process.cwd(), '.stop');
+export const PAUSE_FILE = pauseFile();
+export const STOP_FILE = stopFile();
 
 export async function checkpoint(page: Page): Promise<'continue' | 'stop'> {
   // 1. Check stop first
