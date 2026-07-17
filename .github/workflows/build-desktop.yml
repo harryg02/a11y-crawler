@@ -21,27 +21,42 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # windows-2022 (not windows-latest) so Visual Studio 2022 is present:
+        # node-gyp 9 — used to compile better-sqlite3 — doesn't recognise the
+        # newer VS on windows-latest.
+        os: [ubuntu-latest, windows-2022, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          # Node 20 ships a node-gyp that builds better-sqlite3 cleanly. (Newer
-          # Node caused a gyp/CLI incompatibility during local testing.)
           node-version: 20
           cache: npm
 
+      # better-sqlite3's source build uses node-gyp 9, whose gyp imports
+      # distutils (removed in Python 3.12+). Runners ship Python 3.12–3.14, so
+      # pin 3.11, which still has distutils, and point node-gyp at it via PYTHON.
+      - uses: actions/setup-python@v5
+        id: py
+        with:
+          python-version: "3.11"
+
       # `npm ci` runs install scripts here (unlike the dev sandbox), so Electron
       # downloads and better-sqlite3 compiles automatically.
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PYTHON: ${{ steps.py.outputs.python-path }}
 
       # next build (standalone) + prepare standalone dir + bundle crawler, then
       # electron-builder for the host platform's targets (installers + green zips).
+      # electron-builder rebuilds better-sqlite3 for Electron's ABI here too, so
+      # it needs the same PYTHON.
       - name: Build distributables
         run: npm run dist -- --publish never
         env:
+          PYTHON: ${{ steps.py.outputs.python-path }}
           # Don't attempt macOS code signing on CI (no cert); ship unsigned.
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
