@@ -96,9 +96,17 @@ function startNextServer() {
     env.PLAYWRIGHT_BROWSERS_PATH = path.join(dataDir(), 'ms-playwright');
   }
 
-  const serverJs = path.join(APP_ROOT, '.next', 'standalone', 'server.js');
+  // The standalone server is spawned as a real child process, so it must live
+  // on the real filesystem — not inside app.asar (an archive file the OS can't
+  // chdir into or exec from, which raised ENOTDIR). Packaged, it ships as an
+  // extraResource at resources/standalone; in a forced-dev run it's still in the
+  // project's .next/standalone.
+  const standaloneDir = app.isPackaged
+    ? path.join(process.resourcesPath, 'standalone')
+    : path.join(APP_ROOT, '.next', 'standalone');
+  const serverJs = path.join(standaloneDir, 'server.js');
   nextProc = spawn(process.execPath, [serverJs], {
-    cwd: path.join(APP_ROOT, '.next', 'standalone'),
+    cwd: standaloneDir,
     env,
     stdio: 'inherit',
   });
