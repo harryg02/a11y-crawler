@@ -89,11 +89,11 @@ function startNextServer() {
   };
 
   if (app.isPackaged) {
-    // Bundle + browsers ship in resources / install to userData. In a forced-dev
-    // server run these are unset so scanManager falls back to the project's
-    // .crawler-build bundle and the default ms-playwright cache.
+    // Crawler bundle and the Chromium browser both ship inside resources. In a
+    // forced-dev server run these are unset so scanManager falls back to the
+    // project's .crawler-build bundle and the default ms-playwright cache.
     env.A11Y_CRAWLER_SCRIPT = path.join(process.resourcesPath, 'crawler', 'crawler.cjs');
-    env.PLAYWRIGHT_BROWSERS_PATH = path.join(dataDir(), 'ms-playwright');
+    env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'ms-playwright');
   }
 
   // The standalone server is spawned as a real child process, so it must live
@@ -114,27 +114,6 @@ function startNextServer() {
     console.log(`[next] server exited with code ${code}`);
     if (!app.isQuitting) app.quit();
   });
-}
-
-/**
- * On first launch of the packaged app there's no downloaded Chromium yet.
- * Kick off `playwright install chromium` into userData in the background. Runs
- * once; subsequent launches see the browser already present and skip.
- */
-function ensureBrowsersInstalled() {
-  const browsersPath = path.join(dataDir(), 'ms-playwright');
-  const hasChromium =
-    fs.existsSync(browsersPath) &&
-    fs.readdirSync(browsersPath).some((d) => d.startsWith('chromium'));
-  if (hasChromium) return;
-
-  const cli = path.join(process.resourcesPath, 'crawler', 'node_modules', 'playwright', 'cli.js');
-  console.log('[playwright] first run — installing Chromium into', browsersPath);
-  const proc = spawn(process.execPath, [cli, 'install', 'chromium'], {
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PLAYWRIGHT_BROWSERS_PATH: browsersPath },
-    stdio: 'inherit',
-  });
-  proc.on('exit', (code) => console.log(`[playwright] Chromium install exited with code ${code}`));
 }
 
 /** Resolve once the HTTP server answers, or reject after `timeoutMs`. */
@@ -192,7 +171,6 @@ const shouldStartServer = () => app.isPackaged || process.env.A11Y_FORCE_SERVER 
 
 app.whenReady().then(async () => {
   if (shouldStartServer()) {
-    if (app.isPackaged) ensureBrowsersInstalled();
     startNextServer();
   }
   await createWindow();

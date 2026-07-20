@@ -12,7 +12,7 @@
     "lint:fix": "eslint --fix",
     "build:crawler": "node scripts/build-crawler.mjs",
     "electron:dev": "concurrently -k -n next,electron -c blue,magenta \"next dev\" \"npm run build:crawler && node scripts/launch-electron.mjs\"",
-    "electron:build": "next build && node scripts/prepare-standalone.mjs && npm run build:crawler && node scripts/patch-standalone-sqlite.mjs",
+    "electron:build": "next build && node scripts/prepare-standalone.mjs && npm run build:crawler && node scripts/patch-standalone-sqlite.mjs && node scripts/bundle-chromium.mjs",
     "dist": "npm run electron:build && electron-builder"
   },
   "keywords": [],
@@ -55,7 +55,8 @@
       { "from": ".next/standalone", "to": "standalone" },
       { "from": ".crawler-build/crawler.cjs", "to": "crawler/crawler.cjs" },
       { "from": "node_modules/playwright", "to": "crawler/node_modules/playwright" },
-      { "from": "node_modules/playwright-core", "to": "crawler/node_modules/playwright-core" }
+      { "from": "node_modules/playwright-core", "to": "crawler/node_modules/playwright-core" },
+      { "from": "pw-browsers", "to": "ms-playwright" }
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
