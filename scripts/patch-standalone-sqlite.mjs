@@ -32,6 +32,12 @@ fs.cpSync(
   path.join(tmp, 'node_modules', 'better-sqlite3'),
   { recursive: true },
 );
+// @electron/rebuild treats buildPath as a project root and reads its
+// package.json, so the throwaway dir needs one that lists better-sqlite3.
+fs.writeFileSync(
+  path.join(tmp, 'package.json'),
+  JSON.stringify({ name: 'bsq-electron-rebuild', version: '1.0.0', dependencies: { 'better-sqlite3': '*' } }),
+);
 
 console.log(`Rebuilding better-sqlite3 for Electron ${electronVersion}...`);
 await rebuild({ buildPath: tmp, electronVersion, onlyModules: ['better-sqlite3'], force: true });
