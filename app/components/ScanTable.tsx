@@ -258,9 +258,8 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   return (
     // Framed table region. The table fits its container width — columns share
     // the width and wrap; no horizontal scrolling.
-    <div className="rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900">
-      <div className="overflow-hidden rounded-md">
-        <table className="w-full table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
+
+        <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
@@ -281,7 +280,6 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
             {buildRows()}
           </tbody>
         </table>
-      </div>
-    </div>
+
   );
 }
