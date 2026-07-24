@@ -161,11 +161,16 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         */}
       </div>
       {/* Scan Results Table */}
-      <section className='px-10'>
-        <h2 className="text-xl font-medium mb-4">
+      <section className=''>
+        <h2 className="px-10 text-xl font-medium mb-4">
           Violations
         </h2>
-        <ScanTable data={scanRows} />
+        {/* Contain the wide table's horizontal overflow here so only this region
+            scrolls sideways — not <main> or the page. The table's min-width lets
+            it exceed this wrapper on narrow viewports, which triggers the scroll. */}
+        <div className="overflow-x-auto px-10">
+          <ScanTable data={scanRows} />
+        </div>
       </section>
     </div>
   );
