@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -29,30 +29,6 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     return state;
   });
   const [grouping, setGrouping] = useState<string[]>(['url', 'error']);
-
-  // Horizontal-scroll affordance: track whether more content exists to the
-  // left/right of the framed viewport so we can show edge shadows only when
-  // there's actually somewhere to scroll.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollShadows = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
-  }, []);
-
-  useEffect(() => {
-    updateScrollShadows();
-    const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(updateScrollShadows);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [updateScrollShadows, data, expanded, grouping]);
 
   const columns = [
     columnHelper.accessor('url', {
@@ -280,24 +256,11 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   };
 
   return (
-    // Framed scroll region: overflow is contained here (not the page), and the
-    // region is keyboard-focusable so it can be scrolled without a pointer.
-    <div className="relative rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900">
-      {/* Edge shadows hint that more columns exist off-screen; shown only when
-          there is content to scroll toward in that direction. */}
-      <div
-        className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-6 rounded-l-md bg-gradient-to-r from-black/15 to-transparent transition-opacity dark:from-black/40 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
-      />
-      <div
-        className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-6 rounded-r-md bg-gradient-to-l from-black/15 to-transparent transition-opacity dark:from-black/40 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
-      />
-      <div
-        ref={scrollRef}
-        onScroll={updateScrollShadows}
-        tabIndex={0}
-        className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500"
-      >
-        <table className="w-full min-w-[1000px] table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
+    // Framed table region. The table fits its container width — columns share
+    // the width and wrap; no horizontal scrolling.
+    <div className="rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="overflow-hidden rounded-md">
+        <table className="w-full table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
