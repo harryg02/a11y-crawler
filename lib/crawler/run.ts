@@ -14,13 +14,17 @@ import { getConfig } from './config';
 async function main(): Promise<void> {
   const config = getConfig();
 
-  // The Playwright test runner used to enforce an overall time budget via
-  // test.setTimeout(config.timeout). Reproduce that here so a stuck crawl can't
-  // hang forever. unref() so a fast, clean finish isn't held open by the timer.
+  // The crawl enforces the time budget itself (see lib/crawler/index.ts): at
+  // config.timeout it stops cleanly between pages and still writes a report with
+  // the pages gathered so far. This timer is only a hard backstop for the
+  // pathological case where a single page operation hangs past the budget — it
+  // fires later, and (unavoidably) can't save partial work. unref() so a fast,
+  // clean finish isn't held open by the timer.
+  const HARD_BACKSTOP_GRACE = 3 * 60 * 1000; // 3 min beyond the graceful budget
   const budget = setTimeout(() => {
-    console.log(`  → Crawl exceeded time budget (${config.timeout} ms) — aborting.`);
+    console.log('  → Hard timeout: a page operation hung past the budget — aborting.');
     process.exit(1);
-  }, config.timeout);
+  }, config.timeout + HARD_BACKSTOP_GRACE);
   budget.unref();
 
   try {

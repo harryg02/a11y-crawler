@@ -46,8 +46,18 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   // Crawl-wide interaction totals, for the final completion summary.
   const tally = newInteractionTally();
 
+  // Wall-clock budget. Checked between pages so that when time runs out the
+  // crawl stops *cleanly* — the pages gathered so far are returned and written
+  // to a report — instead of the process being hard-killed and the run lost.
+  const deadline = Date.now() + config.timeout;
+
   while (queue.length > 0 && visited.size < config.maxPages) {
     if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
+    if (Date.now() > deadline) {
+      endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) — saving results collected so far`;
+      console.log(`  → ${endReason}`);
+      break;
+    }
 
     // Watch mode: if the user manually navigated the browser to a new address
     // since the last page, crawl that current location instead of the queued
