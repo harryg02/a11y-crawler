@@ -259,27 +259,27 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     // Framed table region. The table fits its container width — columns share
     // the width and wrap; no horizontal scrolling.
 
-        <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
-          <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
-              </tr>
+    <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
+      <thead className="sticky top-13 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
+        {table.getHeaderGroups().map(headerGroup => (
+          <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
+            {headerGroup.headers.map(header => (
+              <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
+                {header.isPlaceholder
+                  ? null
+                  : flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+              </th>
             ))}
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-            {buildRows()}
-          </tbody>
-        </table>
+          </tr>
+        ))}
+      </thead>
+      <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+        {buildRows()}
+      </tbody>
+    </table>
 
   );
 }
