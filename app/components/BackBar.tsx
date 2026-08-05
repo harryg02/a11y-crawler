@@ -10,7 +10,13 @@ interface BackBarProps {
 
 export default function BackBar({ label, onClick, rightAction }: BackBarProps) {
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:bg-gray-950 dark:border-gray-800">
+    // Sticky in both axes: top-0 pins it while scrolling down, left-0 while
+    // scrolling right (a wide table can scroll horizontally beneath it). The
+    // width is the scroll port via a container query unit, so the opaque
+    // background always spans the visible area even though the content box it
+    // lives in may be much wider. z-20 keeps it above the table's sticky
+    // <thead>, which pins directly below it.
+    <div className="sticky top-0 left-0 z-20 w-[100cqw] bg-white border-b border-gray-200 dark:bg-gray-950 dark:border-gray-800">
       <div className="max-w-240 mx-auto px-6 py-1 flex items-center justify-between min-h-13">
         <button
           type="button"

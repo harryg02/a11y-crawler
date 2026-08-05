@@ -59,7 +59,14 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
   const scanRows = useMemo(() => buildScanRows(scan), [scan]);
 
   return (
-    <div>
+    // w-max sizes this to its widest child — the violations table — so the
+    // sticky-left children below have somewhere to travel. A sticky box can only
+    // be offset within its containing block, so if this were merely viewport
+    // wide their travel would be zero and `left-0` would silently do nothing.
+    // min-w-full keeps it filling the pane when the table is narrower.
+    // Safe against runaway max-content (e.g. the long unbroken scan URL) only
+    // because every non-table child below carries a definite width.
+    <div className="w-max min-w-full">
       <BackBar
         label="Back to History"
         onClick={onBack}
@@ -71,6 +78,11 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         }
       />
 
+      {/* Sticky in the inline axis ONLY — no `top`, so it still scrolls away
+          vertically as before, but holds its horizontal position while the wide
+          table scrolls sideways. It must start at x=0 to lock immediately, which
+          is why the centring lives on the inner div rather than here. */}
+      <div className="sticky left-0 w-[100cqw]">
       <div className="max-w-240 mx-auto p-8">
         {/* Scan metadata */}
         <div className="mb-6">
@@ -160,18 +172,24 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
         </section>
         */}
       </div>
-      {/* Scan Results Table */}
-      <section className=''>
-        <h2 className="px-10 text-xl font-medium mb-4">
-          Violations
-        </h2>
-        {/* Contain the wide table's horizontal overflow here so only this region
-            scrolls sideways — not <main> or the page. The table's min-width lets
-            it exceed this wrapper on narrow viewports, which triggers the scroll. */}
-        <div className="px-10">
-          <ScanTable data={scanRows} />
-        </div>
-      </section>
+      </div>
+
+      {/* Scan results table.
+          The former <section> wrapper is gone: with no accessible name it was
+          never exposed as a landmark anyway, and naming it would have needed
+          aria-label. The <h2> carries the structure natively instead.
+          It sticks in the inline axis so the heading holds its place while the
+          table scrolls sideways underneath; w-max keeps it from stretching to
+          the max-content-wide root. The table itself is deliberately NOT in an
+          overflow container — the page is the only scroller, which also means
+          keyboard users can scroll it without the tabindex/role/name dance that
+          WCAG 2.1.1 would require for a nested scroll region. */}
+      <h2 className="sticky left-0 w-max px-10 text-xl font-medium mb-4">
+        Violations
+      </h2>
+      <div className="px-10">
+        <ScanTable data={scanRows} />
+      </div>
     </div>
   );
 }

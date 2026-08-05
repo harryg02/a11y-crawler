@@ -204,10 +204,23 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     if (!row.getIsGrouped() || !row.getIsExpanded() || row.subRows.length === 0) {
       result.push(
         <tr key={row.id} className={trClass}>
+          {/* These are the grouped URL / Error cells that rowSpan the group, so
+              they are headers for the rows they span, not data — <th scope="row">
+              lets a screen reader announce the page and rule as context when
+              reading a cell further along the row. font-normal/text-left undo the
+              UA's bold+centred <th> defaults so this looks identical to the <td>
+              it replaces. (A stricter scope="rowgroup" would mean one <tbody>
+              per group; that also drops the row divider at group boundaries, so
+              it's left as a possible follow-up.) */}
           {prependCells.map(p => (
-            <td key={p.key} rowSpan={p.rowSpan > 1 ? p.rowSpan : undefined} className={tdClass}>
+            <th
+              key={p.key}
+              scope="row"
+              rowSpan={p.rowSpan > 1 ? p.rowSpan : undefined}
+              className={`${tdClass} font-normal text-left`}
+            >
               {p.content}
-            </td>
+            </th>
           ))}
           {row.getVisibleCells()
             .filter((c: any) => !excludeColumnIds.has(c.column.id))
@@ -260,11 +273,18 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     // the width and wrap; no horizontal scrolling.
 
     <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
+      {/* Native accessible name for the table — no aria-label needed. Must be
+          the first child of <table>. sr-only keeps it off-screen visually. */}
+      <caption className="sr-only">
+        Accessibility violations, grouped by page and rule
+      </caption>
+      {/* top-13 (not top-0) because the scroll container is <main>, shared with
+          the sticky BackBar above — this pins directly below its 3.25rem bar. */}
       <thead className="sticky top-13 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
         {table.getHeaderGroups().map(headerGroup => (
           <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
             {headerGroup.headers.map(header => (
-              <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
+              <th key={header.id} scope="col" className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
                 {header.isPlaceholder
                   ? null
                   : flexRender(

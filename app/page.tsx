@@ -67,7 +67,17 @@ export default function Page() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 bg-white dark:bg-gray-950 overflow-y-auto">
+      {/* The single scroll container for the app, in both axes (overflow-y:auto
+          makes the computed overflow-x 'auto' too). Two additions serve the
+          scan-detail layout:
+            @container — makes this a query container so sticky children can be
+              sized with 100cqw, i.e. the width of this scroll *port*. That is
+              neither 100vw (wrong: the sidebar) nor 100% (wrong: resolves
+              against the max-content-wide content), and it tracks the sidebar
+              collapsing with no JS.
+            scroll-pt-25 — reserves the sticky BackBar + table header height so
+              keyboard focus doesn't land underneath them (WCAG 2.4.11). */}
+      <main className="flex-1 bg-white dark:bg-gray-950 overflow-y-auto @container scroll-pt-25">
         {/* Keep CrawlScan mounted but hidden when not active so state persists */}
         <div className={view === 'crawl' ? '' : 'hidden'}>
           <CrawlScan
