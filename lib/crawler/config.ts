@@ -15,7 +15,13 @@ export interface CrawlerConfig {
 }
 
 export function getConfig(): CrawlerConfig {
-  const scope = process.env.CRAWLER_SCOPE ?? 'https://umitstest.h5p.com/content';
+  // Every real run is launched by scanManager, which always sets CRAWLER_SCOPE
+  // from the form (see lib/scanManager.ts). This fallback only applies when the
+  // crawler is run bare (e.g. `npx playwright test tests/crawler.spec.ts` with no
+  // env), so it must be a neutral, public accessibility test fixture — never a
+  // real institutional host, which would make an unconfigured run point at
+  // production infrastructure.
+  const scope = process.env.CRAWLER_SCOPE ?? 'https://www.w3.org/WAI/demos/bad/before/home.html';
   return {
     scope,
     crawlBoundary:       process.env.CRAWLER_BOUNDARY ?? scope,
