@@ -59,11 +59,43 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     }),
     columnHelper.accessor('error', {
       header: 'Error',
-      cell: info => <div className="max-w-[200px] break-words">{info.getValue()}</div>,
-    }),
-    columnHelper.accessor('wcag', {
-      header: 'WCAG',
-      cell: info => info.getValue(),
+      // WCAG used to be its own column. The criteria are folded in here as pills
+      // under the message — the same idiom the URL column uses for its action
+      // text: secondary context describing the fault, not a fault of its own.
+      // Dropping the column also gives the remaining five a sixth more width.
+      cell: info => {
+        // 'error' is a grouping column, so this normally renders for a group row
+        // and the tags have to come off the leaves. Falls back to the row itself
+        // in case the grouping is ever changed and this renders a real leaf.
+        const leaves = info.row.getLeafRows();
+        const rows = leaves.length ? leaves : [info.row];
+        const tags = Array.from(new Set(
+          rows.flatMap(r =>
+            String(r.original.wcag ?? '').split(',').map(t => t.trim()).filter(Boolean)
+          )
+        ));
+        return (
+          <div className="max-w-[200px] break-words">
+            <div>{info.getValue()}</div>
+            {tags.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {/* Names the pills for a screen reader: "wcag412" on its own
+                    doesn't say what it is, and the column header now reads
+                    "Error". Visually the pill shape carries that meaning. */}
+                <span className="sr-only">WCAG criteria:</span>
+                {tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-gray-400 px-2 py-0.5 text-xs font-normal whitespace-nowrap text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('element', {
       header: 'Element',
@@ -284,7 +316,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
         {table.getHeaderGroups().map(headerGroup => (
           <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
             {headerGroup.headers.map(header => (
-              <th key={header.id} scope="col" className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
+              <th key={header.id} scope="col" className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/5)]">
                 {header.isPlaceholder
                   ? null
                   : flexRender(
