@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -255,31 +255,66 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     return result;
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+
+  // Sync horizontal scroll from the body container to the sticky header
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current && stickyRef.current) {
+      stickyRef.current.scrollLeft = scrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const colGroup = (
+    <colgroup>
+      {columns.map((_, i) => <col key={i} className="w-[calc(100%/6)]" />)}
+    </colgroup>
+  );
+
+  const tableBase = "min-w-6xl w-full max-w-7xl table-fixed text-left text-sm text-gray-900 dark:text-gray-100";
+
+  const headerRows = table.getHeaderGroups().map(headerGroup => (
+    <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
+      {headerGroup.headers.map(header => (
+        <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap">
+          {header.isPlaceholder
+            ? null
+            : flexRender(
+              header.column.columnDef.header,
+              header.getContext()
+            )}
+        </th>
+      ))}
+    </tr>
+  ));
+
   return (
-    // Framed table region. The table fits its container width — columns share
-    // the width and wrap; no horizontal scrolling.
+    <>
+      {/* Sticky header — lives outside the overflow-x-auto container so
+          position:sticky works relative to <main>'s vertical scroll.
+          overflow:hidden clips it to the same visible width as the body;
+          horizontal scroll is synced via the onScroll handler below. */}
+      <div
+        ref={stickyRef}
+        className="sticky mx-10 top-13  z-10 overflow-hidden rounded-t-md border-2 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
+      >
+        <table className={tableBase}>
+          {colGroup}
+          <thead className="text-gray-700 dark:text-gray-300">
+            {headerRows}
+          </thead>
+        </table>
+      </div>
 
-    <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
-      <thead className="sticky top-13 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">
-        {table.getHeaderGroups().map(headerGroup => (
-          <tr key={headerGroup.id} className="divide-x divide-gray-300 dark:divide-gray-700">
-            {headerGroup.headers.map(header => (
-              <th key={header.id} className="px-4 py-3 font-semibold whitespace-nowrap w-[calc(100%/6)]">
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-        {buildRows()}
-      </tbody>
-    </table>
-
+      {/* Horizontally scrollable table body */}
+      <div ref={scrollRef} className="overflow-x-auto px-10" onScroll={handleScroll}>
+        <table className={`${tableBase} border-2 border-t-0 border-gray-300 dark:border-gray-700 rounded-b-md bg-white dark:bg-gray-900`}>
+          {colGroup}
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+            {buildRows()}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
