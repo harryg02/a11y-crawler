@@ -41,7 +41,7 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
   const [maxDepth, setMaxDepth] = useState(2);
   const [timeout, setTimeout] = useState(30);
   const [forbiddenWords, setForbiddenWords] = useState<string[]>([
-    'Log out', 'Sign out', 'Delete', 'Remove', 'Grant', 'Access',
+    'Log out', 'Sign out', 'Delete', 'Remove', 'Grant', 'Revoke',
     'Pay', 'Payment', 'Purchase', 'Buy', 'Checkout', 'Deactivate', 'Disable',
   ]);
   const [crawlBoundary, setCrawlBoundary] = useState('');
