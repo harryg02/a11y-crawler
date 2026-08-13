@@ -396,7 +396,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     // Framed table region. The table fits its container width — columns share
     // the width and wrap; no horizontal scrolling.
 
-    <table className={`${tableWidthClass} rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100`}>
+    <table className={`${tableWidthClass} mb-20 rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100`}>
       {/* Native accessible name for the table — no aria-label needed. Must be
           the first child of <table>. sr-only keeps it off-screen visually. */}
       <caption className="sr-only">
