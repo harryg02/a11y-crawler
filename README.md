@@ -87,13 +87,21 @@ npm --version
 1. Download the latest `.dmg` file from the [Releases](https://github.com/harryg02/a11y-crawler/releases) page.
 2. Double-click the downloaded `.dmg` file to mount it.
 3. Drag the app into your **Applications** folder.
-4. **Important**: Because this app is currently unsigned, macOS may say the app is "damaged and can't be opened" or "from an unidentified developer". This is a standard macOS Gatekeeper security measure, not actual file corruption.
-5. **To fix this and bypass Gatekeeper:**
+4. **Important**: macOS will refuse to open it the first time, usually saying the app is **"damaged and can't be opened"**. Nothing is damaged and the download is not corrupt, that message is simply what macOS shows for an app it can't verify. We don't pay for an Apple Developer ID certificate, so Apple has nothing to check the app against.
+5. **To open it, clear the download flag:**
    - Open your **Terminal** app.
-   - Type `xattr -cr ` (make sure to include the space at the end).
-   - Drag and drop the app from your Applications folder into the Terminal window. This will automatically fill in the correct path to the app.
-   - Press **Enter** to run the command.
-6. You can now open the app normally from your Applications folder!
+   - Type `xattr -cr ` (including the space at the end).
+   - Drag the app from your **Applications** folder into the Terminal window — this fills in the correct path for you.
+   - Press **Enter**.
+6. You can now open the app normally, and won't need to repeat this for that copy.
+
+> **Why this is needed.** macOS tags anything downloaded from the internet with a
+> quarantine flag, and refuses to launch quarantined apps that aren't signed with
+> a certificate Apple issued. `xattr -cr` removes that flag. The releases *are*
+> ad-hoc signed, which is what lets them run at all on Apple Silicon — but only a
+> paid Apple Developer ID would remove the warning itself. Only run `xattr -cr`
+> on software you trust and obtained from a source you trust, such as this
+> project's own Releases page.
 
 ### Download as a ZIP (without Git)
 

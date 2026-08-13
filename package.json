@@ -1,6 +1,6 @@
 {
   "name": "a11y-crawler",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Automated web accessibility crawler and scanner",
   "author": "harryg02",
   "main": "electron/main.js",
@@ -51,6 +51,7 @@
     "asarUnpack": [
       "electron/icon.png"
     ],
+    "afterPack": "./scripts/afterpack-adhoc-sign.mjs",
     "npmRebuild": false,
     "files": [
       "electron/**/*",
