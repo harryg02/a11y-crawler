@@ -173,4 +173,4 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 
 ## License
 
-MIT
+Apache-2.0
