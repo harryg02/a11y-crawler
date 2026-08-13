@@ -10,7 +10,8 @@ import {
   createColumnHelper,
 } from '@tanstack/react-table';
 import { ScanRow } from '../../lib/csvExport';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import Button from './Button';
 
 const columnHelper = createColumnHelper<ScanRow>();
 
@@ -146,36 +147,79 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   const isInlinedGroup = (row: any) =>
     row.getIsGrouped() && row.subRows.length > 0 && (isSoloGroup(row) || row.getIsExpanded());
 
-  // Render a grouped cell: an expand/collapse button, or plain text for a solo group
-  const renderGroupCell = (row: any, cell: any) => {
-    const label = flexRender(cell.column.columnDef.cell, cell.getContext());
+  // Names a group row's children. One grouping level down from the URL those
+  // are errors; below the last grouping level they are the individual
+  // violation nodes. Read off `grouping` rather than hardcoded per column, so
+  // re-ordering or adding a grouping level keeps the units honest.
+  // Takes a count because the toggle labels a *hidden* subset, which is 1 when
+  // a group has exactly two children.
+  const childUnit = (columnId: string, count: number) => {
+    const singular = grouping[grouping.indexOf(columnId) + 1] ?? 'element';
+    return count === 1 ? singular : `${singular}s`;
+  };
 
-    if (isSoloGroup(row)) {
-      // The chevron's 14px is held open as a spacer so a solo group's label
-      // still lines up with the expandable labels above and below it. The
-      // link-blue goes with the chevron: nothing here is clickable any more.
-      return (
-        <div className="flex items-start gap-1 font-medium text-left">
-          <span className="mt-0.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{label}</span>
-        </div>
-      );
-    }
+  // Render a grouped cell: the group's label as plain text, with the count
+  // itself as the disclosure control beneath it.
+  //
+  // The label used to be the button. That was wrong three ways: it made a long
+  // URL the button's accessible name ("https://app.peerceptiv.com/course/6246
+  // 788e-.../teacher_data_dashboard, collapsed, button"), it styled a
+  // disclosure as a hyperlink to that page, and it swallowed the URL text into
+  // a control so it couldn't be selected without a `select-text` workaround.
+  // Splitting them gives the button a short honest name and hands the label
+  // back to the reader as text. It also removes the need to special-case a
+  // solo group's appearance: every label renders identically, and a solo group
+  // is simply a label with no control under it.
+  const renderGroupCell = (row: any, cell: any) => {
+    // A collapsed group still shows one child inline (renderAggregatedPreview
+    // renders a sample in the trailing columns), so the toggle reveals one
+    // fewer row than the group holds.
+    const hidden = row.subRows.length - 1;
 
     return (
-      <button
-        onClick={row.getToggleExpandedHandler()}
-        style={{ cursor: row.getCanExpand() ? 'pointer' : 'normal' }}
-        className="flex items-start gap-1 font-medium text-blue-700 dark:text-blue-400 hover:underline text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded select-text"
-      >
-        <span className="mt-0.5 shrink-0" aria-hidden="true">
-          {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        <span>{label}</span>
-        <span className="ml-1  font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full inline-flex items-center">
-          {row.subRows.length}
-        </span>
-      </button>
+    <div className="text-left">
+      <div className="font-medium">{flexRender(cell.column.columnDef.cell, cell.getContext())}</div>
+      {/* A solo group has nothing to disclose (isInlinedGroup keeps it open and
+          its one child is already on this row), so it gets no control at all.
+          That guarantees `hidden` is at least 1 here — never a "0 more". */}
+      {!isSoloGroup(row) && (
+        <div className="mt-2">
+          {/* ariaExpanded is what makes this a disclosure rather than an
+              unlabelled button: without it a screen reader announces no state
+              and no hint that activating it reveals anything. (aria-controls is
+              deliberately omitted — an expanded group's children are sibling
+              <tr>s spanned by this cell, not one container with an id.) */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => row.toggleExpanded()}
+            ariaExpanded={row.getIsExpanded()}
+          >
+            {/* A control, not a statistic: it names the outcome of the click
+                rather than reporting a total, leads with the verb, and names
+                the unit — what it reveals differs by level, a URL group holds
+                errors and an error group holds elements. Both states stay
+                verb-led so the label never goes stale against the chevron.
+                Known adjacency: a collapsed row can read "Show 5 more elements"
+                here while the Element cell beside it reads "+1 more". They
+                disagree on purpose — that counts distinct values, this counts
+                rows. */}
+            {row.getIsExpanded()
+              ? `Hide ${hidden} ${childUnit(cell.column.id, hidden)}`
+              : `Show ${hidden} more ${childUnit(cell.column.id, hidden)}`}
+            {/* Down when collapsed, flipped up when open — the show/hide idiom
+                DropdownInput already uses, and the one that matches content
+                appearing *below* this control. A right-pointing chevron would
+                clash with HistoryList, where it means "navigate to". No
+                aria-hidden: lucide adds it to childless icons itself. */}
+            <ChevronDown
+              size={14}
+              className={`shrink-0 transition-transform ${row.getIsExpanded() ? 'rotate-180' : ''}`}
+            />
+          </Button>
+        </div>
+      )}
+    </div>
     );
   };
 
