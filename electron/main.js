@@ -140,6 +140,13 @@ async function createWindow() {
     height: 860,
     show: false,
     backgroundColor: '#0a0a0a',
+    // Hide the default File/Edit/View/Help bar without removing the menu.
+    // Menu.setApplicationMenu(null) would also delete it, but the default menu
+    // is where Electron's zoom (Ctrl +/-/0), copy/paste and reload accelerators
+    // live — dropping those in an accessibility tool of all things would break
+    // WCAG 1.4.4 for its own UI. Hidden, they still work, and Alt reveals the
+    // bar. No effect on macOS, where the menu lives in the system bar.
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
