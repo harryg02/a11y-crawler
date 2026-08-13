@@ -134,22 +134,50 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     );
   }
 
-  // Render expand/collapse button for a grouped cell
-  const renderGroupButton = (row: any, cell: any) => (
-    <button
-      onClick={row.getToggleExpandedHandler()}
-      style={{ cursor: row.getCanExpand() ? 'pointer' : 'normal' }}
-      className="flex items-start gap-1 font-medium text-blue-700 dark:text-blue-400 hover:underline text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded select-text"
-    >
-      <span className="mt-0.5 shrink-0" aria-hidden="true">
-        {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-      </span>
-      <span>{flexRender(cell.column.columnDef.cell, cell.getContext())}</span>
-      <span className="ml-1  font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full inline-flex items-center">
-        {row.subRows.length}
-      </span>
-    </button>
-  );
+  // A group of one has nothing to reveal: isInlinedGroup below keeps it
+  // permanently expanded, so its single child already sits on this same <tr>.
+  // A chevron would toggle between two identical renderings and a "1" badge
+  // would count the row the reader is already looking at, so both are dropped.
+  const isSoloGroup = (row: any) => row.getIsGrouped() && row.subRows.length === 1;
+
+  // True when a grouped row's children are rendered inline (its grouped cell
+  // rowSpanning them) rather than folded behind a collapsed summary. Solo
+  // groups always are; every other group follows the user's expand state.
+  const isInlinedGroup = (row: any) =>
+    row.getIsGrouped() && row.subRows.length > 0 && (isSoloGroup(row) || row.getIsExpanded());
+
+  // Render a grouped cell: an expand/collapse button, or plain text for a solo group
+  const renderGroupCell = (row: any, cell: any) => {
+    const label = flexRender(cell.column.columnDef.cell, cell.getContext());
+
+    if (isSoloGroup(row)) {
+      // The chevron's 14px is held open as a spacer so a solo group's label
+      // still lines up with the expandable labels above and below it. The
+      // link-blue goes with the chevron: nothing here is clickable any more.
+      return (
+        <div className="flex items-start gap-1 font-medium text-left">
+          <span className="mt-0.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>{label}</span>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={row.getToggleExpandedHandler()}
+        style={{ cursor: row.getCanExpand() ? 'pointer' : 'normal' }}
+        className="flex items-start gap-1 font-medium text-blue-700 dark:text-blue-400 hover:underline text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded select-text"
+      >
+        <span className="mt-0.5 shrink-0" aria-hidden="true">
+          {row.getIsExpanded() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
+        <span>{label}</span>
+        <span className="ml-1  font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full inline-flex items-center">
+          {row.subRows.length}
+        </span>
+      </button>
+    );
+  };
 
   // For a collapsed group, summarize a node-level column across its leaf rows.
   // If every leaf shares the value it's a real shared fact (e.g. WCAG) and is
@@ -188,7 +216,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
 
   // Render a single cell's content
   const renderCellContent = (cell: any, row: any) => {
-    if (cell.getIsGrouped()) return renderGroupButton(row, cell);
+    if (cell.getIsGrouped()) return renderGroupCell(row, cell);
     // Aggregated = non-grouping column on a group row; placeholder = a deeper
     // grouping column (e.g. error) on an ancestor group row (e.g. a collapsed
     // URL). Both summarize the group's leaves, so both get the "+N more" preview.
@@ -203,10 +231,10 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
 
   // Count how many actual <tr> elements a row subtree will produce.
   // Collapsed groups and leaf rows each produce 1 <tr>.
-  // Expanded groups produce the sum of their children's counts (the group
+  // Inlined groups produce the sum of their children's counts (the group
   // row itself is merged into the first child, so it doesn't add a <tr>).
   const countTrs = (row: any): number => {
-    if (!row.getIsGrouped() || !row.getIsExpanded() || row.subRows.length === 0) return 1;
+    if (!isInlinedGroup(row)) return 1;
     return row.subRows.reduce((sum: number, child: any) => sum + countTrs(child), 0);
   };
 
@@ -218,7 +246,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
   };
 
   // Recursively render a row subtree with compact group expansion.
-  // When any group is expanded, its grouped-column cell is inlined into the
+  // When any group is inlined, its grouped-column cell is folded into the
   // first descendant leaf/collapsed-group via rowSpan, instead of rendering
   // the group header as its own <tr>.
   //
@@ -233,7 +261,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     excludeColumnIds: Set<string>,
   ) => {
     // Terminal case: leaf row, collapsed group, or empty group → single <tr>
-    if (!row.getIsGrouped() || !row.getIsExpanded() || row.subRows.length === 0) {
+    if (!isInlinedGroup(row)) {
       result.push(
         <tr key={row.id} className={trClass}>
           {/* These are the grouped URL / Error cells that rowSpan the group, so
@@ -274,7 +302,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     const newPrepend: PrependCell = {
       key: `group-${row.id}`,
       rowSpan: totalTrs,
-      content: groupCell ? renderGroupButton(row, groupCell) : null,
+      content: groupCell ? renderGroupCell(row, groupCell) : null,
       columnId: groupColumnId,
     };
 
