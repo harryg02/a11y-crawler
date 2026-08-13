@@ -45,6 +45,7 @@
   "build": {
     "appId": "com.a11ycrawler.app",
     "productName": "A11y Crawler",
+    "icon": "electron/icon.png",
     "asar": true,
     "npmRebuild": false,
     "files": [

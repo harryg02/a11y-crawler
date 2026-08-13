@@ -140,6 +140,13 @@ async function createWindow() {
     height: 860,
     show: false,
     backgroundColor: '#0a0a0a',
+    // Window + taskbar icon. Packaged builds get their executable icon from
+    // electron-builder's build.icon, but that never reaches the *window*, and on
+    // Linux nothing sets it at all — so this is what stops `electron:dev` and
+    // the Linux window from falling back to the stock Electron diamond. Lives
+    // in electron/ (not build/, which is gitignored and so never reaches CI)
+    // and is therefore inside the packaged app, reachable via __dirname.
+    icon: path.join(__dirname, 'icon.png'),
     // Hide the default File/Edit/View/Help bar without removing the menu.
     // Menu.setApplicationMenu(null) would also delete it, but the default menu
     // is where Electron's zoom (Ctrl +/-/0), copy/paste and reload accelerators
