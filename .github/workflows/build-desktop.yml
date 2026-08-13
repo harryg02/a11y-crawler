@@ -1,8 +1,11 @@
 name: Build desktop app
 
 # Builds the Electron app on each OS's own runner. Native runners are required
-# because better-sqlite3 is a native addon and can't be reliably cross-compiled;
-# each runner rebuilds it for Electron's ABI (electron-builder npmRebuild).
+# because better-sqlite3 is a native addon and can't be reliably cross-compiled.
+# The rebuild for Electron's ABI is done by scripts/patch-standalone-sqlite.mjs,
+# NOT by electron-builder — build.npmRebuild is false on purpose, because the
+# asar carries no node_modules at all (build.files is electron/ + package.json).
+# The copy that matters ships as an extraResource inside .next/standalone.
 #
 # Run manually via the Actions tab (workflow_dispatch), or push a tag like
 # v1.0.0 to also publish the artifacts to a GitHub Release.
@@ -51,8 +54,8 @@ jobs:
 
       # next build (standalone) + prepare standalone dir + bundle crawler, then
       # electron-builder for the host platform's targets (installers + green zips).
-      # electron-builder rebuilds better-sqlite3 for Electron's ABI here too, so
-      # it needs the same PYTHON.
+      # patch-standalone-sqlite.mjs shells out to node-gyp inside this step, so it
+      # needs the same PYTHON.
       - name: Build distributables
         run: npm run dist -- --publish never
         env:
@@ -68,7 +71,6 @@ jobs:
           path: |
             dist/*.AppImage
             dist/*.tar.gz
-            dist/*.deb
             dist/*.exe
             dist/*.dmg
             dist/*.zip
