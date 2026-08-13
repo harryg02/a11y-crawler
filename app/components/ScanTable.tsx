@@ -258,20 +258,31 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     );
   };
 
+  // A cell standing in for rows the reader can't see yet.
+  // Aggregated = non-grouping column on a group row; placeholder = a deeper
+  // grouping column (e.g. error) on an ancestor group row (e.g. a collapsed
+  // URL). Both summarize the group's leaves rather than showing one of them.
+  // Drives both the preview content and the fold marker on the cell's edge, so
+  // the two can't drift apart.
+  const isSummaryCell = (cell: any) => cell.getIsAggregated() || cell.getIsPlaceholder();
+
   // Render a single cell's content
   const renderCellContent = (cell: any, row: any) => {
     if (cell.getIsGrouped()) return renderGroupCell(row, cell);
-    // Aggregated = non-grouping column on a group row; placeholder = a deeper
-    // grouping column (e.g. error) on an ancestor group row (e.g. a collapsed
-    // URL). Both summarize the group's leaves, so both get the "+N more" preview.
-    if (cell.getIsAggregated() || cell.getIsPlaceholder()) {
-      return renderAggregatedPreview(row, cell.column.id);
-    }
+    if (isSummaryCell(cell)) return renderAggregatedPreview(row, cell.column.id);
     return flexRender(cell.column.columnDef.cell, cell.getContext());
   };
 
   const trClass = "hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors divide-x divide-gray-200 dark:divide-gray-800";
   const tdClass = "px-4 py-3 align-top";
+
+  // Heavier bottom edge on exactly the cells that are standing in for hidden
+  // rows, so the fold is visible where the folded content is rather than only
+  // in the "Show N more" button off to the left. The table is border-collapse
+  // (Tailwind preflight), so at the shared edge this 2px replaces the tbody's
+  // 1px divide-y instead of stacking with it: the row divider stays hairline
+  // under the label columns and thickens under the summarized ones.
+  const summaryEdgeClass = "border-b-2 border-b-gray-400 dark:border-b-gray-500";
 
   // Count how many actual <tr> elements a row subtree will produce.
   // Collapsed groups and leaf rows each produce 1 <tr>.
@@ -329,7 +340,10 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
           {row.getVisibleCells()
             .filter((c: any) => !excludeColumnIds.has(c.column.id))
             .map((cell: any) => (
-              <td key={cell.id} className={tdClass}>
+              <td
+                key={cell.id}
+                className={`${tdClass} ${isSummaryCell(cell) ? summaryEdgeClass : ''}`}
+              >
                 {renderCellContent(cell, row)}
               </td>
             ))}
