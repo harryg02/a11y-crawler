@@ -172,6 +172,8 @@ function syncPowerSaveBlocker() {
 }
 
 function startPowerManagement() {
+  registerPowerEvents();
+
   scanPollTimer = setInterval(async () => {
     const status = await fetchScanStatus();
     if (status) scanState = status;
@@ -183,6 +185,114 @@ function startPowerManagement() {
   // why isOnBatteryPower() is re-read there rather than cached here.
   powerMonitor.on('on-ac', syncPowerSaveBlocker);
   powerMonitor.on('on-battery', syncPowerSaveBlocker);
+}
+
+/** POST a scan control endpoint. Resolves true on 2xx, false on anything else. */
+function postScanControl(action) {
+  return new Promise((resolve) => {
+    const req = http.request(
+      `${APP_URL}/api/scan/${action}`,
+      { method: 'POST' },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode >= 200 && res.statusCode < 300);
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.setTimeout(4000, () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
+// The crawler polls these two files between pages (lib/crawler/checkpoint.ts),
+// which is what lets us park or end a crawl from outside the Next server.
+const pauseFile = () => path.join(dataDir(), '.pause');
+const stopFile = () => path.join(dataDir(), '.stop');
+
+// Set only when *we* paused the scan because the machine suspended. A scan the
+// user paused by hand must stay paused through a sleep/wake cycle, so resume
+// is gated on this rather than on "is it paused".
+let pausedBySystem = false;
+
+function registerPowerEvents() {
+  powerMonitor.on('suspend', () => {
+    if (!scanState.running) return;
+    // Already paused — by the user, since we would have set the flag otherwise.
+    // Checking the file rather than scanState avoids acting on a poll result up
+    // to SCAN_POLL_MS stale, which could otherwise auto-resume a hand-paused
+    // scan that was paused moments before the lid closed.
+    try { if (fs.existsSync(pauseFile())) return; } catch { return; }
+
+    pausedBySystem = true;
+    // Write the signal synchronously: the system may suspend before an HTTP
+    // round trip completes, but a sync write has already landed by the time
+    // this handler returns. The POST is what updates the DB status and the UI,
+    // and is allowed to lose the race — the crawler only reads the file.
+    try {
+      fs.writeFileSync(pauseFile(), '');
+      console.log('[power] suspending — crawl parked between pages');
+    } catch (err) {
+      console.warn(`[power] could not write pause signal: ${err.message}`);
+      pausedBySystem = false;
+      return;
+    }
+    postScanControl('pause');
+  });
+
+  powerMonitor.on('resume', async () => {
+    if (!pausedBySystem) return;
+    pausedBySystem = false;
+
+    // The Next server may still be settling right after wake, so retry rather
+    // than stranding a scan we parked ourselves.
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      if (await postScanControl('resume')) {
+        console.log('[power] resumed after wake');
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+
+    // Last resort: clear the signal directly so the crawl continues even if the
+    // server never answered. The DB status stays 'paused' and the UI will look
+    // wrong, which is strictly better than a crawl parked forever.
+    try {
+      fs.unlinkSync(pauseFile());
+      console.warn('[power] resume endpoint unreachable — cleared pause signal directly');
+    } catch { /* already gone */ }
+  });
+
+  // Shutdown/restart: end the crawl cleanly so the pages gathered so far are
+  // still written to a report, rather than having Chromium and the crawler
+  // killed mid-page and the run lost.
+  //
+  // preventDefault asks the OS to wait, so this is bounded hard: the crawler
+  // only checks .stop *between* pages, and a page with many interactions can
+  // outlast the grace period. If it does we quit anyway — a delayed shutdown is
+  // a worse failure than a lost partial report.
+  const SHUTDOWN_GRACE_MS = 20_000;
+
+  const endScanAndQuit = async (event) => {
+    if (!scanState.running) return;
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+
+    try { fs.writeFileSync(stopFile(), ''); } catch { /* best effort */ }
+    postScanControl('stop');
+    console.log('[power] system shutting down — stopping scan and writing report');
+
+    const deadline = Date.now() + SHUTDOWN_GRACE_MS;
+    while (Date.now() < deadline) {
+      const status = await fetchScanStatus();
+      if (!status || !status.running) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    app.quit();
+  };
+
+  // 'shutdown' is macOS/Linux; Windows signals the same thing as 'session-end',
+  // which cannot be deferred, so there it is purely best effort.
+  powerMonitor.on('shutdown', endScanAndQuit);
+  app.on('session-end', () => endScanAndQuit(null));
 }
 
 /** Resolve once the HTTP server answers, or reject after `timeoutMs`. */
