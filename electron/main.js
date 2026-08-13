@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, powerMonitor, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -116,6 +116,75 @@ function startNextServer() {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Power management
+//
+// A crawl is a long-running job in a *child of a child* (this process → the
+// Next server → the crawler → Chromium), so nothing about it is visible to the
+// OS as user activity. Left alone, an idle laptop suspends mid-scan.
+//
+// The main process has no direct handle on scan state — scans are owned by the
+// Next server — so it polls the same status endpoint the UI uses.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SCAN_POLL_MS = 10_000;
+
+let scanState = { running: false, status: 'idle' };
+let powerBlockerId = null;
+let scanPollTimer = null;
+
+/** GET /api/scan/status, resolving null on any failure (server not up yet). */
+function fetchScanStatus() {
+  return new Promise((resolve) => {
+    const req = http.get(`${APP_URL}/api/scan/status`, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(body)); } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(2000, () => { req.destroy(); resolve(null); });
+  });
+}
+
+// Hold the system awake only while a scan is actually running AND we're on
+// mains power. On battery, a long crawl that pins the machine awake is a good
+// way to return to a flat laptop, so there we let it sleep and rely on the
+// suspend/resume handling below to park the crawl cleanly instead.
+//
+// 'prevent-app-suspension' keeps the system from idle-sleeping but still lets
+// the display switch off — we need the process scheduled, not the screen lit.
+// Note this only defers *idle* sleep: closing the lid or choosing Sleep still
+// suspends, which is exactly why suspend/resume is handled separately.
+function syncPowerSaveBlocker() {
+  const onBattery = powerMonitor.isOnBatteryPower();
+  const shouldBlock = scanState.running && !onBattery;
+
+  if (shouldBlock && powerBlockerId === null) {
+    powerBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+    console.log('[power] scan running on AC — holding off idle sleep');
+  } else if (!shouldBlock && powerBlockerId !== null) {
+    powerSaveBlocker.stop(powerBlockerId);
+    powerBlockerId = null;
+    console.log(`[power] released idle-sleep hold (running=${scanState.running}, battery=${onBattery})`);
+  }
+}
+
+function startPowerManagement() {
+  scanPollTimer = setInterval(async () => {
+    const status = await fetchScanStatus();
+    if (status) scanState = status;
+    syncPowerSaveBlocker();
+  }, SCAN_POLL_MS);
+
+  // React immediately where the events exist (macOS/Windows only); elsewhere
+  // the poll above picks up a power-source change within one interval, which is
+  // why isOnBatteryPower() is re-read there rather than cached here.
+  powerMonitor.on('on-ac', syncPowerSaveBlocker);
+  powerMonitor.on('on-battery', syncPowerSaveBlocker);
+}
+
 /** Resolve once the HTTP server answers, or reject after `timeoutMs`. */
 function waitForServer(url, timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
@@ -188,6 +257,7 @@ app.whenReady().then(async () => {
     startNextServer();
   }
   await createWindow();
+  startPowerManagement();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -200,6 +270,11 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  if (scanPollTimer) clearInterval(scanPollTimer);
+  if (powerBlockerId !== null) {
+    powerSaveBlocker.stop(powerBlockerId);
+    powerBlockerId = null;
+  }
   if (nextProc) {
     try { nextProc.kill(); } catch {}
   }
