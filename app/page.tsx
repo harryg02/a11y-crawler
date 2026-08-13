@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Radar, History as HistoryIcon, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import Logo from './components/Logo';
 import Tab from './components/Tab';
 import CrawlScan from './components/CrawlScan';
 import History, { type HistoryView } from './components/History';
@@ -48,7 +49,13 @@ export default function Page() {
       {/* Sidebar */}
       <aside className="shrink-0 p-4 flex flex-col gap-3 border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto">
         <div className={`flex items-center mb-1 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          <h1 className={`text-2xl font-medium px-2 ${collapsed ? 'sr-only' : ''}`}>A11y Crawler</h1>
+          {/* The mark sits inside the <h1> so it travels with the wordmark —
+              including into sr-only when the sidebar collapses, which keeps the
+              collapsed rail exactly as it was (toggle button only). */}
+          <h1 className={`flex items-center gap-2 text-2xl font-medium px-2 ${collapsed ? 'sr-only' : ''}`}>
+            <Logo className="w-7 h-7 shrink-0" />
+            A11y Crawler
+          </h1>
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
