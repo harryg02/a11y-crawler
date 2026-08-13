@@ -1,3 +1,4 @@
+import { performance } from 'perf_hooks';
 import type { Page, Frame } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
@@ -46,14 +47,22 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   // Crawl-wide interaction totals, for the final completion summary.
   const tally = newInteractionTally();
 
-  // Wall-clock budget. Checked between pages so that when time runs out the
-  // crawl stops *cleanly* — the pages gathered so far are returned and written
-  // to a report — instead of the process being hard-killed and the run lost.
-  const deadline = Date.now() + config.timeout;
+  // Time budget, measured on the monotonic clock rather than the wall clock.
+  // Checked between pages so that when it runs out the crawl stops *cleanly* —
+  // the pages gathered so far are returned and written to a report — instead of
+  // the process being hard-killed and the run lost.
+  //
+  // performance.now() stops advancing while the machine is suspended, which is
+  // the behaviour we want: the budget means "don't crawl for longer than N
+  // minutes", and a sleeping laptop is not crawling. With Date.now() a laptop
+  // asleep over lunch came back with the deadline already blown, so the first
+  // iteration after wake ended the run and wrote a partial report — a scan that
+  // looked completed but silently stopped early.
+  const deadline = performance.now() + config.timeout;
 
   while (queue.length > 0 && visited.size < config.maxPages) {
     if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
-    if (Date.now() > deadline) {
+    if (performance.now() > deadline) {
       endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) — saving results collected so far`;
       console.log(`  → ${endReason}`);
       break;
