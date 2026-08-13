@@ -3,18 +3,20 @@ import path from 'path';
 import fs from 'fs';
 import db from './db';
 import { EventEmitter } from 'events';
+import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile, getDataDir } from './paths';
 
 // Global event emitter for pushing live logs to SSE connections
 export const scanEvents = new EventEmitter();
 
-// Signal files — must match the constants in lib/crawler/index.ts
-const PAUSE_FILE = path.join(process.cwd(), '.pause');
-const STOP_FILE = path.join(process.cwd(), '.stop');
+// Signal files — must match the constants in lib/crawler/checkpoint.ts
+const PAUSE_FILE = pauseFile();
+const STOP_FILE = stopFile();
 
 // In-memory reference to the active process so we can kill it
 let activeProcess: ChildProcess | null = null;
 
 export function getActiveScan() {
+  ensureRecovered();
   const row = db.prepare('SELECT * FROM active_scan WHERE status IN (?, ?, ?) LIMIT 1').get('running', 'paused', 'stopping') as any;
   if (!row) return null;
   return {
@@ -65,16 +67,20 @@ export function startScan(config: any) {
     CRAWLER_REQUIRES_LOGIN: requiresLogin ? 'true' : 'false',
   };
 
-  const isWindows = process.platform === 'win32';
-  const playwrightBin = path.join(
-    process.cwd(), 'node_modules', '.bin',
-    isWindows ? 'playwright.cmd' : 'playwright',
-  );
+  // Run the standalone, pre-bundled crawler (lib/crawler/run.ts → crawler.cjs).
+  //  - In dev / next start: process.execPath is node and the bundle sits in the
+  //    project's .crawler-build dir.
+  //  - In a packaged Electron app: the main process sets A11Y_CRAWLER_SCRIPT to
+  //    the unpacked bundle path and A11Y_NODE_BIN to the Electron binary (which
+  //    runs as node via the inherited ELECTRON_RUN_AS_NODE flag).
+  const nodeBin = process.env.A11Y_NODE_BIN || process.execPath;
+  const crawlerScript = process.env.A11Y_CRAWLER_SCRIPT
+    || path.join(process.cwd(), '.crawler-build', 'crawler.cjs');
 
   activeProcess = spawn(
-    playwrightBin,
-    ['test', 'tests/crawler.spec.ts', '--project=chromium'],
-    { env: { ...process.env, ...crawlerEnv }, cwd: process.cwd(), shell: isWindows }
+    nodeBin,
+    [crawlerScript],
+    { env: { ...process.env, ...crawlerEnv }, cwd: getDataDir() },
   );
 
   db.prepare('UPDATE active_scan SET pid = ? WHERE id = ?').run(activeProcess.pid, scanId);
@@ -158,32 +164,41 @@ export function getScanLogs(scanId: string) {
 
 // ----------------------------------------------------------------------------
 // Startup Recovery (Orphan Process Cleanup)
-// Runs exactly once when this module is first imported (i.e. Next.js server boots)
+// Runs exactly once, on the first scan-state query after the server boots. This
+// used to run at module import, but that touched the DB during `next build`
+// (route modules are evaluated in several workers) and raced ("database is
+// locked"). Deferring to first real use keeps build-time evaluation side-effect
+// free while still running once when the server actually handles a request.
 // ----------------------------------------------------------------------------
-try {
-  const stuckScans = db.prepare('SELECT id, pid FROM active_scan WHERE status IN (?, ?, ?)').all('running', 'paused', 'stopping') as any[];
-  
-  for (const scan of stuckScans) {
-    if (scan.pid) {
-      try {
-        // Check if the OS process is still alive
-        process.kill(scan.pid, 0); 
-        
-        // If we reach here, it didn't throw, meaning the process is a ghost running in the background.
-        // We must kill it forcefully.
-        console.log(`[Startup Recovery] Found ghost Playwright process (PID: ${scan.pid}). Killing it.`);
-        process.kill(scan.pid, 'SIGKILL');
-      } catch (e) {
-        // process.kill(pid, 0) threw an error, which means the process is already dead.
-        console.log(`[Startup Recovery] Process ${scan.pid} is already dead.`);
+let recovered = false;
+function ensureRecovered() {
+  if (recovered) return;
+  recovered = true;
+  try {
+    const stuckScans = db.prepare('SELECT id, pid FROM active_scan WHERE status IN (?, ?, ?)').all('running', 'paused', 'stopping') as any[];
+
+    for (const scan of stuckScans) {
+      if (scan.pid) {
+        try {
+          // Check if the OS process is still alive
+          process.kill(scan.pid, 0);
+
+          // If we reach here, it didn't throw, meaning the process is a ghost running in the background.
+          // We must kill it forcefully.
+          console.log(`[Startup Recovery] Found ghost Playwright process (PID: ${scan.pid}). Killing it.`);
+          process.kill(scan.pid, 'SIGKILL');
+        } catch (e) {
+          // process.kill(pid, 0) threw an error, which means the process is already dead.
+          console.log(`[Startup Recovery] Process ${scan.pid} is already dead.`);
+        }
       }
+
+      // Reset the database state so the UI unlocks
+      db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('error', scan.id);
+      insertLog(scan.id, 'Scan aborted: The server was restarted unexpectedly.', 'system');
+      insertLog(scan.id, '__SCAN_ERROR__', 'system');
     }
-    
-    // Reset the database state so the UI unlocks
-    db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('error', scan.id);
-    insertLog(scan.id, 'Scan aborted: The server was restarted unexpectedly.', 'system');
-    insertLog(scan.id, '__SCAN_ERROR__', 'system');
+  } catch (err) {
+    console.error('[Startup Recovery] Failed to clean up stuck scans:', err);
   }
-} catch (err) {
-  console.error('[Startup Recovery] Failed to clean up stuck scans:', err);
 }

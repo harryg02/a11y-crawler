@@ -13,6 +13,11 @@ node_modules/
 /.login-complete
 /.pause
 /.stop
+/course/
+
+# Launcher diagnostics — start.command / start.bat append local npm and
+# Playwright install stderr here, which can include local paths and usernames.
+/start-error.log
 
 # SQLite Database
 database.sqlite
@@ -30,6 +35,8 @@ next-env.d.ts
 # Production builds
 build/
 dist/
+.crawler-build/
+pw-browsers/
 
 # Environment variables
 .env*.local

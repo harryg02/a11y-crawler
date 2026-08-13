@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { reportPath } from '../../../../lib/paths';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const filePath = path.join(process.cwd(), 'reports', `report-${id}.json`);
+  const filePath = reportPath(id);
 
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const filePath = path.join(process.cwd(), 'reports', `report-${id}.json`);
+  const filePath = reportPath(id);
 
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

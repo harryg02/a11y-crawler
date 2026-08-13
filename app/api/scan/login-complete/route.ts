@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { LOGIN_COMPLETE_FILE } from '../../../../lib/paths';
 
 export async function POST() {
-  const signalFile = path.join(process.cwd(), '.login-complete');
-  fs.writeFileSync(signalFile, '');
+  fs.writeFileSync(LOGIN_COMPLETE_FILE(), '');
   return NextResponse.json({ ok: true });
 }

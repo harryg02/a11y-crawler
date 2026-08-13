@@ -26,9 +26,22 @@ export interface ScanRow {
 export function buildScanRows(scan: ScanRecord): ScanRow[] {
   const rows: ScanRow[] = [];
 
+  // Dedup within each page (its base URL plus all its interaction states): the
+  // crawler re-scans the whole page after every click, so a persistent element
+  // that fails a rule gets re-reported in every state. Show it once. Identity is
+  // rule id + selector — the element's stable identity — rather than its HTML,
+  // which can change between states (e.g. a button whose label flips
+  // "View Issues"/"Hide Issues"). Scoped per base URL, so the same element on a
+  // different route still reports on its own. Non-destructive: the saved scan is
+  // untouched; this only affects the table and CSV built from it.
+  const seenByPage = new Map<string, Set<string>>();
+
   for (const page of scan.pages) {
     const { baseUrl, interaction } = parsePageUrl(page.url);
     const actionText = interaction ? `clicked "${interaction}"` : '';
+
+    let seen = seenByPage.get(baseUrl);
+    if (!seen) { seen = new Set<string>(); seenByPage.set(baseUrl, seen); }
 
     for (const violation of page.violations) {
       const impactLabel = violation.impact.charAt(0).toUpperCase() + violation.impact.slice(1);
@@ -36,6 +49,10 @@ export function buildScanRows(scan: ScanRecord): ScanRow[] {
       const wcagText = violation.wcagTags ? violation.wcagTags.join(', ') : '';
 
       for (const node of violation.nodes) {
+        const key = JSON.stringify([violation.id, node.selector]);
+        if (seen.has(key)) continue; // same element + rule already shown for this page
+        seen.add(key);
+
         rows.push({
           url: baseUrl,
           action: actionText,

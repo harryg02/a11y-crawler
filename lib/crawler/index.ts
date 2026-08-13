@@ -5,7 +5,7 @@ import type { PageResult } from '../types';
 import type { CrawlerConfig } from './config';
 import { scanPage, scanInteractiveElements, newInteractionTally } from './scanner';
 import { discoverLinks } from './linker';
-import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern } from './urlUtils';
+import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern, isFragmentAnchor } from './urlUtils';
 import { checkpoint, PAUSE_FILE, STOP_FILE } from './checkpoint';
 
 
@@ -46,8 +46,18 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   // Crawl-wide interaction totals, for the final completion summary.
   const tally = newInteractionTally();
 
+  // Wall-clock budget. Checked between pages so that when time runs out the
+  // crawl stops *cleanly* — the pages gathered so far are returned and written
+  // to a report — instead of the process being hard-killed and the run lost.
+  const deadline = Date.now() + config.timeout;
+
   while (queue.length > 0 && visited.size < config.maxPages) {
     if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
+    if (Date.now() > deadline) {
+      endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) — saving results collected so far`;
+      console.log(`  → ${endReason}`);
+      break;
+    }
 
     // Watch mode: if the user manually navigated the browser to a new address
     // since the last page, crawl that current location instead of the queued
@@ -82,12 +92,24 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     console.log(`[${visited.size}/${config.maxPages}] Scanning: ${url}`);
 
     try {
+      // A hash-route change on the same document (SPA routing, e.g. #/ -> #/dashboard)
+      // doesn't reload the page, so page.goto's load events never fire and the
+      // router may not have re-rendered. Drive that case through the address bar
+      // and give the router a moment to settle. Otherwise navigate normally.
       // LTI launches and other apps that boot a cross-origin iframe rarely reach
       // 'networkidle', so navigate on 'domcontentloaded' and treat idle as a
       // best-effort settle rather than a hard requirement.
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
-      if (config.watchMode) await page.waitForTimeout(config.slowMo);
+      const sameDocHashNav =
+        url.includes('#') && page.url().split('#')[0] === url.split('#')[0] && page.url() !== url;
+      if (sameDocHashNav) {
+        await page.evaluate((u) => { window.location.href = u; }, url);
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+        await page.waitForTimeout(Math.max(config.slowMo, 600));
+      } else {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+        if (config.watchMode) await page.waitForTimeout(config.slowMo);
+      }
       // Record where the crawler is now, so a different URL at the next
       // iteration is recognised as the user navigating manually.
       lastControlledUrl = page.url();
@@ -115,7 +137,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       // <a> links and for pages reached by clicking a button/JS navigation.
       const enqueue = (link: string, source = 'link'): boolean => {
         const inScope = [...boundaries].some(b => link === b || link.startsWith(b.replace(/\/?$/, '/')));
-        if (!inScope || link.includes('#')
+        if (!inScope || isFragmentAnchor(link)
             || isBlocked(link, config.blockedPatterns) || isExcluded(link, config.excludedScopes)) return false;
         const base = getCanonicalUrl(link);
         if (visited.has(base) || queue.some(q => getCanonicalUrl(q) === base)) return false;

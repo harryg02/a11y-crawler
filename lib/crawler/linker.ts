@@ -1,6 +1,6 @@
 import type { Page, Frame } from '@playwright/test';
 import type { CrawlerConfig } from './config';
-import { isBlocked, isExcluded } from './urlUtils';
+import { isBlocked, isExcluded, isFragmentAnchor } from './urlUtils';
 
 // `target` may be the top page or an embedded frame (e.g. an LTI tool iframe).
 // `boundaries` is the set of in-scope prefixes: the configured crawl boundary
@@ -22,7 +22,7 @@ export async function discoverLinks(
   return [...new Set(
     hrefs.filter(href =>
       inBoundary(href) &&
-      !href.includes('#') &&
+      !isFragmentAnchor(href) &&  // keep #/route SPA links, drop #section anchors
       !href.startsWith('mailto:') &&
       !href.startsWith('tel:') &&
       !isBlocked(href, config.blockedPatterns) &&

@@ -82,6 +82,19 @@ npm --version
 
 ## Installation
 
+### macOS App (.dmg)
+
+1. Download the latest `.dmg` file from the [Releases](https://github.com/harryg02/a11y-crawler/releases) page.
+2. Double-click the downloaded `.dmg` file to mount it.
+3. Drag the app into your **Applications** folder.
+4. **Important**: Because this app is currently unsigned, macOS may say the app is "damaged and can't be opened" or "from an unidentified developer". This is a standard macOS Gatekeeper security measure, not actual file corruption.
+5. **To fix this and bypass Gatekeeper:**
+   - Open your **Terminal** app.
+   - Type `xattr -cr ` (make sure to include the space at the end).
+   - Drag and drop the app from your Applications folder into the Terminal window. This will automatically fill in the correct path to the app.
+   - Press **Enter** to run the command.
+6. You can now open the app normally from your Applications folder!
+
 ### Download as a ZIP (without Git)
 
 1. Go to the project page on GitHub
@@ -160,4 +173,14 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Two things worth knowing before you point this at a site:
+
+- **No warranty, no liability.** The scanner drives a real browser against real
+  pages, clicking what it finds. Sections 7 and 8 of the License disclaim all
+  warranties and limit liability — you run it against a target at your own risk,
+  and you are responsible for having permission to scan that target.
+- **Attribution is required.** If you redistribute this, including inside a
+  commercial product, Section 4 requires you to keep the LICENSE, retain the
+  attribution notices, and include the contents of NOTICE in your own notices.
