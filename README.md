@@ -173,4 +173,14 @@ The app runs entirely on your machine. Scan results are saved as JSON files in t
 
 ## License
 
-Apache-2.0
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Two things worth knowing before you point this at a site:
+
+- **No warranty, no liability.** The scanner drives a real browser against real
+  pages, clicking what it finds. Sections 7 and 8 of the License disclaim all
+  warranties and limit liability — you run it against a target at your own risk,
+  and you are responsible for having permission to scan that target.
+- **Attribution is required.** If you redistribute this, including inside a
+  commercial product, Section 4 requires you to keep the LICENSE, retain the
+  attribution notices, and include the contents of NOTICE in your own notices.
