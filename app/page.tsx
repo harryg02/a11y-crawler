@@ -44,7 +44,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
+    <div className="flex h-full overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
       {/* Sidebar */}
       <aside className="shrink-0 p-4 flex flex-col gap-3 border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto">
         <div className={`flex items-center mb-1 ${collapsed ? 'justify-center' : 'justify-between'}`}>

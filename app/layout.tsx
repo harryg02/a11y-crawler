@@ -20,8 +20,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={atkinson.variable} suppressHydrationWarning>
-      <body className="font-sans">
+    <html lang="en" className={`${atkinson.variable} h-full overflow-hidden`} suppressHydrationWarning>
+      {/* The document must never scroll: the app shell fills it exactly and owns
+          its own scrollers. h-full/overflow-hidden on BOTH <html> and <body> is
+          what guarantees that — the shell's old h-screen did not, because 100vh
+          measures the viewport including any space a scrollbar takes, so the
+          shell could end up taller than the box it sits in and scroll the
+          window down over Electron's backgroundColor. h-full instead measures
+          the real parent, which is only a real length if every ancestor has
+          one, hence the pair. */}
+      <body className="font-sans h-full overflow-hidden">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

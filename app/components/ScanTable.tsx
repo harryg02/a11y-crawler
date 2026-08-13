@@ -13,11 +13,17 @@ import { ScanRow } from '../../lib/csvExport';
 import { ChevronDown } from 'lucide-react';
 import Button from './Button';
 
-// The table's sizing box: centred, and clamped to the page's content width.
-// Exported because the "Violations" heading has to sit on the table's left
-// edge, and a hand-copied duplicate of these classes would drift the first time
-// one of them changed.
-export const tableWidthClass = 'mx-auto min-w-6xl w-full max-w-7xl';
+// The shared content box for this section: centred, clamped to the page's
+// content width. Exported because the "Violations" heading has to sit on the
+// table's left edge, and a hand-copied duplicate would drift the first time one
+// of these changed.
+//
+// Deliberately no min-width. The table's own min-w-6xl is a readability floor
+// for five columns, not an alignment rule — leaving it here forced 72rem of
+// horizontal scroll onto the heading and the empty state too, which need none
+// of it. With the table present it still sets the shared container's width, so
+// everything using this class lines up with it anyway.
+export const tableWidthClass = 'mx-auto w-full max-w-7xl';
 
 const columnHelper = createColumnHelper<ScanRow>();
 
@@ -135,7 +141,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-md">
+      <div className={`${tableWidthClass} p-8 text-center text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-md`}>
         No violations found.
       </div>
     );
@@ -396,7 +402,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     // Framed table region. The table fits its container width — columns share
     // the width and wrap; no horizontal scrolling.
 
-    <table className={`${tableWidthClass} mb-20 rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100`}>
+    <table className={`${tableWidthClass} min-w-6xl mb-20 rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100`}>
       {/* Native accessible name for the table — no aria-label needed. Must be
           the first child of <table>. sr-only keeps it off-screen visually. */}
       <caption className="sr-only">
