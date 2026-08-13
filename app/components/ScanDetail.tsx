@@ -8,7 +8,7 @@ import BackBar from './BackBar';
 import Button from './Button';
 import { parsePageUrl } from './parsePageUrl';
 import { exportScanToCsv, buildScanRows } from '../../lib/csvExport';
-import ScanTable from './ScanTable';
+import ScanTable, { tableWidthClass } from './ScanTable';
 
 interface ScanDetailProps {
   scan: ScanRecord;
@@ -178,16 +178,24 @@ export default function ScanDetail({ scan, onBack, onSelectPage }: ScanDetailPro
           The former <section> wrapper is gone: with no accessible name it was
           never exposed as a landmark anyway, and naming it would have needed
           aria-label. The <h2> carries the structure natively instead.
-          It sticks in the inline axis so the heading holds its place while the
-          table scrolls sideways underneath; w-max keeps it from stretching to
-          the max-content-wide root. The table itself is deliberately NOT in an
-          overflow container — the page is the only scroller, which also means
-          keyboard users can scroll it without the tabindex/role/name dance that
-          WCAG 2.1.1 would require for a nested scroll region. */}
-      <h2 className="sticky left-0 w-max px-10 text-xl font-medium mb-4">
-        Violations
-      </h2>
+          The table is deliberately NOT in an overflow container — the page is
+          the only scroller, which also means keyboard users can scroll it
+          without the tabindex/role/name dance that WCAG 2.1.1 would require for
+          a nested scroll region. */}
       <div className="px-10">
+        {/* The heading gets the table's own sizing box so the two share a left
+            edge once mx-auto starts centring them on a wide viewport. The box
+            is what's centred, not the <h2>: sticky can only slide a
+            shrink-wrapped element, so a full-width heading would scroll away
+            with the table instead of holding its place, and w-max also keeps it
+            from stretching to the max-content-wide root. left-10 (not left-0)
+            locks it at the gutter — where the heading's own px-10 used to put
+            it — so it still pins the moment the table starts scrolling. */}
+        <div className={tableWidthClass}>
+          <h2 className="sticky left-10 w-max text-xl font-medium mb-4">
+            Violations
+          </h2>
+        </div>
         <ScanTable data={scanRows} />
       </div>
     </div>

@@ -13,6 +13,12 @@ import { ScanRow } from '../../lib/csvExport';
 import { ChevronDown } from 'lucide-react';
 import Button from './Button';
 
+// The table's sizing box: centred, and clamped to the page's content width.
+// Exported because the "Violations" heading has to sit on the table's left
+// edge, and a hand-copied duplicate of these classes would drift the first time
+// one of them changed.
+export const tableWidthClass = 'mx-auto min-w-6xl w-full max-w-7xl';
+
 const columnHelper = createColumnHelper<ScanRow>();
 
 // A "page state" is a base URL plus the interaction (click) that produced it.
@@ -390,7 +396,7 @@ export default function ScanTable({ data }: { data: ScanRow[] }) {
     // Framed table region. The table fits its container width — columns share
     // the width and wrap; no horizontal scrolling.
 
-    <table className="min-w-6xl w-full max-w-7xl rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100">
+    <table className={`${tableWidthClass} rounded-md border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 table-fixed text-left text-sm text-gray-900 dark:text-gray-100`}>
       {/* Native accessible name for the table — no aria-label needed. Must be
           the first child of <table>. sr-only keeps it off-screen visually. */}
       <caption className="sr-only">
