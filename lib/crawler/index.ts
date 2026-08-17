@@ -61,7 +61,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   const deadline = performance.now() + config.timeout;
 
   while (queue.length > 0 && visited.size < config.maxPages) {
-    if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
+    if (await checkpoint() === 'stop') { endReason = 'stopped by user'; break; }
     if (performance.now() > deadline) {
       endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) — saving results collected so far`;
       console.log(`  → ${endReason}`);

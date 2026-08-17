@@ -1,11 +1,24 @@
 import fs from 'fs';
-import type { Page } from '@playwright/test';
 import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile } from '../paths';
 
 export const PAUSE_FILE = pauseFile();
 export const STOP_FILE = stopFile();
 
-export async function checkpoint(page: Page): Promise<'continue' | 'stop'> {
+/**
+ * Poll the pause/stop signal files between units of work.
+ *
+ * Deliberately touches nothing but the filesystem. This used to wait with
+ * `page.waitForTimeout(500)`, which reads as a local sleep but is a round trip
+ * to the browser — playwright-core routes it through `frame.waitForTimeout` on
+ * the protocol channel. That made a *parked* crawl the most fragile state in
+ * the system: it polled a live CDP connection twice a second, and parking is
+ * exactly what we do when the machine is about to suspend. Chromium freezes,
+ * the socket resets, and the wait throws on wake.
+ *
+ * With a plain timer a parked crawl is inert. It holds no connection, so it
+ * sleeps and wakes without noticing, which is the whole point of parking it.
+ */
+export async function checkpoint(): Promise<'continue' | 'stop'> {
   // 1. Check stop first
   if (fs.existsSync(STOP_FILE)) {
     console.log('  → Stopped by user');
@@ -21,7 +34,7 @@ export async function checkpoint(page: Page): Promise<'continue' | 'stop'> {
         console.log('  → Stopped by user while paused');
         return 'stop';
       }
-      await page.waitForTimeout(500);
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
     console.log('  → RESUMED');
   }
