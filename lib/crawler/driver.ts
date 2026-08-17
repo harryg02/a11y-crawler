@@ -77,5 +77,13 @@ export async function runCrawl(pw: PlaywrightLike): Promise<void> {
     generateReport(allResults, config, startTime);
   }
 
-  await browser.close();
+  // Best effort: the report is already on disk by here, and if the browser died
+  // (a sleep that reset the CDP socket, a crash) close() throws. Letting that
+  // propagate would exit non-zero and have scanManager record 'error' for a run
+  // whose results were written successfully.
+  try {
+    await browser.close();
+  } catch (err) {
+    console.log(`  → Browser already gone at shutdown: ${(err as Error).message}`);
+  }
 }
