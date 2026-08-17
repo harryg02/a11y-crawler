@@ -1,5 +1,5 @@
 import fs from 'fs';
-import type { BrowserType } from '@playwright/test';
+import type { BrowserType, Page } from '@playwright/test';
 import { getConfig } from './config';
 import { crawl } from './index';
 import { generateReport } from './reporter';
@@ -63,12 +63,24 @@ export async function runCrawl(pw: PlaywrightLike): Promise<void> {
   }
 
   // Phase 2: crawl browser — headless normally, headed in watch mode
-  const browser = await pw.chromium.launch({ headless: !config.watchMode });
-  const ctx = await browser.newContext(storageState ? { storageState } : {});
-  const page = await ctx.newPage();
+  let browser = await pw.chromium.launch({ headless: !config.watchMode });
+  let ctx = await browser.newContext(storageState ? { storageState } : {});
+  let page = await ctx.newPage();
+
+  // Rebuild the browser after its connection dies — typically a suspend that
+  // reset the CDP socket. storageState is reapplied, so a logged-in crawl stays
+  // logged in without a second headed login phase; only a session that expired
+  // during the sleep itself would land the crawl back at a login wall.
+  const relaunchPage = async (): Promise<Page> => {
+    try { await browser.close(); } catch { /* already gone — that's why we're here */ }
+    browser = await pw.chromium.launch({ headless: !config.watchMode });
+    ctx = await browser.newContext(storageState ? { storageState } : {});
+    page = await ctx.newPage();
+    return page;
+  };
 
   const startTime = Date.now();
-  const results = await crawl(page, config);
+  const results = await crawl(page, config, relaunchPage);
   const allResults = [...preLoginResults, ...results];
 
   if (allResults.length === 0) {

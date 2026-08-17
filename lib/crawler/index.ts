@@ -27,7 +27,16 @@ async function hashAllFrames(frames: Frame[]): Promise<number> {
   return combined;
 }
 
-export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
+/**
+ * `relaunchPage` recreates the browser after its connection dies and returns a
+ * fresh page. Optional: the Playwright-test caller doesn't supply one, and
+ * without it a dead browser ends the crawl as before.
+ */
+export async function crawl(
+  page: Page,
+  config: CrawlerConfig,
+  relaunchPage?: () => Promise<Page>,
+): Promise<PageResult[]> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
   if (fs.existsSync(STOP_FILE))  fs.unlinkSync(STOP_FILE);
 
@@ -46,6 +55,10 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
   let lastControlledUrl = '';
   // Crawl-wide interaction totals, for the final completion summary.
   const tally = newInteractionTally();
+  // Bounded crawl-wide, not per page: a site that kills the browser on contact
+  // would otherwise relaunch forever, burning the time budget on nothing.
+  const MAX_RELAUNCHES = 3;
+  let relaunches = 0;
 
   // Time budget, measured on the monotonic clock rather than the wall clock.
   // Checked between pages so that when it runs out the crawl stops *cleanly* —
@@ -204,8 +217,34 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
       } catch (err) {
         const msg = (err as Error).message;
         if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
+          // Recoverable, usually. The common cause is the machine suspending and
+          // resetting the CDP socket, which kills the connection but leaves
+          // everything worth keeping — queue, visited, results, the interaction
+          // ledger — untouched in this scope. Relaunching and retrying resumes
+          // where the crawl stopped rather than restarting it.
+          if (relaunchPage && relaunches < MAX_RELAUNCHES) {
+            relaunches++;
+            console.log(`  → Browser connection lost. Relaunching (${relaunches}/${MAX_RELAUNCHES}) and retrying ${url}`);
+            try {
+              page = await relaunchPage();
+              // This URL was marked visited before it failed, so un-mark and
+              // requeue it — otherwise the retry would skip the one page we
+              // just lost, leaving a hole in the results.
+              visited.delete(urlBase);
+              queue.unshift(url);
+              // The fresh page sits on about:blank. Watch mode compares the live
+              // URL against the last one we drove to, so clearing this avoids
+              // reading the relaunch as the user navigating by hand.
+              lastControlledUrl = '';
+              continue;
+            } catch (relaunchErr) {
+              console.log(`  → Relaunch failed: ${(relaunchErr as Error).message}`);
+            }
+          }
           console.log('  → FATAL: Browser closed. Ending crawl.');
-          endReason = 'browser/page closed mid-crawl';
+          endReason = relaunches > 0
+            ? `browser/page closed mid-crawl (after ${relaunches} relaunch attempt(s))`
+            : 'browser/page closed mid-crawl';
           break;
         }
         if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ERR_ADDRESS_UNREACHABLE') || msg.includes('ERR_CONNECTION_REFUSED')) {
