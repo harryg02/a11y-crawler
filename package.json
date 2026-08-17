@@ -1,6 +1,6 @@
 {
   "name": "a11y-crawler",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Automated web accessibility crawler and scanner",
   "author": "harryg02",
   "main": "electron/main.js",

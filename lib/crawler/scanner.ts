@@ -119,7 +119,7 @@ export async function scanInteractiveElements(
   enqueue?: (url: string) => void,
 ): Promise<PageResult[]> {
   if (depth >= config.maxInteractionDepth) return [];
-  if (await checkpoint(page) === 'stop') return [];
+  if (await checkpoint() === 'stop') return [];
   const results: PageResult[] = [];
 
   // Created once at the top-level call and threaded through the recursion so
@@ -157,7 +157,7 @@ export async function scanInteractiveElements(
     let progressed = 0;
 
   for (const clickable of clickables) {
-    if (await checkpoint(page) === 'stop') break;
+    if (await checkpoint() === 'stop') break;
     if (budget.remaining <= 0) {
       console.log(`${'    ' + '  '.repeat(depth)}→ interaction budget reached (${config.maxInteractionsPerPage}) — stopping interactions on this page`);
       break;
