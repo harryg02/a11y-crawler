@@ -51,7 +51,6 @@
     "asarUnpack": [
       "electron/icon.png"
     ],
-    "afterPack": "./scripts/afterpack-adhoc-sign.mjs",
     "npmRebuild": false,
     "files": [
       "electron/**/*",
