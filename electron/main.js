@@ -28,6 +28,13 @@ const APP_ROOT = path.join(__dirname, '..');
 
 let nextProc = null;
 let mainWindow = null;
+// Startup diagnostics. A packaged .app launched from Finder has no stdout, so
+// without these a failed start is completely silent — which is exactly what
+// made "bounces in the dock, no window" impossible to diagnose from a report.
+let windowShown = false;
+let serverFailure = null;
+const serverLogTail = [];
+const SERVER_LOG_TAIL_MAX = 40;
 
 // The folder to keep app data beside for a "green"/portable build. This is the
 // folder the user unzipped, which differs by packaging format:
@@ -105,15 +112,105 @@ function startNextServer() {
     ? path.join(process.resourcesPath, 'standalone')
     : path.join(APP_ROOT, '.next', 'standalone');
   const serverJs = path.join(standaloneDir, 'server.js');
+  // 'inherit' sends the server's output to this process's stdout — which is
+  // /dev/null when the .app is launched from Finder. Every reason the server
+  // might fail to start was being written there. Pipe it instead, so it reaches
+  // both a terminal (when run from one) and a log file the user can send us.
+  const logPath = path.join(dataDir(), 'server.log');
+  let logStream = null;
+  try {
+    logStream = fs.createWriteStream(logPath, { flags: 'a' });
+    logStream.write(`\n=== ${new Date().toISOString()} — starting ${serverJs} ===\n`);
+  } catch (err) {
+    console.error(`[next] could not open ${logPath}: ${err.message}`);
+  }
+
   nextProc = spawn(process.execPath, [serverJs], {
     cwd: standaloneDir,
     env,
-    stdio: 'inherit',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
-  nextProc.on('exit', (code) => {
-    console.log(`[next] server exited with code ${code}`);
-    if (!app.isQuitting) app.quit();
+
+  const tee = (stream, label) => {
+    if (!stream) return;
+    stream.setEncoding('utf8');
+    stream.on('data', (text) => {
+      process.stdout.write(text);
+      if (logStream) logStream.write(text);
+      for (const line of text.split('\n')) {
+        if (!line.trim()) continue;
+        serverLogTail.push(`[${label}] ${line}`);
+        if (serverLogTail.length > SERVER_LOG_TAIL_MAX) serverLogTail.shift();
+      }
+    });
+  };
+  tee(nextProc.stdout, 'out');
+  tee(nextProc.stderr, 'err');
+
+  // A ChildProcess 'error' with no listener is an unhandled 'error' event, which
+  // throws. This fires when the binary can't be executed at all — a path that
+  // doesn't exist, a permission or code-signing refusal — i.e. precisely the
+  // cases worth reporting clearly.
+  nextProc.on('error', (err) => {
+    serverFailure = `could not start the server process: ${err.message}`;
+    console.error(`[next] ${serverFailure}`);
   });
+
+  nextProc.on('exit', (code, signal) => {
+    const detail = `server exited early (code ${code}${signal ? `, signal ${signal}` : ''})`;
+    console.log(`[next] ${detail}`);
+    if (!serverFailure) serverFailure = detail;
+    // Only tear the app down if it had actually finished starting. Quitting
+    // during startup makes the app disappear from the dock without ever saying
+    // why; the diagnostic window below is far more useful.
+    if (!app.isQuitting && windowShown) app.quit();
+  });
+}
+
+/** Escape text for safe interpolation into the diagnostic page. */
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+/**
+ * Render why the app could not start, in the window itself.
+ *
+ * The window is created with show:false and was only ever shown after loadURL
+ * resolved, so any startup failure left it hidden forever: the process stayed
+ * alive, the dock icon sat there, and nothing else happened. A hang with no
+ * message is the worst possible failure mode for a desktop app — it is
+ * indistinguishable from an OS problem, which is what it got mistaken for.
+ */
+async function showStartupFailure(err) {
+  const reason = serverFailure || (err && err.message) || 'unknown error';
+  const logPath = path.join(dataDir(), 'server.log');
+  const html = `<!doctype html><meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.6 -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
+         margin: 0; padding: 40px; background: #fff; color: #111; }
+  @media (prefers-color-scheme: dark) { body { background: #0a0a0a; color: #eee; } }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { max-width: 70ch; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  pre { background: rgba(127,127,127,.14); padding: 12px; border-radius: 6px;
+        overflow: auto; max-height: 320px; white-space: pre-wrap; }
+</style>
+<h1>A11y Crawler couldn't start</h1>
+<p>The app's local server did not come up, so there is nothing to display.</p>
+<p><strong>Reason:</strong> <code>${escapeHtml(reason)}</code></p>
+<p>The full server output is at:<br><code>${escapeHtml(logPath)}</code></p>
+${serverLogTail.length ? `<p><strong>Last output:</strong></p><pre>${escapeHtml(serverLogTail.join('\n'))}</pre>` : '<p>The server produced no output at all before failing.</p>'}
+<p>Please include the log file when reporting this.</p>`;
+
+  console.error(`[startup] ${reason}`);
+  try {
+    await mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  } catch (loadErr) {
+    console.error(`[startup] could not render the diagnostic page: ${loadErr.message}`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,13 +444,18 @@ async function createWindow() {
     return { action: 'deny' };
   });
 
+  // Whatever happens, the window gets shown. Previously a waitForServer timeout
+  // was caught and *ignored*, then loadURL was awaited anyway — so the real
+  // reason was discarded, loadURL rejected, createWindow threw, and the
+  // unhandled rejection meant show() was never reached.
   try {
     await waitForServer(APP_URL);
+    await mainWindow.loadURL(APP_URL);
   } catch (err) {
-    console.error(err);
+    await showStartupFailure(err);
   }
-  await mainWindow.loadURL(APP_URL);
   mainWindow.show();
+  windowShown = true;
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
@@ -372,6 +474,9 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+}).catch((err) => {
+  // Without this an unhandled rejection here just stops startup silently.
+  console.error('[startup] fatal:', err);
 });
 
 app.on('window-all-closed', () => {
