@@ -44,3 +44,5 @@ pw-browsers/
 
 # Vercel
 .vercel
+# Tabbing experiment — generated React fixture bundle (rebuilt by experiments/tabbing/build.ts)
+/experiments/tabbing/fixtures/react/app.js

@@ -1,0 +1,1160 @@
+<title>Twelve Detectors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+
+/* ── tokens ─────────────────────────────────────────────────────────────────
+   Two modalities are the subject, so the palette is built from two: a steel
+   blue for keyboard, an ochre for mouse. Everything else stays quiet.        */
+:root {
+  --ground:    #F8F7F4;
+  --surface:   #FFFFFF;
+  --sunken:    #F1EFEA;
+  --ink:       #1B1D22;
+  --ink-soft:  #4A4E58;
+  --muted:     #767A85;
+  --rule:      #DEDBD4;
+  --rule-soft: #EBE8E2;
+
+  --keyboard:  #33528C;
+  --mouse:     #A66518;
+  --accent:    #33528C;
+
+  --confirmed: #2A6647;
+  --qualified: #856012;
+  --refuted:   #9C3527;
+  --confirmed-bg: #E4EEE8;
+  --qualified-bg: #F3EBD6;
+  --refuted-bg:   #F5E3E0;
+
+  --bar:       #B9C4DA;
+  --bar-lead:  #33528C;
+
+  --shadow: 0 1px 2px rgba(27,29,34,.06), 0 8px 24px -16px rgba(27,29,34,.24);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:    #14161A;
+    --surface:   #1B1E24;
+    --sunken:    #22262D;
+    --ink:       #ECEAE5;
+    --ink-soft:  #BFC2C9;
+    --muted:     #8B909B;
+    --rule:      #333941;
+    --rule-soft: #262B32;
+
+    --keyboard:  #8FAAD8;
+    --mouse:     #D9A055;
+    --accent:    #8FAAD8;
+
+    --confirmed: #7FC0A0;
+    --qualified: #D9BC6A;
+    --refuted:   #E29288;
+    --confirmed-bg: #1E2E27;
+    --qualified-bg: #2E2A1C;
+    --refuted-bg:   #33221F;
+
+    --bar:       #39445A;
+    --bar-lead:  #8FAAD8;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:    #14161A;
+  --surface:   #1B1E24;
+  --sunken:    #22262D;
+  --ink:       #ECEAE5;
+  --ink-soft:  #BFC2C9;
+  --muted:     #8B909B;
+  --rule:      #333941;
+  --rule-soft: #262B32;
+
+  --keyboard:  #8FAAD8;
+  --mouse:     #D9A055;
+  --accent:    #8FAAD8;
+
+  --confirmed: #7FC0A0;
+  --qualified: #D9BC6A;
+  --refuted:   #E29288;
+  --confirmed-bg: #1E2E27;
+  --qualified-bg: #2E2A1C;
+  --refuted-bg:   #33221F;
+
+  --bar:       #39445A;
+  --bar-lead:  #8FAAD8;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 16.5px/1.65 "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px 96px; }
+.prose { max-width: 68ch; }
+
+/* ── masthead ─────────────────────────────────────────────────────────── */
+header.masthead { padding: 72px 0 0; }
+.eyebrow {
+  font: 500 12px/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  margin: 0 0 22px;
+}
+h1 {
+  font: 500 clamp(38px, 6vw, 60px)/1.05 "Newsreader", Georgia, serif;
+  letter-spacing: -.015em; margin: 0 0 18px; text-wrap: balance;
+}
+.standfirst {
+  font: 400 clamp(18px, 2.2vw, 21px)/1.5 "Newsreader", Georgia, serif;
+  color: var(--ink-soft); max-width: 60ch; margin: 0 0 34px; text-wrap: pretty;
+}
+
+.runstrip {
+  display: flex; flex-wrap: wrap; gap: 0;
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  margin-bottom: 56px;
+}
+.runstrip div {
+  flex: 1 1 150px; padding: 14px 20px 15px;
+  border-left: 1px solid var(--rule-soft);
+}
+.runstrip div:first-child { border-left: 0; padding-left: 0; }
+.runstrip dt {
+  font: 500 10.5px/1 "JetBrains Mono", monospace; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+.runstrip dd {
+  margin: 0; font: 500 15px/1.3 "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+
+/* ── sections ─────────────────────────────────────────────────────────── */
+section { margin-top: 68px; }
+h2 {
+  font: 500 clamp(25px, 3vw, 31px)/1.2 "Newsreader", Georgia, serif;
+  letter-spacing: -.01em; margin: 0 0 8px; text-wrap: balance;
+}
+h3 {
+  font: 600 16px/1.35 "Public Sans", sans-serif; margin: 34px 0 8px;
+  letter-spacing: -.005em;
+}
+.dek { color: var(--muted); margin: 0 0 26px; max-width: 66ch; font-size: 15.5px; }
+p { margin: 0 0 16px; }
+.prose p, .prose li { color: var(--ink-soft); }
+strong { color: var(--ink); font-weight: 600; }
+
+code, .mono {
+  font: 400 .89em/1.4 "JetBrains Mono", ui-monospace, monospace;
+  background: var(--sunken); padding: .12em .38em; border-radius: 3px;
+}
+
+/* ── headline tiles ───────────────────────────────────────────────────── */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1px;
+         background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.tile { background: var(--surface); padding: 22px 24px 24px; }
+.tile .k {
+  font: 500 10.5px/1 "JetBrains Mono", monospace; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+}
+.tile .v {
+  font: 500 34px/1 "Newsreader", Georgia, serif; font-variant-numeric: tabular-nums;
+  color: var(--ink); letter-spacing: -.02em;
+}
+.tile .v.lead { color: var(--accent); }
+.tile .s { margin-top: 8px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+
+/* ── tables ───────────────────────────────────────────────────────────── */
+.scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+thead th {
+  font: 500 10.5px/1.3 "JetBrains Mono", monospace; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  border-bottom: 1px solid var(--rule); background: var(--sunken); position: sticky; top: 0;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td.det { font-weight: 500; color: var(--ink); }
+td.det .id { font: 500 12px/1 "JetBrains Mono", monospace; color: var(--muted); margin-right: 8px; }
+tr.best td { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+tr.best td.det { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* F1 as a bar, because rank is the point of that column */
+.f1 { display: flex; align-items: center; gap: 9px; justify-content: flex-end; }
+.f1 .track { width: 74px; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; flex: none; }
+.f1 .fill { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
+tr.best .f1 .fill { background: var(--bar-lead); }
+.f1 .n { min-width: 46px; }
+
+/* ── verdict pills ────────────────────────────────────────────────────── */
+.pill {
+  display: inline-block; white-space: nowrap;
+  font: 500 11px/1 "JetBrains Mono", monospace; letter-spacing: .07em; text-transform: uppercase;
+  padding: 5px 9px 4px; border-radius: 3px;
+}
+.pill.c { color: var(--confirmed); background: var(--confirmed-bg); }
+.pill.q { color: var(--qualified); background: var(--qualified-bg); }
+.pill.r { color: var(--refuted);   background: var(--refuted-bg); }
+.sec { font: 500 12px/1 "JetBrains Mono", monospace; color: var(--muted); white-space: nowrap; }
+
+/* ── correction cards ─────────────────────────────────────────────────── */
+.corrections { display: grid; gap: 18px; }
+.card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 24px 26px 26px; box-shadow: var(--shadow);
+  border-top: 3px solid var(--refuted);
+}
+.card.q { border-top-color: var(--qualified); }
+.card h3 { margin: 0 0 4px; font-size: 18px; }
+.card .where { font: 500 11.5px/1 "JetBrains Mono", monospace; color: var(--muted); letter-spacing: .06em; margin-bottom: 14px; }
+.card p:last-child { margin-bottom: 0; }
+.quote {
+  border-left: 2px solid var(--rule); padding: 2px 0 2px 16px; margin: 0 0 14px;
+  font: 400 15px/1.55 "Newsreader", Georgia, serif; color: var(--ink-soft);
+}
+.quote em { font-style: italic; }
+
+/* modality colouring, used sparingly */
+.kb { color: var(--keyboard); font-weight: 600; }
+.ms { color: var(--mouse); font-weight: 600; }
+
+ul.tight { margin: 0 0 16px; padding-left: 20px; }
+ul.tight li { margin-bottom: 7px; }
+
+.pipeline {
+  display: grid; gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 6px; overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.stage { background: var(--surface); padding: 18px 20px 20px; }
+.stage .n { font: 500 11px/1 "JetBrains Mono", monospace; color: var(--muted); letter-spacing: .1em; margin-bottom: 10px; }
+.stage .t { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.stage .d { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+
+footer {
+  margin-top: 76px; padding-top: 22px; border-top: 1px solid var(--rule);
+  font-size: 13.5px; color: var(--muted);
+}
+footer code { background: none; padding: 0; }
+
+a { color: var(--accent); }
+a:focus-visible, :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (max-width: 620px) {
+  .wrap { padding: 0 18px 64px; }
+  .runstrip div { flex-basis: 50%; border-left: 0; padding-left: 0; }
+}
+
+/* ── detector entries ─────────────────────────────────────────────────── */
+.family { margin-top: 60px; }
+.family-head {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule); padding-bottom: 12px; margin-bottom: 4px;
+}
+.family-head h2 { margin: 0; }
+.family-head .count {
+  font: 500 11px/1 "JetBrains Mono", monospace; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.family > .dek { margin-top: 12px; }
+
+.det-entry {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  margin-top: 20px; overflow: hidden; box-shadow: var(--shadow);
+}
+.det-top {
+  display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap;
+  padding: 20px 24px 18px; border-bottom: 1px solid var(--rule-soft);
+  background: var(--sunken);
+}
+.det-ident { flex: 1 1 320px; min-width: 0; }
+.det-ident .code {
+  font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .1em;
+  color: var(--accent); margin-bottom: 8px;
+}
+.det-ident h3 { margin: 0 0 5px; font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; }
+.det-ident .asks { color: var(--muted); font-size: 14.5px; line-height: 1.45; margin: 0; }
+
+.det-score { display: flex; gap: 0; flex: none; align-items: stretch; }
+.det-score div {
+  padding: 0 16px; border-left: 1px solid var(--rule); text-align: right; min-width: 84px;
+}
+.det-score div:first-child { border-left: 0; }
+.det-score .lbl {
+  font: 500 10px/1 "JetBrains Mono", monospace; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+.det-score .val {
+  font: 500 22px/1 "Newsreader", Georgia, serif; font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.det-score .val.hi { color: var(--confirmed); }
+.det-score .val.lo { color: var(--refuted); }
+
+.det-body { padding: 22px 24px 24px; display: grid; gap: 20px; }
+.det-row { display: grid; grid-template-columns: 108px 1fr; gap: 18px; align-items: start; }
+.det-row > .rk {
+  font: 500 10.5px/1.5 "JetBrains Mono", monospace; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); padding-top: 3px;
+}
+.det-row > .rv { min-width: 0; color: var(--ink-soft); font-size: 15px; }
+.det-row > .rv p { margin: 0 0 10px; }
+.det-row > .rv p:last-child { margin-bottom: 0; }
+.det-row > .rv strong { color: var(--ink); }
+
+pre.rule {
+  margin: 0; padding: 13px 15px; background: var(--sunken); border: 1px solid var(--rule-soft);
+  border-radius: 4px; overflow-x: auto;
+  font: 400 13px/1.6 "JetBrains Mono", ui-monospace, monospace; color: var(--ink);
+}
+pre.rule .cm { color: var(--muted); }
+pre.rule .kw { color: var(--accent); font-weight: 700; }
+
+.where {
+  font: 400 12.5px/1.5 "JetBrains Mono", monospace; color: var(--muted);
+}
+.verdictline {
+  border-left: 3px solid var(--accent); padding: 3px 0 3px 15px;
+  font: 400 15.5px/1.55 "Newsreader", Georgia, serif; color: var(--ink);
+}
+.verdictline.warn { border-left-color: var(--qualified); }
+.verdictline.bad  { border-left-color: var(--refuted); }
+
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px;
+       background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.toc a {
+  background: var(--surface); padding: 14px 18px 15px; text-decoration: none; display: block;
+  color: var(--ink);
+}
+.toc a:hover { background: var(--sunken); }
+.toc .c { font: 700 11px/1 "JetBrains Mono", monospace; color: var(--accent); letter-spacing: .1em; }
+.toc .n { font-size: 14.5px; font-weight: 500; margin-top: 7px; }
+.toc .r { font: 400 12px/1 "JetBrains Mono", monospace; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Detector reference · a11y-crawler</p>
+  <h1>Twelve Detectors</h1>
+  <p class="standfirst">
+    What each method actually asks, the rule it applies, the code that implements it, and what
+    its score means once you stop reading it as a leaderboard. Companion to the experiment report.
+  </p>
+
+  <dl class="runstrip">
+    <div><dt>Detectors</dt><dd>12</dd></div>
+    <div><dt>Configurations</dt><dd>18 scored</dd></div>
+    <div><dt>Corpus</dt><dd>60 probes</dd></div>
+    <div><dt>Positives</dt><dd>26 / 34 neg.</dd></div>
+  </dl>
+</header>
+
+<section style="margin-top:0">
+  <div class="prose">
+    <p>
+      Every detector answers the same question — <em>which elements should be reported as
+      clickable but not keyboard-operable?</em> — and returns a set of probe ids. They are scored
+      against the same 60-probe corpus with the same 26 correct answers. Precision is how much of
+      what they reported was right; recall is how much of what was there they found.
+    </p>
+    <p>
+      One thing is shared by all of them and is not itself a detector. <strong>Set T</strong> is
+      the true tab order, computed once per page by dispatching real <code>Tab</code> keypresses
+      through CDP and reading <code>document.activeElement</code> after each, descending into open
+      shadow roots and same-origin frames. Every candidate generator below reports
+      <em>candidates minus T</em> — its raw guesses, less everything the keyboard can actually
+      reach. That subtraction is what turns "has a handler" into a claim about accessibility, and
+      it has a cost the scores below make visible.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Jump to</h2>
+  <div class="toc">
+    <a href="#d0"><span class="c">D0</span><div class="n">Current crawler</div><div class="r">33.3% P · 3.8% R</div></a>
+    <a href="#d1"><span class="c">D1</span><div class="n">axe-core</div><div class="r">— P · 0.0% R</div></a>
+    <a href="#d2"><span class="c">D2</span><div class="n">Inline-attribute scan</div><div class="r">100% P · 3.8% R</div></a>
+    <a href="#d2b"><span class="c">D2b</span><div class="n">Handler-property scan</div><div class="r">100% P · 11.5% R</div></a>
+    <a href="#d3"><span class="c">D3</span><div class="n">tabindex-counter</div><div class="r">100% P · 3.8% R</div></a>
+    <a href="#d4"><span class="c">D4</span><div class="n">CSS + lexical</div><div class="r">71.0% P · 84.6% R</div></a>
+    <a href="#d5"><span class="c">D5</span><div class="n">CDP getEventListeners</div><div class="r">80.0% P · 76.9% R</div></a>
+    <a href="#d6"><span class="c">D6</span><div class="n">addEventListener shim</div><div class="r">77.3% P · 65.4% R</div></a>
+    <a href="#d7"><span class="c">D7</span><div class="n">React fiber props</div><div class="r">100% P · 7.7% R</div></a>
+    <a href="#d8"><span class="c">D8</span><div class="n">Hover-diff rendering</div><div class="r">72.0% P · 69.2% R</div></a>
+    <a href="#d9"><span class="c">D9</span><div class="n">Mouse-vs-keyboard differential</div><div class="r">86.7% P · 100% R</div></a>
+    <a href="#d10"><span class="c">D10</span><div class="n">Coverage-diff</div><div class="r">83.3% P · 96.2% R</div></a>
+    <a href="#s4"><span class="c">+S4</span><div class="n">Equivalence dismissal</div><div class="r">96.3% P · 100% R</div></a>
+  </div>
+</section>
+
+<!-- ═══ FAMILY 1 ═══════════════════════════════════════════════════════ -->
+<div class="family">
+  <div class="family-head"><h2>Baselines</h2><span class="count">2 detectors</span></div>
+  <p class="dek">What exists today, in this repo and in the industry-standard scanner.</p>
+
+  <div class="det-entry" id="d0">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D0</div>
+        <h3>This repo's current <code>collectClickables</code></h3>
+        <p class="asks">Asks: what is worth clicking during a crawl?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val lo">33.3%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">3.8%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">35 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <p>A fixed CSS selector list of things that look like controls, minus three exclusions.</p>
+        <pre class="rule">button, [role="button"], [role="tab"], [role="menuitem"],
+[role="switch"], [role="checkbox"], [role="radio"],
+details &gt; summary, [aria-expanded], [aria-haspopup],
+select, [onclick]
+
+<span class="cm">// then drop:</span>
+el.closest('a')            <span class="cm">// inside a link — the link is the control</span>
+el.offsetParent === null   <span class="cm">// not rendered</span>
+TD / TR / TH               <span class="cm">// table cells, to avoid grid explosions</span></pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">lib/crawler/scanner.ts → collectClickables()<br>mirrored for scoring in experiments/tabbing/candidates.ts</p>
+        <p>Pure page-script <code>querySelectorAll</code>. No CDP, no instrumentation.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline bad">
+          It found one of the 26 defects, and two of its three reports were wrong.
+        </p>
+        <p style="margin-top:12px">
+          This is not a failure of the code — it was written to find things worth clicking during a
+          crawl, and it does that. It is measured here as a baseline, out of its intended scope. The
+          reason it cannot do this job is structural: every selector in its list is a marker an
+          author <em>chose to add</em>. The defect is defined by those markers being absent.
+        </p>
+        <p>
+          Two findings do apply to it as it stands. Its generated selectors
+          (<code>tag.class1.class2</code>) matched more than one element <strong>8 times out of
+          14</strong>; since the crawl clicks <code>.first()</code>, each collision is a control it
+          believes it visited and did not. And its click oracle — an <code>innerHTML</code> hash
+          comparison — is the "DOM only" row further down, blind to any handler whose effect is a
+          <code>fetch</code>, a storage write, or a CSS-only reveal.
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d1">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D1</div>
+        <h3>axe-core</h3>
+        <p class="asks">Asks: does this page violate a machine-checkable WCAG rule?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val">—</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">0.0%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">4.3 s</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <p>Runs the full <code>wcag2a</code> / <code>wcag2aa</code> / <code>wcag21aa</code> rule set
+        and reports every violation node, mapped back to whichever probe contains it.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">@axe-core/playwright — AxeBuilder(&#123;page&#125;).withTags([…]).analyze()</p>
+        <p>The same call this repo already makes in <code>scanPage()</code>.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline bad">
+          Zero reports on any of the 60 probes. Not zero <em>correct</em> reports — zero reports.
+        </p>
+        <p style="margin-top:12px">
+          Not a bug, and not a criticism. axe-core is explicitly built to emit only findings that
+          need no human judgement, and this defect class cannot be settled without executing the
+          page. Deque's own published data puts automated coverage of SC 2.1.1 at 2.49%. This
+          result is that number, reproduced.
+        </p>
+        <p>
+          The practical consequence: <strong>a clean axe run says nothing at all about keyboard
+          operability.</strong> Any product that reports "no accessibility violations" on the
+          strength of axe alone is making a claim its evidence does not support.
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FAMILY 2 ═══════════════════════════════════════════════════════ -->
+<div class="family">
+  <div class="family-head"><h2>Attribute and property scanners</h2><span class="count">3 detectors</span></div>
+  <p class="dek">Read the markup, decide from what's written there. Free, and almost always right when they fire.</p>
+
+  <div class="det-entry" id="d2">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D2</div>
+        <h3>Inline-attribute scan</h3>
+        <p class="asks">Asks: does the HTML literally say <code>onclick=</code>?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">3.8%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">34 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="kw">report if</span>
+  el has any of [onclick, onkeyup, onkeydown, onkeypress,
+                 onmousedown, onmouseup, onmouseover]   <span class="cm">// as ATTRIBUTES</span>
+  <span class="kw">and</span> el is not natively focusable   <span class="cm">// a[href], button, input, select…</span>
+  <span class="kw">and</span> el has no tabindex</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → pageDetector(page, 'attrScan')</p>
+        <p>This is what HTML_CodeSniffer — the engine behind Pa11y's default runner — does. Its own
+        source comment concedes the limit: <em>"Cannot detect event listeners here so only onclick
+        attributes are checked."</em></p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          One defect found, out of 26. Perfect precision, because an inline <code>onclick</code> on
+          a non-focusable element is unambiguous — it just almost never appears.
+        </p>
+        <p style="margin-top:12px">
+          The corpus has exactly one inline-attribute probe, which is roughly its real-world share.
+          Nobody has written <code>onclick=</code> in production HTML since jQuery, and the two
+          canonical examples in the survey both use <code>addEventListener</code>. A scanner
+          restricted to attributes is looking at the one place the defect is not.
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d2b">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D2b</div>
+        <h3>Handler-property scan</h3>
+        <p class="asks">Asks: is <code>el.onclick</code> a function?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">11.5%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">35 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="kw">report if</span> typeof el.onclick === 'function'
+          <span class="cm">// or onmousedown / onmouseup / onmouseover / ondblclick</span></pre>
+        <p>The <em>property</em>, not the attribute. Different thing: <code>el.onclick</code> can be
+        assigned from JavaScript without ever appearing in the markup.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → pageDetector(page, 'handlerProp')</p>
+        <p>Three lines. I added this detector <em>after</em> the first run, because the React result
+        made no sense until I checked what React was actually doing to the DOM.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline">
+          Low recall overall, but it caught <strong>every React defect</strong> — and it is the
+          reason one of the survey's claims had to be retracted.
+        </p>
+        <p style="margin-top:12px">
+          React 19 assigns <code>element.onclick</code> directly on every element carrying an
+          <code>onClick</code> prop, alongside the 139 delegated listeners it installs on the root
+          container. The survey states that <code>getEventListeners</code> on a React element
+          "returns nothing" and that framework-prop extraction is therefore "mandatory". Neither
+          holds: the property assignment is visible to a three-line check and to CDP alike.
+        </p>
+        <p>
+          It finds nothing outside React because plain <code>addEventListener</code> code never
+          touches the property. <strong>Cheap enough to always run; never sufficient alone.</strong>
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d3">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D3</div>
+        <h3>tabindex-counter</h3>
+        <p class="asks">Asks: does this element claim to be a control but carry no <code>tabindex</code>?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">3.8%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">32 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="kw">report if</span>
+  el has an interactive ARIA role      <span class="cm">// button, link, tab, menuitem, switch…</span>
+       <span class="kw">or</span> an inline handler attribute
+       <span class="kw">or</span> aria-expanded / aria-haspopup
+  <span class="kw">and</span> el is not natively focusable
+  <span class="kw">and</span> el has no tabindex</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → pageDetector(page, 'tabindexCounter')</p>
+        <p>The classic ARIA-hygiene rule: <code>role="button"</code> without <code>tabindex="0"</code>
+        is a genuine bug and every linter flags it.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          The survey cites 93% precision and 39% recall for this approach. Measured here:
+          100% precision, <strong>3.8% recall</strong>.
+        </p>
+        <p style="margin-top:12px">
+          The shape is right — when it fires it is correct — but the recall is an order of magnitude
+          worse than the published figure, on a corpus built from the survey's own list of defects.
+          The reason is the same one that limits D2: it depends on the author having applied a
+          marker. A developer who writes <code>role="button"</code> and forgets
+          <code>tabindex</code> is already thinking about accessibility. The developer who writes a
+          bare <code>&lt;div&gt;</code> and binds a click listener is not, and leaves nothing to count.
+        </p>
+        <p>
+          <strong>Attribute heuristics find the near-misses, not the blind spots.</strong> That is
+          the honest summary of this entire family.
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FAMILY 3 ═══════════════════════════════════════════════════════ -->
+<div class="family">
+  <div class="family-head"><h2>Listener discovery</h2><span class="count">3 detectors</span></div>
+  <p class="dek">Find the handlers the markup doesn't mention. This is the "event listener sniffing" family.</p>
+
+  <div class="det-entry" id="d5">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D5</div>
+        <h3>CDP <code>DOMDebugger.getEventListeners</code></h3>
+        <p class="asks">Asks: what listeners does the browser itself say are bound here?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val">80.0%</div></div>
+        <div><div class="lbl">Recall</div><div class="val">76.9%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">292 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="cm">// per element, via the debugger protocol</span>
+DOM.resolveNode(&#123; nodeId &#125;)              → objectId
+DOMDebugger.getEventListeners(&#123; objectId, depth: 0, pierce: true &#125;)
+
+<span class="kw">report if</span> any listener.type is a mouse event
+   [click, mousedown, mouseup, mouseover, mouseenter,
+    dblclick, pointerdown, pointerup]</pre>
+        <p>This is the same data DevTools shows in its "Event Listeners" pane. It is authoritative —
+        it comes from the engine, not from guessing.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → d5CdpListeners()</p>
+        <p>Elements are addressed through <code>DOM.getDocument(&#123;pierce:true&#125;)</code>, which
+        walks the whole tree including shadow roots and same-origin frames. That reached
+        <strong>60 of 60</strong> probes — closed shadow roots included, which I had assumed it
+        couldn't do.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline">
+          Best of the three listener routes, and the best non-behavioural detector overall.
+          It still misses a quarter of the defects.
+        </p>
+        <p style="margin-top:12px">
+          <strong>What it misses, and why:</strong> delegated listeners bound to
+          <code>document</code> (nothing is on the element to find); the pure-CSS hover menu (no
+          JavaScript exists at all); and — structurally — the two probes that are focusable but not
+          actionable, since those are in Set T and get subtracted before scoring.
+        </p>
+        <p>
+          <strong>What it gets wrong:</strong> five reports on elements nobody can operate — one
+          under a transparent overlay, one with <code>pointer-events:none</code>, one inside an
+          <code>inert</code> container, and one whose handler body is empty. A listener existing is
+          not the same as a control existing.
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d6">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D6</div>
+        <h3><code>addEventListener</code> shim at document-start</h3>
+        <p class="asks">Asks: what did the page register while I was watching?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val">77.3%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">65.4%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">59 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="cm">// injected BEFORE any page script runs</span>
+<span class="kw">const</span> raw = EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener = <span class="kw">function</span> (type, fn, opts) &#123;
+  listeners.push(&#123; target: <span class="kw">this</span>, type, stack: <span class="kw">new</span> Error().stack &#125;);
+  <span class="kw">return</span> raw.call(<span class="kw">this</span>, type, fn, opts);
+&#125;;
+
+<span class="kw">report if</span> a recorded registration has a mouse type
+   <span class="kw">and</span> its target is an element (not document / window)</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/instrument.ts → INIT_SCRIPT, installed via page.addInitScript</p>
+        <p>The stack trace is captured at registration time and kept alongside the target.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline bad">
+          The <em>weakest</em> listener route, not the strongest — and the survey's description of
+          its blind spot is too narrow.
+        </p>
+        <p style="margin-top:12px">
+          The survey says it is "blind to anything registered before injection". It is blind to a
+          great deal more, none of it about timing. It misses <strong>React entirely</strong>
+          (property assignment never calls <code>addEventListener</code>), inline
+          <code>onclick=</code> attributes (same reason), and delegated listeners bound to
+          <code>document</code> (the registration is real, but the target isn't the element).
+        </p>
+        <p>
+          <strong>Its actual value is the stack trace</strong>, which the survey mentions in passing
+          and undersells. Every finding came out carrying the exact file and line that bound the
+          handler. Keep it in the pipeline for provenance, not for detection — a finding a developer
+          can't locate is a finding they'll mute.
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d7">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D7</div>
+        <h3>React fiber props</h3>
+        <p class="asks">Asks: does React's internal state say this element has an <code>onClick</code>?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Recall</div><div class="val lo">7.7%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">38 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="kw">for</span> key <span class="kw">of</span> Object.keys(el):
+  <span class="kw">if</span> key.startsWith('__reactProps$'):
+    props = el[key]
+    <span class="kw">report if</span> props.onClick || props.onMouseDown || props.onMouseOver</pre>
+        <p>React hangs its fiber props off the DOM node under a randomised key. Reading them means
+        reaching into a private API that carries no compatibility promise.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → pageDetector(page, 'reactProps')</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          Correct on everything it reported, and made redundant by a three-line property check.
+        </p>
+        <p style="margin-top:12px">
+          7.7% recall is not a defect — it only ever sees the React page, which holds three of the
+          26 defects, and Set T removes one of those. Within its scope it was perfect.
+        </p>
+        <p>
+          The finding that matters is about <em>necessity</em>, not accuracy. The survey calls
+          framework-prop extraction "mandatory" and "version-fragile" in the same breath. D2b found
+          the same React handlers, using a stable web-platform property, in three lines that will
+          not break when React ships a new minor. <strong>Reach for fiber internals when you need to
+          know which prop was bound; not to find out whether one was.</strong>
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FAMILY 4 ═══════════════════════════════════════════════════════ -->
+<div class="family">
+  <div class="family-head"><h2>Perceptual</h2><span class="count">2 detectors</span></div>
+  <p class="dek">Judge from appearance, not from code. High recall, and they cannot tell a control from a costume.</p>
+
+  <div class="det-entry" id="d4">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D4</div>
+        <h3>CSS <code>cursor:pointer</code> + class lexicon</h3>
+        <p class="asks">Asks: does this look like a button?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val lo">71.0%</div></div>
+        <div><div class="lbl">Recall</div><div class="val">84.6%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">34 ms</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="kw">report if</span> element is visible <span class="kw">and</span> any of:
+  getComputedStyle(el).cursor === 'pointer'
+  el.className matches /btn|button|click|toggle|tab|selected|action|
+                        menu|icon|link|card|switch|dropdown|expand|
+                        close|open|nav/
+  el has an interactive ARIA role</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → pageDetector(page, 'cssLexical')</p>
+        <p>Visibility uses KAFE's published heuristics: not <code>display:none</code>, not
+        <code>visibility:hidden</code>, non-zero box, not <code>disabled</code>.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          Best recall of anything that isn't the behavioural oracle — 22 of 26 — at the worst
+          precision of all 18 configurations.
+        </p>
+        <p style="margin-top:12px">
+          Nine false reports, and they are exactly the ones you'd predict: a <code>&lt;div
+          class="btn"&gt;</code> with no handler at all, a styled toggle icon wired to nothing, a
+          decorative span inside a real button. <code>cursor:pointer</code> is applied decoratively
+          constantly, and a class named <code>btn</code> is a statement about CSS, not behaviour.
+        </p>
+        <p>
+          <strong>Use it as a prefilter feeding a behavioural check; never emit its output.</strong>
+          As a funnel stage it is excellent — 84.6% recall for 34 ms means the expensive oracle only
+          has to run on what it flags.
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d8">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D8</div>
+        <h3>Hover-diff rendering</h3>
+        <p class="asks">Asks: does the site's own CSS react when the pointer arrives?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val lo">72.0%</div></div>
+        <div><div class="lbl">Recall</div><div class="val">69.2%</div></div>
+        <div><div class="lbl">Runtime</div><div class="val">15.4 s</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="cm">// per element, two screenshots of the same clip region</span>
+mouse.move(far corner);  rest    = screenshot(clip)
+mouse.move(centre of el); hovered = screenshot(clip)
+
+<span class="kw">report if</span> rest.bytes !== hovered.bytes
+
+<span class="cm">// clip is the element's box + 8px margin + 200px below,
+// because a hover often reveals a submenu OUTSIDE the box</span></pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/candidates.ts → d8HoverDiff()</p>
+        <p>No model, no training data, no source access. A raw buffer comparison of two PNGs.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          Middling on both axes, and by far the most expensive of the cheap detectors — 440× the
+          cost of the CSS heuristic for worse precision.
+        </p>
+        <p style="margin-top:12px">
+          The idea is sound: a visual change on hover is the site <em>declaring</em> the element
+          interactive, in CSS rather than JS. In practice it fires on anything with a hover style,
+          including a tooltip on running text and a decorative icon, and stays silent on any control
+          the designer didn't give a hover state — which cost it the icon span, the SVG, and both
+          shadow-root probes.
+        </p>
+        <p>
+          <strong>Its real contribution isn't as a standalone detector.</strong> Folding hover into
+          the behavioural oracle's action set is what catches the pure-CSS menu, which nothing else
+          in the entire experiment could see.
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FAMILY 5 ═══════════════════════════════════════════════════════ -->
+<div class="family">
+  <div class="family-head"><h2>Behavioural</h2><span class="count">2 detectors + 1 filter</span></div>
+  <p class="dek">Stop asking what the element <em>is</em>. Operate it both ways and compare.</p>
+
+  <div class="det-entry" id="d9">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D9</div>
+        <h3>Mouse-vs-keyboard differential</h3>
+        <p class="asks">Asks: does the mouse make something happen that the keyboard cannot?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val">86.7%</div></div>
+        <div><div class="lbl">Recall</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Per probe</div><div class="val">1.20 s</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <pre class="rule"><span class="cm">// MOUSE PASS</span>
+load page fresh
+before = snapshot()
+move pointer to element centre; wait      <span class="cm">// hover counts as mouse input</span>
+click at those coordinates                <span class="cm">// TRUSTED CDP input, not el.click()</span>
+mouseDelta = channels that changed
+
+<span class="cm">// RESET — full reload, not an undo</span>
+
+<span class="cm">// KEYBOARD PASS</span>
+load page fresh
+before = snapshot()
+<span class="kw">if</span> element is in Set T:
+    press Tab exactly index(el) times     <span class="cm">// land on it, nothing else</span>
+    press Enter, Space, ArrowDown
+<span class="kw">else</span>:
+    do nothing                            <span class="cm">// unreachable = no action possible</span>
+keyboardDelta = channels that changed
+
+<span class="kw">report if</span> mouseDelta is non-empty <span class="kw">and</span> keyboardDelta is empty</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Observation</div><div class="rv">
+        <p>"Something happened" is measured across <strong>eight channels</strong>, in every frame,
+        not just the top document:</p>
+        <pre class="rule">dom        innerHTML hash
+geometry   every element's box + display/visibility/opacity
+mutations  MutationObserver record count
+net        patched fetch + XMLHttpRequest
+storage    patched Storage.prototype.setItem / removeItem / clear
+console    patched console.log / warn / error …
+canvas     patched CanvasRenderingContext2D methods
+nav        location.href, history.pushState, hashchange</pre>
+        <p style="margin-top:10px">Geometry is recorded in <em>document</em> coordinates, not
+        viewport ones — otherwise pressing Space scrolls the page and the oracle mistakes scrolling
+        for the keyboard working.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/differential.ts → runDifferential()<br>experiments/tabbing/instrument.ts → INIT_SCRIPT (the channel patches)</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline">
+          <strong>Found all 26. Missed nothing.</strong> Four false reports, three of which are the
+          same problem and get cleared by the next stage.
+        </p>
+        <p style="margin-top:12px">
+          How much the channel breadth is worth, holding everything else fixed:
+        </p>
+      </div></div>
+      <div class="det-row"><div class="rk">Ablation</div><div class="rv">
+        <div class="scroller" style="box-shadow:none">
+          <table>
+            <thead><tr><th>Channels observed</th><th class="num">Precision</th><th class="num">Recall</th><th>What it loses</th></tr></thead>
+            <tbody>
+              <tr><td><code>dom</code> only</td><td class="num">91.3%</td><td class="num">80.8%</td><td>fetch, storage, canvas, console handlers; the CSS-only menu</td></tr>
+              <tr><td><code>dom</code> + <code>geometry</code></td><td class="num">88.0%</td><td class="num">84.6%</td><td>all four no-DOM-trace handlers</td></tr>
+              <tr class="best"><td>all eight</td><td class="num">86.7%</td><td class="num">100.0%</td><td>nothing</td></tr>
+              <tr><td>all eight, pointer parked first</td><td class="num">89.3%</td><td class="num">96.2%</td><td>the pure-CSS hover menu</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:14px; color:var(--ink-soft); font-size:15px">
+          The first row is the oracle this repo's crawler uses today. Widening observation is worth
+          <strong>+19.2 points of recall</strong> for a few patched prototypes and one extra
+          <code>getComputedStyle</code> pass.
+        </p>
+      </div></div>
+      <div class="det-row"><div class="rk">Two details</div><div class="rv">
+        <p><strong>Trusted input, not <code>element.click()</code>.</strong> Real CDP input does
+        hit-testing, so an element under a transparent overlay correctly registers as not operable.
+        <code>element.click()</code> fires it anyway — and also fires elements with
+        <code>pointer-events:none</code> and <code>visibility:hidden</code>. Three probes separated
+        on exactly this.</p>
+        <p><strong>There is no such thing as clicking without hovering.</strong> CDP dispatches a
+        <code>mousemove</code> to the target before <code>mousePressed</code>. My first "click-only"
+        ablation scored identically to the hover arm because of this — it was measuring nothing. The
+        variable that actually exists is <em>when you read the state</em>: with the pointer resting
+        on the element, or after parking it.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="d10">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">D10</div>
+        <h3>Coverage-diff</h3>
+        <p class="asks">Asks: which JavaScript functions ran under the mouse that didn't run under the keyboard?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val">83.3%</div></div>
+        <div><div class="lbl">Recall</div><div class="val">96.2%</div></div>
+        <div><div class="lbl">Per probe</div><div class="val">1.20 s</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <p>Same two-pass structure as D9, but execution coverage replaces the state channels as the
+        thing being compared.</p>
+        <pre class="rule">Profiler.startPreciseCoverage(&#123; callCount: true, detailed: true &#125;)
+Profiler.takePreciseCoverage()   <span class="cm">// discard — this also RESETS the counters</span>
+…perform the action…
+Profiler.takePreciseCoverage()   <span class="cm">// exactly what ran during the action</span>
+
+<span class="cm">// keep only functions from fixture scripts, as url:name:offset</span>
+
+D10a  <span class="kw">report if</span> mouse ran something <span class="kw">and</span> keyboard ran nothing
+D10b  <span class="kw">report if</span> mouse ran something the keyboard never reached</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">experiments/tabbing/differential.ts → takeCoverage(), coverageVerdict(), coverageDiffVerdict()</p>
+        <p>A per-page <strong>baseline</strong> is subtracted first: click a handler-free target,
+        record what ran, remove those functions from every subsequent set. On the React page that
+        strips 28 functions per click — the synthetic event system firing regardless of whether
+        anything is bound.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline warn">
+          Slightly worse than the channel-based oracle on both axes, and it costs the same. The
+          survey proposed this as an improvement; measured, it is a lateral move.
+        </p>
+        <p style="margin-top:12px">
+          <strong>Where it genuinely wins:</strong> the set-difference form (D10b) catches the
+          focusable-but-not-actionable case that the strict form misses — an element the keyboard
+          <em>reaches</em>, running focus code, while never running the handler.
+        </p>
+        <p>
+          <strong>Where it loses:</strong> it cannot see the pure-CSS hover menu, because no
+          JavaScript executes at all. And it fires on a handler whose body is empty — a function
+          running is not an effect happening. The network/storage/canvas channels reach the same
+          no-DOM-trace defects more cheaply and more precisely.
+        </p>
+        <p>
+          Its lasting value is elsewhere: <strong>the executed-function set is what makes the next
+          stage possible.</strong>
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="det-entry" id="s4">
+    <div class="det-top">
+      <div class="det-ident">
+        <div class="code">+S4</div>
+        <h3>Stage-4 equivalence dismissal</h3>
+        <p class="asks">Asks: is this functionality already available from the keyboard somewhere else?</p>
+      </div>
+      <div class="det-score">
+        <div><div class="lbl">Precision</div><div class="val hi">96.3%</div></div>
+        <div><div class="lbl">Recall</div><div class="val hi">100%</div></div>
+        <div><div class="lbl">Cost</div><div class="val">free</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-row"><div class="rk">Logic</div><div class="rv">
+        <p>Not a detector — a filter that runs over D9's confirmed findings, reusing data already
+        collected. WCAG requires equivalent <em>functionality</em>, not equivalent elements.</p>
+        <pre class="rule"><span class="kw">for each</span> confirmed finding f:
+  <span class="kw">for each</span> element k that IS keyboard-reachable:
+    <span class="kw">if</span> k's keyboard effect touches the same channels as f's mouse effect
+       <span class="kw">and</span> k's executed functions == f's executed functions   <span class="cm">// EXACTLY</span>
+    <span class="kw">then</span> dismiss f — the functionality is keyboard-available</pre>
+      </div></div>
+      <div class="det-row"><div class="rk">Implementation</div><div class="rv">
+        <p class="where">tests/tabbing-experiment.spec.ts → stage4(threshold)</p>
+        <p>No extra page loads. Every number it needs was already recorded by D9 and D10.</p>
+      </div></div>
+      <div class="det-row"><div class="rk">Result</div><div class="rv">
+        <p class="verdictline">
+          Precision <strong>86.7% → 96.3%</strong>, recall unchanged at 100%. This is the single
+          highest-value stage in the pipeline, and it is free.
+        </p>
+        <p style="margin-top:12px">
+          It cleared three of D9's four false reports, and all three were the same class: a
+          clickable card wrapping a real link, a <code>&lt;label&gt;</code> driving a focusable
+          checkbox, a decorative span inside a real button. Each is genuinely mouse-operable and
+          genuinely not focusable — and none is a defect, because the functionality is one Tab away.
+          <strong>No per-element check can ever reach that conclusion.</strong>
+        </p>
+      </div></div>
+      <div class="det-row"><div class="rk">The threshold</div><div class="rv">
+        <p>The survey proposes comparing executed-function sets but doesn't say how close counts as
+        the same. That turns out to be the whole question.</p>
+        <div class="scroller" style="box-shadow:none">
+          <table>
+            <thead><tr><th>Similarity required</th><th class="num">TP</th><th class="num">FP</th><th class="num">FN</th><th class="num">Recall</th></tr></thead>
+            <tbody>
+              <tr><td>Jaccard ≥ 0.50</td><td class="num">23</td><td class="num">1</td><td class="num">3</td><td class="num">88.5%</td></tr>
+              <tr><td>Jaccard ≥ 0.80</td><td class="num">23</td><td class="num">1</td><td class="num">3</td><td class="num">88.5%</td></tr>
+              <tr><td>Jaccard ≥ 0.95</td><td class="num">23</td><td class="num">1</td><td class="num">3</td><td class="num">88.5%</td></tr>
+              <tr class="best"><td>Exact set equality</td><td class="num">26</td><td class="num">1</td><td class="num">0</td><td class="num">100.0%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:14px">
+          The cliff sits between 0.95 and 1.0, and everything falling off it is React. Inside a
+          framework, two <em>different</em> handlers still share almost every function they run —
+          scheduler, reconciler, synthetic events — so a broken <code>&lt;div onClick&gt;</code>
+          and a correct <code>&lt;button onClick&gt;</code> measure 0.95 similar while doing
+          different things. <strong>Any tolerant threshold silently deletes real defects.</strong>
+          Require exact equality, and subtract the per-page baseline as well.
+        </p>
+      </div></div>
+      <div class="det-row"><div class="rk">What survives</div><div class="rv">
+        <p>One false report, across the whole corpus: a hover tooltip on an abbreviation in running
+        text. The oracle is behaving correctly — the mouse reveals it, the keyboard doesn't — and it
+        is a false positive only because a tooltip is SC 1.4.13, not 2.1.1. No behavioural method can
+        draw that line, because the behaviour genuinely is identical to a broken menu. That one needs
+        a semantic filter on top, or a human.</p>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>The shape of it</h2>
+  <div class="prose">
+    <p>
+      Read down the families and the same pattern repeats. <strong>Everything cheap is either
+      precise or complete, never both.</strong> The attribute scanners are right when they fire and
+      fire almost never. The perceptual detectors find most things and are wrong a third of the
+      time. The listener routes sit in the middle and each has a structural blind spot the others
+      cover.
+    </p>
+    <p>
+      Only the behavioural oracle escapes that trade, and the reason is not that it is cleverer. It
+      is that it asks a different question. Every other detector asks <em>what is this element?</em>
+      — a question about markup, appearance, or registration, all of which are proxies. The
+      differential asks <em>what does it do, and can the keyboard do it too?</em> — which is what
+      the success criterion actually says. It costs 1.20 s per probe against 34 ms for the whole
+      corpus, and the cheap detectors earn their place as the funnel that keeps that affordable.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p>
+    Scores are one run: <code>npx playwright test tests/tabbing-experiment.spec.ts</code>, Chromium
+    at 1280×900, 60 probes / 26 positives. Runtimes moved 10–80% between otherwise identical runs
+    on a loaded machine — read them as orders of magnitude. Corpus, detectors and raw results in
+    <code>experiments/tabbing/</code>.
+  </p>
+</footer>
+
+</div>
