@@ -2,7 +2,8 @@ const { app, BrowserWindow, shell, powerMonitor, powerSaveBlocker } = require('e
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
-const { spawn } = require('child_process');
+const net = require('net');
+const { spawn, execFileSync } = require('child_process');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A11y Crawler — Electron main process
@@ -17,10 +18,58 @@ const { spawn } = require('child_process');
 //     read-only app bundle is never written to.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PORT = Number(process.env.PORT) || 3000;
+// Resolved at startup, not fixed at 3000. A hardcoded port meant anything else
+// already holding it — an orphaned server from a force-quit, or a `next dev`
+// running for development — silently wedged the app: our own server died with
+// EADDRINUSE while waitForServer politely polled the squatter, timed out, and
+// left a window that never appeared. Whoever else is on 3000 is now irrelevant,
+// because we never ask for 3000.
+let serverPort = null;
 // Use 127.0.0.1 (not localhost) so we don't hit ::1 while the standalone server
 // listens on IPv4 only.
-const APP_URL = process.env.A11Y_DEV_SERVER_URL || `http://127.0.0.1:${PORT}`;
+// The URL the window loads. Set by resolveAppUrl() before the window is created.
+let appUrl = null;
+
+/**
+ * Decide where the UI lives, and on which port our own server should listen.
+ *
+ * Three cases:
+ *   • An explicit A11Y_DEV_SERVER_URL always wins.
+ *   • We start the server ourselves (packaged, or A11Y_FORCE_SERVER=1) → take a
+ *     free ephemeral port from the OS so nothing can be in the way.
+ *   • Plain dev, attaching to a separately-run `next dev` → its conventional
+ *     port, which is 3000 unless PORT says otherwise.
+ */
+async function resolveAppUrl(startsOwnServer) {
+  if (process.env.A11Y_DEV_SERVER_URL) {
+    appUrl = process.env.A11Y_DEV_SERVER_URL;
+    return;
+  }
+  serverPort = startsOwnServer
+    ? await findFreePort()
+    : Number(process.env.PORT) || 3000;
+  appUrl = `http://127.0.0.1:${serverPort}`;
+}
+
+/**
+ * Ask the OS for an unused port by binding port 0 and reading what we got.
+ *
+ * There is a small window between closing this probe and the server binding, in
+ * which something else could take the port. That is unavoidable without handing
+ * the listening socket to the child, and is vastly narrower than the previous
+ * behaviour of always demanding one specific port.
+ */
+function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
 
 // In dev, __dirname is <project>/electron, so the project root is one level up.
 // In a packaged app, the whole project is copied under resources/app(.asar).
@@ -79,12 +128,106 @@ function dataDir() {
   return app.getPath('userData');
 }
 
+/** Where we note the server child's identity, for cross-launch cleanup. */
+function serverRecordPath() {
+  return path.join(dataDir(), 'server.json');
+}
+
+function writeServerRecord(record) {
+  try {
+    fs.writeFileSync(serverRecordPath(), JSON.stringify(record));
+  } catch (err) {
+    console.error(`[next] could not record server pid: ${err.message}`);
+  }
+}
+
+function clearServerRecord() {
+  try {
+    fs.rmSync(serverRecordPath(), { force: true });
+  } catch { /* nothing useful to do */ }
+}
+
+/**
+ * Confirm a pid is still the server we started, by comparing the live command
+ * line against the one we recorded.
+ *
+ * Liveness alone is not enough to justify sending a signal: pids get recycled,
+ * so `process.kill(pid, 0)` succeeding may mean some unrelated program now holds
+ * that number. Requiring an exact command match means the worst case is that we
+ * decline to reap and leak a server, rather than killing someone else's process.
+ */
+function isRecordedServerAlive(record) {
+  if (!record || !record.pid || !record.cmd) return false;
+  try {
+    process.kill(record.pid, 0);
+  } catch {
+    return false; // gone already
+  }
+  if (process.platform === 'win32') return false; // no cheap way to verify; never signal
+  try {
+    const live = execFileSync('ps', ['-p', String(record.pid), '-o', 'command='], {
+      encoding: 'utf8',
+      timeout: 5000,
+    }).trim();
+    return live === record.cmd.trim();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Kill a server left behind by a previous run.
+ *
+ * A force-quit (SIGKILL) skips before-quit entirely, so the child survives,
+ * reparented and still listening. With an ephemeral port that no longer wedges
+ * the next launch, but a leaked server still holds the database and burns
+ * memory, so clean it up when we can prove it is ours.
+ */
+function reapOrphanedServer() {
+  let record = null;
+  try {
+    record = JSON.parse(fs.readFileSync(serverRecordPath(), 'utf-8'));
+  } catch {
+    return; // no record, or unreadable — nothing to do
+  }
+  if (!isRecordedServerAlive(record)) {
+    clearServerRecord();
+    return;
+  }
+  console.log(`[next] reaping orphaned server from a previous run (pid ${record.pid}, port ${record.port})`);
+  try {
+    process.kill(record.pid, 'SIGTERM');
+  } catch (err) {
+    console.error(`[next] could not signal orphan: ${err.message}`);
+  }
+  clearServerRecord();
+}
+
+/**
+ * Shut the server down, escalating if it ignores the polite request.
+ *
+ * kill() alone sends SIGTERM and returns immediately, so a wedged server would
+ * outlive the app that spawned it — the orphan case again, just self-inflicted.
+ */
+function stopNextServer() {
+  if (!nextProc) return;
+  const proc = nextProc;
+  nextProc = null;
+  try { proc.kill('SIGTERM'); } catch { /* already gone */ }
+  const force = setTimeout(() => {
+    try { proc.kill('SIGKILL'); } catch { /* already gone */ }
+  }, 2000);
+  force.unref();
+  proc.once('exit', () => clearTimeout(force));
+  clearServerRecord();
+}
+
 /** Start the packaged standalone Next server as a child (Electron-as-node). */
 function startNextServer() {
   const env = {
     ...process.env,
     NODE_ENV: 'production',
-    PORT: String(PORT),
+    PORT: String(serverPort),
     // Pin the bind host: the Next standalone server otherwise honours the
     // machine's HOSTNAME env and may bind to a name the window can't reach.
     HOSTNAME: '127.0.0.1',
@@ -147,6 +290,12 @@ function startNextServer() {
   tee(nextProc.stdout, 'out');
   tee(nextProc.stderr, 'err');
 
+  // Leave a note about this process so the *next* launch can clean it up if we
+  // never get the chance to. The command line is stored alongside the pid so the
+  // reaper can prove identity before signalling anything — pids are recycled,
+  // and killing a stranger would be far worse than leaking a server.
+  writeServerRecord({ pid: nextProc.pid, port: serverPort, cmd: `${process.execPath} ${serverJs}` });
+
   // A ChildProcess 'error' with no listener is an unhandled 'error' event, which
   // throws. This fires when the binary can't be executed at all — a path that
   // doesn't exist, a permission or code-signing refusal — i.e. precisely the
@@ -160,6 +309,7 @@ function startNextServer() {
     const detail = `server exited early (code ${code}${signal ? `, signal ${signal}` : ''})`;
     console.log(`[next] ${detail}`);
     if (!serverFailure) serverFailure = detail;
+    clearServerRecord();
     // Only tear the app down if it had actually finished starting. Quitting
     // during startup makes the app disappear from the dock without ever saying
     // why; the diagnostic window below is far more useful.
@@ -233,7 +383,7 @@ let scanPollTimer = null;
 /** GET /api/scan/status, resolving null on any failure (server not up yet). */
 function fetchScanStatus() {
   return new Promise((resolve) => {
-    const req = http.get(`${APP_URL}/api/scan/status`, (res) => {
+    const req = http.get(`${appUrl}/api/scan/status`, (res) => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => {
@@ -288,7 +438,7 @@ function startPowerManagement() {
 function postScanControl(action) {
   return new Promise((resolve) => {
     const req = http.request(
-      `${APP_URL}/api/scan/${action}`,
+      `${appUrl}/api/scan/${action}`,
       { method: 'POST' },
       (res) => {
         res.resume();
@@ -449,8 +599,8 @@ async function createWindow() {
   // reason was discarded, loadURL rejected, createWindow threw, and the
   // unhandled rejection meant show() was never reached.
   try {
-    await waitForServer(APP_URL);
-    await mainWindow.loadURL(APP_URL);
+    await waitForServer(appUrl);
+    await mainWindow.loadURL(appUrl);
   } catch (err) {
     await showStartupFailure(err);
   }
@@ -465,8 +615,14 @@ async function createWindow() {
 const shouldStartServer = () => app.isPackaged || process.env.A11Y_FORCE_SERVER === '1';
 
 app.whenReady().then(async () => {
-  if (shouldStartServer()) {
+  const startsOwnServer = shouldStartServer();
+  // Order matters: pick the port before anything reads appUrl, and clear a
+  // previous run's leftovers before adding one of our own.
+  await resolveAppUrl(startsOwnServer);
+  if (startsOwnServer) {
+    reapOrphanedServer();
     startNextServer();
+    console.log(`[next] serving on ${appUrl}`);
   }
   await createWindow();
   startPowerManagement();
@@ -490,7 +646,14 @@ app.on('before-quit', () => {
     powerSaveBlocker.stop(powerBlockerId);
     powerBlockerId = null;
   }
+  stopNextServer();
+});
+
+// Last resort. 'exit' is synchronous, so only the signal itself can be sent from
+// here — but it covers paths that skip before-quit, such as a fatal error in the
+// main process.
+process.on('exit', () => {
   if (nextProc) {
-    try { nextProc.kill(); } catch {}
+    try { nextProc.kill('SIGKILL'); } catch { /* already gone */ }
   }
 });
