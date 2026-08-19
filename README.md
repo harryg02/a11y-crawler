@@ -96,12 +96,13 @@ npm --version
 6. You can now open the app normally, and won't need to repeat this for that copy.
 
 > **Why this is needed.** macOS tags anything downloaded from the internet with a
-> quarantine flag, and refuses to launch quarantined apps that aren't signed with
-> a certificate Apple issued. `xattr -cr` removes that flag. The releases *are*
-> ad-hoc signed, which is what lets them run at all on Apple Silicon — but only a
-> paid Apple Developer ID would remove the warning itself. Only run `xattr -cr`
-> on software you trust and obtained from a source you trust, such as this
-> project's own Releases page.
+> quarantine flag, and refuses to launch a quarantined app whose bundle isn't
+> signed with a certificate Apple issued. `xattr -cr` removes that flag, which is
+> all that stands in the way — the executables inside are still signed, by the
+> Electron project. Removing the warning itself, rather than clearing it by hand,
+> would need a paid Apple Developer ID. Only run `xattr -cr` on software you
+> trust and obtained from a source you trust, such as this project's own
+> Releases page.
 
 ### Download as a ZIP (without Git)
 
