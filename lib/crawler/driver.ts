@@ -78,8 +78,13 @@ export async function runCrawl(pw: PlaywrightLike): Promise<void> {
     // Logging in often redirects the browser (auth flow, or landing on a
     // dashboard). Start the crawl from wherever the user actually ended up,
     // not the originally-typed URL. Scope/boundary is left unchanged.
+    // On a fresh run, land the crawl wherever login dropped the user. On a
+    // RESUME this must not happen: the frontier in crawl-state.db already says
+    // where the crawl was, and overriding startUrl would restart it from the
+    // post-login landing page instead of continuing where it left off.
     const postLoginUrl = loginPage.url();
-    if (/^https?:/.test(postLoginUrl) && postLoginUrl.split('?')[0] !== config.startUrl.split('?')[0]) {
+    if (!config.resume
+        && /^https?:/.test(postLoginUrl) && postLoginUrl.split('?')[0] !== config.startUrl.split('?')[0]) {
       console.log(`Post-login URL changed — starting crawl from current location: ${postLoginUrl}`);
       config.startUrl = postLoginUrl;
     }

@@ -4,6 +4,7 @@ import fs from 'fs';
 import db from './db';
 import { EventEmitter } from 'events';
 import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile, getDataDir } from './paths';
+import { getResumable } from './crawlState';
 
 // Global event emitter for pushing live logs to SSE connections
 export const scanEvents = new EventEmitter();
@@ -22,6 +23,29 @@ export function getActiveScan() {
   return {
     ...row,
     config: JSON.parse(row.config)
+  };
+}
+
+/**
+ * The most recent run that died unexpectedly but still has resumable progress.
+ * Kept out of getActiveScan so it never blocks starting a fresh scan.
+ */
+export function getInterruptedScan() {
+  ensureRecovered();
+  const row = db.prepare(
+    "SELECT * FROM active_scan WHERE status = 'interrupted' ORDER BY created_at DESC LIMIT 1"
+  ).get() as any;
+  if (!row) return null;
+  const progress = getResumable(row.id);
+  if (!progress) return null;
+  const config = JSON.parse(row.config);
+  return {
+    scanId: row.id,
+    config,
+    // A scan that was given a login page needs the session re-established: the
+    // cookies died with the crawler process and were never written to disk.
+    requiresLogin: Boolean(config.startingUrl),
+    ...progress,
   };
 }
 
@@ -53,6 +77,16 @@ export function startScan(config: any) {
     'running'
   );
 
+  spawnCrawler(scanId, config, false);
+
+  return scanId;
+}
+
+/**
+ * Launch the crawler subprocess for a scan. `resume` re-enters an existing run
+ * from its saved crawl state instead of starting the frontier from scratch.
+ */
+function spawnCrawler(scanId: string, config: any, resume: boolean) {
   const requiresLogin = Boolean(config.startingUrl);
 
   const crawlerEnv: Record<string, string> = {
@@ -68,6 +102,7 @@ export function startScan(config: any) {
     // Ties the crawl-state DB rows to this scan, so an interrupted run can be
     // resumed under the same id.
     CRAWLER_SCAN_ID: scanId,
+    CRAWLER_RESUME: resume ? 'true' : 'false',
   };
 
   // Run the standalone, pre-bundled crawler (lib/crawler/run.ts → crawler.cjs).
@@ -115,14 +150,38 @@ export function startScan(config: any) {
       insertLog(scanId, '__SCAN_UNREACHABLE__', 'system');
       db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('unreachable', scanId);
     } else {
-      const finalStatus = code === 0 ? 'completed' : 'error';
-      insertLog(scanId, code === 0 ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__', 'system');
+      // A non-zero exit that left resumable progress behind is an interruption,
+      // not a failure — the user gets "paused, resume?" rather than "failed".
+      const resumable = code === 0 ? null : getResumable(scanId);
+      const finalStatus = code === 0 ? 'completed' : resumable ? 'interrupted' : 'error';
+      insertLog(
+        scanId,
+        code === 0 ? '__SCAN_COMPLETE__' : resumable ? '__SCAN_INTERRUPTED__' : '__SCAN_ERROR__',
+        'system',
+      );
       db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run(finalStatus, scanId);
     }
     activeProcess = null;
   });
+}
 
-  return scanId;
+/**
+ * Re-launch the most recent interrupted scan, continuing from its saved state.
+ * Returns null when there is nothing resumable.
+ */
+export function continueScan(): { scanId: string } | null {
+  const interrupted = getInterruptedScan();
+  if (!interrupted) return null;
+  if (getActiveScan()) throw new Error('A scan is already running');
+
+  db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('running', interrupted.scanId);
+  insertLog(
+    interrupted.scanId,
+    `Resuming scan — ${interrupted.pagesDone} page(s) already scanned, ${interrupted.pagesQueued} still queued.`,
+    'system',
+  );
+  spawnCrawler(interrupted.scanId, interrupted.config, true);
+  return { scanId: interrupted.scanId };
 }
 
 export function stopScan() {
@@ -196,10 +255,20 @@ function ensureRecovered() {
         }
       }
 
-      // Reset the database state so the UI unlocks
-      db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('error', scan.id);
-      insertLog(scan.id, 'Scan aborted: The server was restarted unexpectedly.', 'system');
-      insertLog(scan.id, '__SCAN_ERROR__', 'system');
+      // Reset the database state so the UI unlocks. If the crawler got far
+      // enough to save progress, mark it resumable rather than failed — this is
+      // the state the "Resume scan" button acts on.
+      const resumable = getResumable(scan.id);
+      db.prepare('UPDATE active_scan SET status = ? WHERE id = ?')
+        .run(resumable ? 'interrupted' : 'error', scan.id);
+      insertLog(
+        scan.id,
+        resumable
+          ? `Scan interrupted: the server restarted. ${resumable.pagesDone} page(s) were saved and the scan can be resumed.`
+          : 'Scan aborted: The server was restarted unexpectedly.',
+        'system',
+      );
+      insertLog(scan.id, resumable ? '__SCAN_INTERRUPTED__' : '__SCAN_ERROR__', 'system');
     }
   } catch (err) {
     console.error('[Startup Recovery] Failed to clean up stuck scans:', err);

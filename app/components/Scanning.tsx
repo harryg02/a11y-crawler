@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Pause } from 'lucide-react';
 import Button from './Button';
 
 interface ScanningProps {
@@ -13,7 +13,12 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error' | 'unreachable'>('running');
+  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error' | 'unreachable' | 'interrupted'>('running');
+  // Set when the crawl died with resumable progress. requiresLogin decides
+  // whether continuing needs the user to re-establish the session first.
+  const [interrupted, setInterrupted] = useState<{ requiresLogin: boolean; pagesDone: number; pagesQueued: number } | null>(null);
+  // Bumped to re-subscribe to the log stream after resuming.
+  const [runKey, setRunKey] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -25,7 +30,9 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
     async function run() {
       try {
-        if (config !== null) {
+        // Only the first pass starts a scan; later passes re-attach the stream
+        // after a resume, which is kicked off by /api/scan/continue instead.
+        if (config !== null && runKey === 0) {
           const res = await fetch('/api/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,6 +74,15 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             } else if (text === '__SCAN_UNREACHABLE__') {
               if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
               setFinishReason('unreachable');
+            } else if (text === '__SCAN_INTERRUPTED__') {
+              // Crashed, killed, or the server restarted — but progress was
+              // saved, so this is a pause the user can continue from.
+              if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
+              setFinishReason('interrupted');
+              fetch('/api/scan/status')
+                .then(r => r.json())
+                .then(s => { if (s?.interrupted) setInterrupted(s.interrupted); })
+                .catch(() => {});
             } else if (text === '__SCAN_ERROR__') {
               setFinishReason('error');
             } else if (text) {
@@ -81,7 +97,22 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
     run();
     return () => { controller.abort(); if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-launch an interrupted scan from its saved crawl state. The stream replays
+  // the run's whole log history, so clear first rather than double-printing it.
+  const handleContinue = async () => {
+    const res = await fetch('/api/scan/continue', { method: 'POST' });
+    if (!res.ok) return;
+    setLogs([]);
+    setInterrupted(null);
+    setIsPaused(false);
+    // If the session was lost, the crawler reopens the headed login page and
+    // waits for "I've logged in" again.
+    setLoggedIn(false);
+    setFinishReason('running');
+    setRunKey(k => k + 1);
+  };
 
   const isFinished = finishReason !== 'running' && finishReason !== 'stopping';
 
@@ -109,6 +140,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
         <h1 className="text-3xl font-medium mb-8 text-gray-900 dark:text-white">
           {isFinished
             ? finishReason === 'completed'    ? 'Scan Complete'
+            : finishReason === 'interrupted'  ? 'Scan Paused'
             : finishReason === 'error'        ? 'Scan Failed'
             : finishReason === 'unreachable'  ? 'Cannot Reach Website'
             : 'Scan Stopped'
@@ -121,6 +153,8 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
           <div className="w-16 h-16 mb-8 rounded-full border-4 border-gray-900 dark:border-white flex items-center justify-center" aria-hidden="true">
             {finishReason === 'error' || finishReason === 'unreachable'
               ? <X size={32} strokeWidth={3} />
+              : finishReason === 'interrupted'
+              ? <Pause size={32} strokeWidth={3} />
               : <Check size={32} strokeWidth={3} />}
           </div>
         ) : (
@@ -139,6 +173,23 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             }}>
               I&apos;ve logged in
             </Button>
+          </div>
+        )}
+
+        {/* Interrupted: progress is saved, so offer to continue rather than
+            reporting a failure. */}
+        {finishReason === 'interrupted' && (
+          <div className="mb-8 text-center">
+            <p className="text-gray-600 dark:text-gray-400 text-base">
+              The scan stopped unexpectedly, but its progress was saved
+              {interrupted ? ` — ${interrupted.pagesDone} page(s) already scanned, ${interrupted.pagesQueued} still to go` : ''}.
+            </p>
+            {interrupted?.requiresLogin && (
+              <p className="text-gray-600 dark:text-gray-400 text-base mt-2">
+                The login session was lost when the scan stopped. Log in again and
+                the crawl will carry on from where it left off.
+              </p>
+            )}
           </div>
         )}
 
@@ -163,7 +214,16 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
         {/* Action buttons */}
         <div className="flex gap-4">
-          {isFinished ? (
+          {finishReason === 'interrupted' ? (
+            <>
+              <Button variant="secondary" onClick={onFinish}>
+                Scan Another Site
+              </Button>
+              <Button onClick={handleContinue}>
+                {interrupted?.requiresLogin ? 'Log in again to continue' : 'Resume scan'}
+              </Button>
+            </>
+          ) : isFinished ? (
             <>
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
