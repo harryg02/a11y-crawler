@@ -65,6 +65,9 @@ export function startScan(config: any) {
     CRAWLER_EXCLUDED: JSON.stringify(config.excludedScopes ?? []),
     CRAWLER_WATCH_MODE: config.watchMode ? 'true' : 'false',
     CRAWLER_REQUIRES_LOGIN: requiresLogin ? 'true' : 'false',
+    // Ties the crawl-state DB rows to this scan, so an interrupted run can be
+    // resumed under the same id.
+    CRAWLER_SCAN_ID: scanId,
   };
 
   // Run the standalone, pre-bundled crawler (lib/crawler/run.ts → crawler.cjs).

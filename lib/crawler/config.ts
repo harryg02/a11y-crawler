@@ -10,6 +10,10 @@ export interface CrawlerConfig {
   maxRepeatedInteractions: number;
   timeout: number;
   requiresLogin: boolean;
+  /** Stable id shared with scanManager, so crawl state can be resumed. */
+  scanId: string;
+  /** Continue a previous run of scanId instead of starting fresh. */
+  resume: boolean;
   blockedPatterns: string[];
   excludedScopes: string[];
 }
@@ -36,6 +40,8 @@ export function getConfig(): CrawlerConfig {
     maxRepeatedInteractions: process.env.CRAWLER_MAX_REPEATED ? Number(process.env.CRAWLER_MAX_REPEATED) : 3,
     timeout:             process.env.CRAWLER_TIMEOUT ? Number(process.env.CRAWLER_TIMEOUT) : 1_800_000,
     requiresLogin:       process.env.CRAWLER_REQUIRES_LOGIN === 'true',
+    scanId:              process.env.CRAWLER_SCAN_ID ?? `scan-${Date.now()}`,
+    resume:              process.env.CRAWLER_RESUME === 'true',
     blockedPatterns:     [
       '/logout', '/delete', '/remove', '/signout', '/sign-out', '/log-out',
       ...(process.env.CRAWLER_BLOCKED ? (() => { try { return JSON.parse(process.env.CRAWLER_BLOCKED!); } catch { return []; } })() : []),

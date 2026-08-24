@@ -7,6 +7,7 @@ import { scanPage, scanInteractiveElements, newInteractionTally } from './scanne
 import { discoverLinks } from './linker';
 import { isBlocked, isExcluded, getCanonicalUrl, getRoutePattern, isFragmentAnchor } from './urlUtils';
 import { checkpoint, PAUSE_FILE, STOP_FILE } from './checkpoint';
+import type { CrawlState } from './state';
 
 
 
@@ -26,18 +27,34 @@ async function hashAllFrames(frames: Frame[]): Promise<number> {
   return combined;
 }
 
-export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResult[]> {
+export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlState): Promise<PageResult[]> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
   if (fs.existsSync(STOP_FILE))  fs.unlinkSync(STOP_FILE);
 
-  const visited = new Set<string>();
-  const queue: string[] = [config.startUrl];
-  const scannedInteractions = new Set<string>();
-  const patternHashes = new Map<string, number>();
-  const allResults: PageResult[] = [];
+  // Resuming rehydrates the frontier and the results already collected, so the
+  // loop re-enters exactly where the previous process died. The in-memory
+  // structures remain the working copy; every mutation below is mirrored into
+  // `state` so the next process can rebuild them.
+  const snap = config.resume && state ? state.load() : null;
+  if (snap) {
+    console.log(`  → Resuming ${config.scanId}: ${snap.visited.length} page(s) done, ${snap.queue.length} queued, ${snap.results.length} result(s) recovered`);
+    if (snap.boundary) config.crawlBoundary = snap.boundary;
+  }
+
+  const visited = new Set<string>(snap?.visited ?? []);
+  const queue: string[] = snap && snap.queue.length ? [...snap.queue] : [config.startUrl];
+  const scannedInteractions = new Set<string>(snap?.interactions ?? []);
+  const patternHashes = new Map<string, number>(snap?.routeHashes ?? []);
+  const allResults: PageResult[] = snap ? [...snap.results] : [];
   // In-scope prefixes. Grows as we discover embedded tool frames so that, once
   // we navigate into the tool's own origin, its pages stay crawlable too.
-  const boundaries = new Set<string>([config.crawlBoundary]);
+  const boundaries = new Set<string>(
+    snap && snap.boundaries.length ? snap.boundaries : [config.crawlBoundary]
+  );
+  if (!snap) {
+    state?.addBoundary(config.crawlBoundary);
+    state?.enqueue(config.startUrl, getCanonicalUrl(config.startUrl));
+  }
   let endReason = '';
   // Watch mode: the last URL the crawler itself navigated to. If the live
   // browser URL differs at the top of an iteration, the user typed a new
@@ -79,14 +96,18 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
     if (!manualNav && visited.has(urlBase)) continue;
     if (isBlocked(url, config.blockedPatterns)) {
       console.log(`  → SKIPPED (blocked): ${url}`);
+      state?.markPage(urlBase, url, 'skipped');
       continue;
     }
     if (isExcluded(url, config.excludedScopes)) {
       console.log(`  → SKIPPED (excluded scope): ${url}`);
+      state?.markPage(urlBase, url, 'skipped');
       continue;
     }
     visited.add(urlBase);
-
+    // Recorded as in-flight, not finished: if this process dies partway through
+    // the page, a resume puts it back on the queue instead of losing its result.
+    state?.markPage(urlBase, url, 'visiting');
 
     const urlPattern = getRoutePattern(url);
     console.log(`[${visited.size}/${config.maxPages}] Scanning: ${url}`);
@@ -122,6 +143,8 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
         if (actualOrigin !== startOrigin) {
           config.crawlBoundary = config.crawlBoundary.replace(startOrigin, actualOrigin);
           visited.add(getCanonicalUrl(page.url()));
+          state?.setBoundary(config.crawlBoundary);
+          state?.markPage(getCanonicalUrl(page.url()), page.url(), 'done');
         }
       }
 
@@ -142,6 +165,7 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
         const base = getCanonicalUrl(link);
         if (visited.has(base) || queue.some(q => getCanonicalUrl(q) === base)) return false;
         queue.push(link);
+        state?.enqueue(link, base);
         console.log(`    + queued (${source}): ${link}`);
         return true;
       };
@@ -162,13 +186,16 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
 
       if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
         console.log(`  → Same DOM as previous ${urlPattern} — skipping Axe/Interactive scans`);
+        state?.markPage(urlBase, url, 'done');
         continue;
       }
       patternHashes.set(urlPattern, domHash);
+      state?.setRouteHash(urlPattern, domHash);
 
       // scanPage runs Axe across the whole page (including frames).
       const result = await scanPage(page);
       allResults.push(result);
+      state?.addResult(result);
       console.log(`  → ${result.violations.length} violations`);
 
       // Interact with clickables in every frame, not just the top document.
@@ -178,7 +205,13 @@ export async function crawl(page: Page, config: CrawlerConfig): Promise<PageResu
           (navUrl) => enqueue(navUrl, 'click'),
         );
         allResults.push(...interactiveResults);
+        for (const r of interactiveResults) state?.addResult(r);
+        state?.syncInteractions(scannedInteractions);
       }
+
+      // Page and everything it revealed are durably recorded — safe to skip on
+      // a resume.
+      state?.markPage(urlBase, url, 'done');
 
     } catch (err) {
       const msg = (err as Error).message;

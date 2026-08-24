@@ -14,7 +14,9 @@ await build({
   format: 'cjs',
   target: 'node20',
   outfile: '.crawler-build/crawler.cjs',
-  external: ['playwright', 'playwright-core', '@playwright/test', 'electron', 'fsevents'],
+  // better-sqlite3 is a native addon (crawl-state persistence) — it must be
+  // resolved from a real node_modules at runtime, never inlined.
+  external: ['playwright', 'playwright-core', '@playwright/test', 'electron', 'fsevents', 'better-sqlite3'],
   logLevel: 'info',
 });
 

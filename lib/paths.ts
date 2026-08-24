@@ -33,6 +33,10 @@ export function reportPath(scanId: string): string {
   return path.join(reportsDir(), `report-${scanId}.json`);
 }
 
+export function statePath(): string {
+  return path.join(getDataDir(), 'crawl-state.db');
+}
+
 export const PAUSE_FILE = (): string => path.join(getDataDir(), '.pause');
 export const STOP_FILE = (): string => path.join(getDataDir(), '.stop');
 export const LOGIN_COMPLETE_FILE = (): string => path.join(getDataDir(), '.login-complete');
