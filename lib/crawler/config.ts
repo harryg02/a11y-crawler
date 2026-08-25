@@ -5,6 +5,9 @@ export interface CrawlerConfig {
   maxPages: number;
   watchMode: boolean;
   slowMo: number;
+  /** Pause per clicked control so a watching user can see it highlighted.
+   *  0 (the default) means no highlight and no pause. */
+  highlightMs: number;
   maxInteractionDepth: number;
   maxInteractionsPerPage: number;
   maxRepeatedInteractions: number;
@@ -35,6 +38,11 @@ export function getConfig(): CrawlerConfig {
     maxPages:            process.env.CRAWLER_MAX_PAGES ? Number(process.env.CRAWLER_MAX_PAGES) : Infinity,
     watchMode:           process.env.CRAWLER_WATCH_MODE !== 'false',
     slowMo:              process.env.CRAWLER_SLOW_MO ? Number(process.env.CRAWLER_SLOW_MO) : 100,
+    // Off by default. Watch Mode is now the default (headless gets served bot
+    // challenges), so this used to cost 400ms on EVERY click — minutes across a
+    // large scan — purely for a visual flourish. Set CRAWLER_HIGHLIGHT_MS to
+    // re-enable it when demoing.
+    highlightMs:         process.env.CRAWLER_HIGHLIGHT_MS ? Number(process.env.CRAWLER_HIGHLIGHT_MS) : 0,
     maxInteractionDepth: process.env.CRAWLER_MAX_DEPTH ? Number(process.env.CRAWLER_MAX_DEPTH) : 3,
     // Backstop against runaway interaction loops (e.g. clicking every cell of a
     // calendar/table). Per page: total clicks, and clicks of one repeated control.
