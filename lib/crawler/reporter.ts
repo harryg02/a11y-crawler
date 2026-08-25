@@ -11,7 +11,12 @@ export function generateReport(
 ): ScanRecord {
   reportsDir(); // ensure the reports directory exists
 
-  const scanId = `scan-${Date.now()}`;
+  // Keyed on the run's scan id rather than a fresh timestamp, so a run that
+  // pauses and is later resumed writes to the SAME file. The partial report
+  // written at the pause is superseded by the complete one, instead of leaving
+  // two entries in History for a single logical scan. It also lines the report
+  // id up with active_scan.id.
+  const scanId = config.scanId || `scan-${Date.now()}`;
   const scan: ScanRecord = {
     id: scanId,
     url: config.startUrl,
