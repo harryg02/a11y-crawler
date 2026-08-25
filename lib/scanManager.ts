@@ -175,6 +175,17 @@ export function continueScan(): { scanId: string } | null {
   if (getActiveScan()) throw new Error('A scan is already running');
 
   db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('running', interrupted.scanId);
+
+  // Drop the terminal markers from the previous attempt. /api/scan/stream
+  // replays a scan's whole log history to every new subscriber, and the client
+  // reads these sentinels as state changes — so without this the UI re-subscribes
+  // after resuming, immediately replays __SCAN_INTERRUPTED__, and snaps back to
+  // "Scan Paused" even though the crawl is running and its logs are streaming in.
+  db.prepare(
+    `DELETE FROM scan_logs WHERE scan_id = ? AND message IN
+       ('__SCAN_INTERRUPTED__', '__SCAN_ERROR__', '__SCAN_COMPLETE__', '__SCAN_UNREACHABLE__')`
+  ).run(interrupted.scanId);
+
   insertLog(
     interrupted.scanId,
     `Resuming scan — ${interrupted.pagesDone} page(s) already scanned, ${interrupted.pagesQueued} still queued.`,
