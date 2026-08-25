@@ -163,15 +163,32 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
       // best-effort settle rather than a hard requirement.
       const sameDocHashNav =
         url.includes('#') && page.url().split('#')[0] === url.split('#')[0] && page.url() !== url;
+      let resp: Awaited<ReturnType<typeof page.goto>> = null;
       if (sameDocHashNav) {
         await page.evaluate((u) => { window.location.href = u; }, url);
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
         await page.waitForTimeout(Math.max(config.slowMo, 600));
       } else {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
         if (config.watchMode) await page.waitForTimeout(config.slowMo);
       }
+      // Bot protection serves a challenge page in place of the site. Left
+      // undetected the crawler scans the interstitial and reports it as a
+      // successful one-page scan, complete with the challenge's own violations.
+      // Needs both signals: a Turnstile frame alone is legitimate on a page that
+      // really does embed a captcha.
+      if (resp && (resp.status() === 403 || resp.status() === 503)
+          && (/just a moment/i.test(await page.title().catch(() => ''))
+              || page.frames().some(f => f.url().includes('challenges.cloudflare.com')))) {
+        console.log(`  → BLOCKED by bot protection: ${url} returned HTTP ${resp.status()} and a challenge page.`);
+        console.log('     Nothing here is the real site, so the crawl is stopping rather than scanning the challenge.');
+        console.log('     Turn on Watch Mode — a visible browser is not challenged — or ask for the scanner to be allowlisted.');
+        endReason = 'blocked by bot protection — try Watch Mode';
+        aborted = true;
+        break;
+      }
+
       // Record where the crawler is now, so a different URL at the next
       // iteration is recognised as the user navigating manually.
       lastControlledUrl = page.url();

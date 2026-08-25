@@ -46,7 +46,10 @@ export default function CrawlScan({ onStart }: CrawlScanProps) {
   ]);
   const [crawlBoundary, setCrawlBoundary] = useState('');
   const [excludedScopes, setExcludedScopes] = useState<string[]>([]);
-  const [watchMode, setWatchMode] = useState(false);
+  // On by default: a visible browser is not served bot-protection challenge
+  // pages, which a headless one increasingly is (see the blocked-scan check in
+  // lib/crawler/index.ts).
+  const [watchMode, setWatchMode] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
