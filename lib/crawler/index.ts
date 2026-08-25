@@ -27,7 +27,43 @@ async function hashAllFrames(frames: Frame[]): Promise<number> {
   return combined;
 }
 
-export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlState): Promise<PageResult[]> {
+/**
+ * Errors that mean "this one page is bad", not "the environment is broken".
+ * Only these let the crawl carry on to the next URL.
+ *
+ * The default is deliberately the other way round from how this used to work.
+ * It previously listed the FATAL errors and continued on anything unrecognised,
+ * so a failure nobody had anticipated - a laptop suspending mid-crawl throws
+ * net::ERR_INTERNET_DISCONNECTED, which was not on the list - silently drained
+ * the whole queue in seconds, reported "all discovered in-scope pages scanned",
+ * and exited 0. The run looked successful while having scanned almost nothing.
+ *
+ * Now anything not listed here pauses the crawl instead, leaving saved state
+ * behind so it can be resumed once the machine is back.
+ */
+const PAGE_LOCAL_ERRORS = [
+  'net::ERR_ABORTED',            // navigation superseded, or the link was a download
+  'net::ERR_BLOCKED_BY_CLIENT',
+  'net::ERR_BLOCKED_BY_RESPONSE',
+  'net::ERR_UNSAFE_REDIRECT',
+  'net::ERR_INVALID_URL',
+  'net::ERR_UNKNOWN_URL_SCHEME',
+  'Execution context was destroyed',  // the page navigated while we scanned it
+  'frame was detached',
+  'Frame was detached',
+  'Timeout',                     // one slow page; a network-wide stall is caught
+                                 // by the consecutive-failure breaker below
+];
+
+export interface CrawlOutcome {
+  results: PageResult[];
+  /** True when the crawl stopped because the environment broke, so the saved
+   *  state should be kept and offered back to the user as resumable. */
+  aborted: boolean;
+  endReason: string;
+}
+
+export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlState): Promise<CrawlOutcome> {
   if (fs.existsSync(PAUSE_FILE)) fs.unlinkSync(PAUSE_FILE);
   if (fs.existsSync(STOP_FILE))  fs.unlinkSync(STOP_FILE);
 
@@ -56,6 +92,11 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
     state?.enqueue(config.startUrl, getCanonicalUrl(config.startUrl));
   }
   let endReason = '';
+  // Set when the crawl stops for an environmental reason rather than finishing.
+  let aborted = false;
+  // Reset by any successful navigation. Guards against an error string nobody
+  // classified turning into a silent queue drain.
+  let consecutiveFailures = 0;
   // Watch mode: the last URL the crawler itself navigated to. If the live
   // browser URL differs at the top of an iteration, the user typed a new
   // address, and we crawl from there instead of the queued URL.
@@ -64,14 +105,14 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
   const tally = newInteractionTally();
 
   // Wall-clock budget. Checked between pages so that when time runs out the
-  // crawl stops *cleanly* — the pages gathered so far are returned and written
-  // to a report — instead of the process being hard-killed and the run lost.
+  // crawl stops *cleanly* - the pages gathered so far are returned and written
+  // to a report - instead of the process being hard-killed and the run lost.
   const deadline = Date.now() + config.timeout;
 
   while (queue.length > 0 && visited.size < config.maxPages) {
     if (await checkpoint(page) === 'stop') { endReason = 'stopped by user'; break; }
     if (Date.now() > deadline) {
-      endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) — saving results collected so far`;
+      endReason = `time budget reached (${Math.round(config.timeout / 60000)} min) - saving results collected so far`;
       console.log(`  → ${endReason}`);
       break;
     }
@@ -87,7 +128,7 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
         && getCanonicalUrl(live) !== getCanonicalUrl(lastControlledUrl)) {
       url = live;
       manualNav = true;
-      console.log(`  → Manual navigation detected — crawling current location: ${live} (scope unchanged)`);
+      console.log(`  → Manual navigation detected - crawling current location: ${live} (scope unchanged)`);
     } else {
       url = queue.shift()!;
     }
@@ -134,6 +175,8 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
       // Record where the crawler is now, so a different URL at the next
       // iteration is recognised as the user navigating manually.
       lastControlledUrl = page.url();
+      // Navigation worked, so whatever went wrong before was not the environment.
+      consecutiveFailures = 0;
 
       // If the start URL redirected to a different origin (e.g. www → non-www),
       // realign crawlBoundary so discovered links aren't filtered out.
@@ -185,7 +228,7 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
       const domHash = await hashAllFrames(frames);
 
       if (patternHashes.has(urlPattern) && patternHashes.get(urlPattern) === domHash) {
-        console.log(`  → Same DOM as previous ${urlPattern} — skipping Axe/Interactive scans`);
+        console.log(`  → Same DOM as previous ${urlPattern} - skipping Axe/Interactive scans`);
         state?.markPage(urlBase, url, 'done');
         continue;
       }
@@ -209,27 +252,47 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
         state?.syncInteractions(scannedInteractions);
       }
 
-      // Page and everything it revealed are durably recorded — safe to skip on
+      // Page and everything it revealed are durably recorded - safe to skip on
       // a resume.
       state?.markPage(urlBase, url, 'done');
 
     } catch (err) {
       const msg = (err as Error).message;
+
       if (msg.includes('browser has been closed') || msg.includes('Target closed')) {
         console.log('  → FATAL: Browser closed. Ending crawl.');
         endReason = 'browser/page closed mid-crawl';
+        aborted = true;
         break;
       }
-      if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ERR_ADDRESS_UNREACHABLE') || msg.includes('ERR_CONNECTION_REFUSED')) {
-        console.log(`  → UNREACHABLE: ${url}`);
-        endReason = `site unreachable (${url})`;
+
+      consecutiveFailures++;
+      const pageLocal = PAGE_LOCAL_ERRORS.some(e => msg.includes(e));
+
+      if (!pageLocal) {
+        // Unrecognised failure - assume the environment broke (network dropped,
+        // machine suspended, browser wedged) rather than plough on. The page is
+        // still 'visiting' in the state DB, so a resume retries it.
+        console.log(`  → HALTED: ${url}`);
+        console.log(`     ${msg.split('\n')[0]}`);
+        endReason = `stopped after an unrecoverable error (${msg.split('\n')[0].slice(0, 120)})`;
+        aborted = true;
         break;
       }
-      console.log(`  → ERROR: ${msg}`);
+
+      console.log(`  → ERROR (${consecutiveFailures}/${config.maxConsecutiveFailures} in a row): ${msg.split('\n')[0]}`);
+      if (consecutiveFailures >= config.maxConsecutiveFailures) {
+        // Individually survivable errors, but nothing has succeeded in a while:
+        // treat it as the environment being down rather than emptying the queue.
+        console.log(`  → HALTED: ${consecutiveFailures} page(s) failed in a row without a success.`);
+        endReason = `stopped after ${consecutiveFailures} consecutive page failures`;
+        aborted = true;
+        break;
+      }
     }
   }
 
-  const allPagesScanned = queue.length === 0 && endReason === '';
+  const allPagesScanned = queue.length === 0 && endReason === '' && !aborted;
   if (!endReason) {
     endReason = visited.size >= config.maxPages
       ? `reached page limit (maxPages=${config.maxPages})`
@@ -239,11 +302,11 @@ export async function crawl(page: Page, config: CrawlerConfig, state?: CrawlStat
   console.log(`\n══════════════════════════════════`);
   console.log(`CRAWL SUMMARY`);
   console.log(`  Ended because: ${endReason}`);
-  console.log(`  Pages scanned: ${visited.size}${allPagesScanned ? ' (queue fully drained — every in-scope page visited)' : `, ${queue.length} still queued (not scanned)`}`);
+  console.log(`  Pages scanned: ${visited.size}${allPagesScanned ? ' (queue fully drained - every in-scope page visited)' : `, ${queue.length} still queued (not scanned)`}`);
   console.log(`  Distinct controls clicked: ${tally.clicked}`);
   console.log(`  Scan results collected (pages + interaction states): ${allResults.length}`);
   console.log(`  Finalizing scan...`);
   console.log(`══════════════════════════════════`);
 
-  return allResults;
+  return { results: allResults, aborted, endReason };
 }

@@ -14,6 +14,8 @@ export interface CrawlerConfig {
   scanId: string;
   /** Continue a previous run of scanId instead of starting fresh. */
   resume: boolean;
+  /** Consecutive page failures tolerated before the crawl pauses as resumable. */
+  maxConsecutiveFailures: number;
   blockedPatterns: string[];
   excludedScopes: string[];
 }
@@ -22,7 +24,7 @@ export function getConfig(): CrawlerConfig {
   // Every real run is launched by scanManager, which always sets CRAWLER_SCOPE
   // from the form (see lib/scanManager.ts). This fallback only applies when the
   // crawler is run bare (e.g. `npx playwright test tests/crawler.spec.ts` with no
-  // env), so it must be a neutral, public accessibility test fixture — never a
+  // env), so it must be a neutral, public accessibility test fixture - never a
   // real institutional host, which would make an unconfigured run point at
   // production infrastructure.
   const scope = process.env.CRAWLER_SCOPE ?? 'https://www.w3.org/WAI/demos/bad/before/home.html';
@@ -42,6 +44,8 @@ export function getConfig(): CrawlerConfig {
     requiresLogin:       process.env.CRAWLER_REQUIRES_LOGIN === 'true',
     scanId:              process.env.CRAWLER_SCAN_ID ?? `scan-${Date.now()}`,
     resume:              process.env.CRAWLER_RESUME === 'true',
+    maxConsecutiveFailures: process.env.CRAWLER_MAX_CONSECUTIVE_FAILURES
+      ? Number(process.env.CRAWLER_MAX_CONSECUTIVE_FAILURES) : 5,
     blockedPatterns:     [
       '/logout', '/delete', '/remove', '/signout', '/sign-out', '/log-out',
       ...(process.env.CRAWLER_BLOCKED ? (() => { try { return JSON.parse(process.env.CRAWLER_BLOCKED!); } catch { return []; } })() : []),
