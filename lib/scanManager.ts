@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import db from './db';
 import { EventEmitter } from 'events';
-import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile, getDataDir } from './paths';
+import { PAUSE_FILE as pauseFile, STOP_FILE as stopFile, getDataDir, reportPath } from './paths';
 import { getResumable } from './crawlState';
 
 // Global event emitter for pushing live logs to SSE connections
@@ -140,8 +140,14 @@ function spawnCrawler(scanId: string, config: any, resume: boolean) {
 
   activeProcess.on('error', (err) => {
     insertLog(scanId, `Crawler failed to start: ${err.message}`, 'system');
-    insertLog(scanId, '__SCAN_ERROR__', 'system');
-    db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run('error', scanId);
+    // spawnCrawler serves resumes as well as fresh starts, and a resume that
+    // fails to spawn still has everything the previous attempt saved. Marking it
+    // 'error' would orphan that crawl for good: getInterruptedScan() only ever
+    // looks at 'interrupted', so nothing would offer to continue it again.
+    const resumable = getResumable(scanId);
+    insertLog(scanId, resumable ? '__SCAN_INTERRUPTED__' : '__SCAN_ERROR__', 'system');
+    db.prepare('UPDATE active_scan SET status = ? WHERE id = ?')
+      .run(resumable ? 'interrupted' : 'error', scanId);
     activeProcess = null;
   });
 
@@ -153,10 +159,19 @@ function spawnCrawler(scanId: string, config: any, resume: boolean) {
       // A non-zero exit that left resumable progress behind is an interruption,
       // not a failure — the user gets "paused, resume?" rather than "failed".
       const resumable = code === 0 ? null : getResumable(scanId);
-      const finalStatus = code === 0 ? 'completed' : resumable ? 'interrupted' : 'error';
+      // And a non-zero exit that produced a report anyway is not a failure the
+      // user can act on: the crawl reached the end and something threw on the way
+      // out, after the state DB was already cleared. "Scan Failed" would hide a
+      // report they can open. So 'error' is reserved for a run with neither
+      // progress to resume nor a report to show — the only case where there is
+      // genuinely nothing left of the scan.
+      const reported = code !== 0 && !resumable && fs.existsSync(reportPath(scanId));
+      const finalStatus = code === 0 || reported ? 'completed' : resumable ? 'interrupted' : 'error';
       insertLog(
         scanId,
-        code === 0 ? '__SCAN_COMPLETE__' : resumable ? '__SCAN_INTERRUPTED__' : '__SCAN_ERROR__',
+        finalStatus === 'completed' ? '__SCAN_COMPLETE__'
+          : finalStatus === 'interrupted' ? '__SCAN_INTERRUPTED__'
+          : '__SCAN_ERROR__',
         'system',
       );
       db.prepare('UPDATE active_scan SET status = ? WHERE id = ?').run(finalStatus, scanId);
@@ -290,16 +305,25 @@ function ensureRecovered() {
       // enough to save progress, mark it resumable rather than failed — this is
       // the state the "Resume scan" button acts on.
       const resumable = getResumable(scan.id);
+      // Same rule as the close handler: a run with a report on disk finished its
+      // work, whatever killed the process afterwards.
+      const reported = !resumable && fs.existsSync(reportPath(scan.id));
       db.prepare('UPDATE active_scan SET status = ? WHERE id = ?')
-        .run(resumable ? 'interrupted' : 'error', scan.id);
+        .run(resumable ? 'interrupted' : reported ? 'completed' : 'error', scan.id);
       insertLog(
         scan.id,
         resumable
           ? `Scan interrupted: the server restarted. ${resumable.pagesDone} page(s) were saved and the scan can be resumed.`
+          : reported
+          ? 'The server restarted after this scan had finished; its report was already written.'
           : 'Scan aborted: The server was restarted unexpectedly.',
         'system',
       );
-      insertLog(scan.id, resumable ? '__SCAN_INTERRUPTED__' : '__SCAN_ERROR__', 'system');
+      insertLog(
+        scan.id,
+        resumable ? '__SCAN_INTERRUPTED__' : reported ? '__SCAN_COMPLETE__' : '__SCAN_ERROR__',
+        'system',
+      );
     }
   } catch (err) {
     console.error('[Startup Recovery] Failed to clean up stuck scans:', err);
