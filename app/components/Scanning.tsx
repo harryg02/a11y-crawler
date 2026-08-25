@@ -22,6 +22,9 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Remembered so a scan that dies before the stream attaches can still be
+  // asked about by id.
+  const startedScanId = useRef<string | null>(null);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -38,14 +41,35 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config),
           });
-          if (!res.ok && res.status !== 409) { setFinishReason('stopped'); return; }
+          if (!res.ok && res.status !== 409) {
+            // The route turns any throw into a 500 whose body names the cause;
+            // showing it beats a blank "Scan Stopped".
+            const detail = await res.json().catch(() => null);
+            setLogs([`Could not start the scan: ${detail?.error ?? `HTTP ${res.status}`}`]);
+            setFinishReason('error');
+            return;
+          }
+          startedScanId.current = (await res.json().catch(() => null))?.scanId ?? null;
         }
 
         const streamRes = await fetch('/api/scan/stream', { signal: controller.signal });
         if (!streamRes.ok || !streamRes.body) {
           if (streamRes.status === 204) {
-            // No active scan
-            setFinishReason('stopped');
+            // No active scan — but that is also what we see when the crawler
+            // died between starting it and attaching here (spawn failures fire
+            // within a tick). Ask what actually became of it rather than
+            // reporting a user-style "Stopped" with nothing to go on.
+            const id = startedScanId.current;
+            const outcome = id
+              ? await fetch(`/api/scan/status?scanId=${encodeURIComponent(id)}`)
+                  .then(r => r.json()).then(s => s?.outcome).catch(() => null)
+              : null;
+            if (outcome && outcome.status === 'error') {
+              setLogs(outcome.messages.length ? outcome.messages : ['The crawler stopped before producing any output.']);
+              setFinishReason('error');
+            } else {
+              setFinishReason('stopped');
+            }
           }
           return;
         }
@@ -228,7 +252,8 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
               </Button>
-              {finishReason !== 'unreachable' && (
+              {/* A run that failed or was blocked has no report to open. */}
+              {finishReason !== 'unreachable' && finishReason !== 'error' && (
                 <Button onClick={() => onViewResults(latestScanId)}>
                   View Results
                 </Button>

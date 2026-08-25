@@ -231,6 +231,26 @@ export function resumeScan() {
   insertLog(active.id, 'Scan resumed.', 'system');
 }
 
+/**
+ * What happened to one scan, by id, with its output.
+ *
+ * A scan that dies before the client attaches to the log stream leaves no trace
+ * in the UI: /api/scan/stream 204s because the run is no longer active, and the
+ * client reports a bare "Scan Stopped" with an empty panel — even though the
+ * reason ("Crawler failed to start: ...") was written to scan_logs. This lets
+ * the client go back and ask.
+ */
+export function getScanOutcome(scanId: string) {
+  const row = db.prepare('SELECT status FROM active_scan WHERE id = ?').get(scanId) as { status: string } | undefined;
+  if (!row) return null;
+  const messages = (db.prepare(
+    'SELECT message FROM scan_logs WHERE scan_id = ? ORDER BY id ASC'
+  ).all(scanId) as { message: string }[])
+    .map(m => m.message)
+    .filter(m => !m.startsWith('__SCAN_'));
+  return { scanId, status: row.status, messages };
+}
+
 export function getScanLogs(scanId: string) {
   return db.prepare('SELECT message FROM scan_logs WHERE scan_id = ? ORDER BY id ASC').all(scanId) as { message: string }[];
 }
