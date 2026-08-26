@@ -2,7 +2,7 @@ name: Build desktop app
 
 # Builds the Electron app on each OS's own runner. Native runners are required
 # because better-sqlite3 is a native addon and can't be reliably cross-compiled.
-# The rebuild for Electron's ABI is done by scripts/patch-standalone-sqlite.mjs,
+# The rebuild for Electron's ABI is done by scripts/prepare-sqlite-native.mjs,
 # NOT by electron-builder — build.npmRebuild is false on purpose, because the
 # asar carries no node_modules at all (build.files is electron/ + package.json).
 # The copy that matters ships as an extraResource inside .next/standalone.

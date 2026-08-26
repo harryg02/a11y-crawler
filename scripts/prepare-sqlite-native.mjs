@@ -6,6 +6,14 @@
 //
 // Rebuild once for Electron's ABI, then place the result in both consumers:
 //   1. .next/standalone/node_modules/better-sqlite3   (server; Next traced it in)
+//   1b. .next/standalone/.next/node_modules/better-sqlite3-<hash>
+//      Turbopack externalizes the module under a content-hashed name and links
+//      it here — this is what the compiled route handlers actually require(),
+//      not #1. It's a symlink to the *host* node_modules/better-sqlite3, so
+//      electron-builder's extraResources copy (which dereferences symlinks)
+//      would otherwise ship the host-ABI binary and crash on launch with
+//      ERR_DLOPEN_FAILED / NODE_MODULE_VERSION mismatch — the packaged app's
+//      routes never even see the patched copy in #1.
 //   2. .crawler-build/node_modules/{better-sqlite3,bindings,file-uri-to-path}
 //      (crawler; staged here so electron-builder can copy an Electron-ABI tree
 //      into resources/crawler/node_modules rather than the host-ABI one in the
@@ -24,7 +32,8 @@ const { rebuild } = require('@electron/rebuild');
 const electronVersion = require('electron/package.json').version;
 
 const root = process.cwd();
-const standaloneBsq = path.join(root, '.next', 'standalone', 'node_modules', 'better-sqlite3');
+const standaloneRoot = path.join(root, '.next', 'standalone');
+const standaloneBsq = path.join(standaloneRoot, 'node_modules', 'better-sqlite3');
 // NOT named node_modules: it sits beside .crawler-build/crawler.cjs, so if it
 // were, plain `node .crawler-build/crawler.cjs` in dev would resolve this
 // Electron-ABI copy and die with ERR_DLOPEN_FAILED. electron-builder renames it
@@ -61,6 +70,22 @@ const serverDest = path.join(standaloneBsq, 'build', 'Release', 'better_sqlite3.
 fs.mkdirSync(path.dirname(serverDest), { recursive: true });
 fs.copyFileSync(built, serverDest);
 console.log(`  server  → ${path.relative(root, serverDest)}`);
+
+// ---- 1b. Turbopack's content-hashed symlink alias --------------------------
+const innerNodeModules = path.join(standaloneRoot, '.next', 'node_modules');
+if (fs.existsSync(innerNodeModules)) {
+  for (const entry of fs.readdirSync(innerNodeModules)) {
+    if (!entry.startsWith('better-sqlite3')) continue;
+    const entryPath = path.join(innerNodeModules, entry);
+    if (!fs.lstatSync(entryPath).isSymbolicLink()) continue;
+    fs.rmSync(entryPath);
+    fs.mkdirSync(path.join(entryPath, 'build', 'Release'), { recursive: true });
+    fs.cpSync(path.join(root, 'node_modules', 'better-sqlite3', 'lib'), path.join(entryPath, 'lib'), { recursive: true });
+    fs.copyFileSync(path.join(root, 'node_modules', 'better-sqlite3', 'package.json'), path.join(entryPath, 'package.json'));
+    fs.copyFileSync(built, path.join(entryPath, 'build', 'Release', 'better_sqlite3.node'));
+    console.log(`  server  → ${path.relative(root, entryPath)} (turbopack alias, was a symlink)`);
+  }
+}
 
 // ---- 2. the crawler subprocess ---------------------------------------------
 // Only the runtime surface is staged: better-sqlite3's JS entry plus the addon,
