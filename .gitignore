@@ -20,6 +20,9 @@ node_modules/
 /start-error.log
 
 # SQLite Database
+crawl-state.db
+crawl-state.db-wal
+crawl-state.db-shm
 database.sqlite
 database.sqlite-wal
 database.sqlite-shm

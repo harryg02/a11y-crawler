@@ -65,19 +65,20 @@ export async function scanPage(page: Page): Promise<PageResult> {
   };
 }
 
-export async function highlight(target: ScanTarget, selector: string, color: string, watchMode: boolean) {
-  if (!watchMode) return;
+export async function highlight(target: ScanTarget, selector: string, color: string, watchMode: boolean, ms = 0) {
+  // ms <= 0 skips the whole thing, including the DOM round-trip to draw the box.
+  if (!watchMode || ms <= 0) return;
   try {
     const el = target.locator(selector).first();
-    await el.evaluate((node: HTMLElement, c: string) => {
+    await el.evaluate((node: HTMLElement, { c, d }: { c: string; d: number }) => {
       const rect = node.getBoundingClientRect();
       const div = document.createElement('div');
       div.style.cssText = `position:fixed;top:${rect.top-3}px;left:${rect.left-3}px;width:${rect.width+6}px;height:${rect.height+6}px;border:4px solid ${c};pointer-events:none;z-index:999999;border-radius:4px;`;
       document.body.appendChild(div);
       node.scrollIntoView({ block: 'center' });
-      setTimeout(() => div.remove(), 400);
-    }, color);
-    await target.waitForTimeout(400);
+      setTimeout(() => div.remove(), d);
+    }, { c: color, d: ms });
+    await target.waitForTimeout(ms);
   } catch {}
 }
 
@@ -229,7 +230,7 @@ export async function scanInteractiveElements(
       stats.clicked++;
       progressed++;
 
-      await highlight(target, clickable.selector, 'red', config.watchMode);
+      await highlight(target, clickable.selector, 'red', config.watchMode, config.highlightMs);
       console.log(`${pad}→ Clicking (#${stats.clicked} this frame): <${clickable.tag}> "${clickable.text}"`);
 
       const domBefore = await target.evaluate(() => {

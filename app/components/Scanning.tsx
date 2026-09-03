@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Pause } from 'lucide-react';
 import Button from './Button';
 
 interface ScanningProps {
@@ -13,11 +13,99 @@ interface ScanningProps {
 export default function Scanning({ config, onFinish, onViewResults }: ScanningProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error' | 'unreachable'>('running');
+  const [finishReason, setFinishReason] = useState<'running' | 'stopping' | 'completed' | 'stopped' | 'error' | 'unreachable' | 'interrupted'>('running');
+  // Set when the crawl died with resumable progress. requiresLogin decides
+  // whether continuing needs the user to re-establish the session first.
+  const [interrupted, setInterrupted] = useState<{ requiresLogin: boolean; pagesDone: number; pagesQueued: number } | null>(null);
+  // Bumped to re-subscribe to the log stream after resuming.
+  const [runKey, setRunKey] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false); // hides the "I've logged in" button once clicked
   const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Remembered so a scan that dies before the stream attaches can still be
+  // asked about by id.
+  const startedScanId = useRef<string | null>(null);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Read inside the stream effect, which only re-runs on runKey, so the state
+  // value captured there goes stale.
+  const finishReasonRef = useRef(finishReason);
+  finishReasonRef.current = finishReason;
+  // Bounded, so a server that keeps reporting 'running' while the stream keeps
+  // dying cannot spin re-attaching forever.
+  const reattempts = useRef(0);
+
+  /**
+   * The one place that decides what a lost connection meant.
+   *
+   * The client and the crawler share exactly one channel — the SSE log stream.
+   * When it ends we know only that contact was lost, never why: the crawler may
+   * still be crawling (sleeping a laptop kills the socket, not the subprocess),
+   * it may have finished, or it may have died. Reporting "Scan Stopped" — the
+   * word for something the user did — threw away both the verdict the server had
+   * already reached and the progress the crawler had already saved.
+   *
+   * active_scan.status is that verdict, and scanManager weighs getResumable()
+   * before writing it: 'interrupted' already means "progress is on disk",
+   * 'error' already means "there is nothing to resume". So ask, then act on the
+   * answer. Anything short of a definite failure resolves to a pause the user
+   * can continue from, because a crawl that reached page 40 is worth resuming no
+   * matter which way the connection died.
+   */
+  const resolveLostContact = async () => {
+    // The stream also ends after a terminal sentinel already settled the run.
+    if (finishReasonRef.current !== 'running' && finishReasonRef.current !== 'stopping') return;
+
+    // One call answers both questions: what became of this run, and whether
+    // there is saved progress to offer.
+    const id = startedScanId.current;
+    const s = id
+      ? await fetch(`/api/scan/status?scanId=${encodeURIComponent(id)}`)
+          .then(r => r.json())
+          .catch(() => null)
+      : null;
+    const status = s?.outcome?.status;
+
+    // Still alive — the socket died, the crawl did not. Re-attach instead of
+    // reporting an ending that never happened. The stream replays a run's whole
+    // log history to every new subscriber, so clear first rather than doubling it.
+    if (status === 'running' || status === 'paused' || status === 'stopping') {
+      if (reattempts.current >= 5) { setFinishReason('interrupted'); return; }
+      reattempts.current += 1;
+      setLogs([]);
+      setRunKey(k => k + 1);
+      return;
+    }
+
+    if (status === 'completed') {
+      setFinishReason(prev => prev === 'stopping' ? 'stopped' : 'completed');
+      fetch('/api/history').then(r => r.json()).then((data: any[]) => {
+        setLatestScanId(data[0]?.id ?? null);
+      }).catch(() => {});
+      return;
+    }
+
+    if (status === 'unreachable') { setFinishReason('unreachable'); return; }
+
+    // The one case with no scan to waste: the server already looked for saved
+    // progress and found none, so a Resume button here would have nothing to act
+    // on. Show the crawler's own output — the only diagnostic that exists.
+    if (status === 'error') {
+      const messages: string[] = s?.outcome?.messages ?? [];
+      setLogs(messages.length ? messages : ['The crawler stopped before producing any output.']);
+      setFinishReason('error');
+      return;
+    }
+
+    // Everything else is a pause, not a failure: 'interrupted' is the server
+    // saying progress was saved, and no answer at all defaults the same way
+    // rather than writing off the pages already scanned.
+    //
+    // The interrupted block is whatever getInterruptedScan() found, which is not
+    // necessarily this run — only show its page counts when the ids agree, so a
+    // different scan's progress is never reported as ours.
+    if (s?.interrupted && (!id || s.interrupted.scanId === id)) setInterrupted(s.interrupted);
+    setFinishReason('interrupted');
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -25,21 +113,33 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
     async function run() {
       try {
-        if (config !== null) {
+        // Only the first pass starts a scan; later passes re-attach the stream
+        // after a resume, which is kicked off by /api/scan/continue instead.
+        if (config !== null && runKey === 0) {
           const res = await fetch('/api/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config),
           });
-          if (!res.ok && res.status !== 409) { setFinishReason('stopped'); return; }
+          if (!res.ok && res.status !== 409) {
+            // The route turns any throw into a 500 whose body names the cause;
+            // showing it beats a blank "Scan Stopped".
+            const detail = await res.json().catch(() => null);
+            setLogs([`Could not start the scan: ${detail?.error ?? `HTTP ${res.status}`}`]);
+            setFinishReason('error');
+            return;
+          }
+          startedScanId.current = (await res.json().catch(() => null))?.scanId ?? null;
         }
 
         const streamRes = await fetch('/api/scan/stream', { signal: controller.signal });
         if (!streamRes.ok || !streamRes.body) {
-          if (streamRes.status === 204) {
-            // No active scan
-            setFinishReason('stopped');
-          }
+          // 204 is "no scan is active", which is also what we see when the
+          // crawler died between starting it and attaching here — spawn failures
+          // fire within a tick, well inside that gap. Any other non-OK response
+          // is the same problem wearing a different code: we never got a stream,
+          // so go and ask what became of the run.
+          await resolveLostContact();
           return;
         }
 
@@ -51,6 +151,8 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
           if (done) break;
 
           buffer += value;
+          // Bytes arrived, so the stream is healthy: forget earlier re-attaches.
+          reattempts.current = 0;
           const parts = buffer.split('\n\n');
           buffer = parts.pop() ?? '';
 
@@ -67,6 +169,15 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             } else if (text === '__SCAN_UNREACHABLE__') {
               if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
               setFinishReason('unreachable');
+            } else if (text === '__SCAN_INTERRUPTED__') {
+              // Crashed, killed, or the server restarted — but progress was
+              // saved, so this is a pause the user can continue from.
+              if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
+              setFinishReason('interrupted');
+              fetch('/api/scan/status')
+                .then(r => r.json())
+                .then(s => { if (s?.interrupted) setInterrupted(s.interrupted); })
+                .catch(() => {});
             } else if (text === '__SCAN_ERROR__') {
               setFinishReason('error');
             } else if (text) {
@@ -74,14 +185,42 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             }
           }
         }
+        // A clean end-of-stream that never delivered a terminal sentinel is lost
+        // contact too — a server restart, or a proxy timing the connection out.
+        // Left unhandled it spins "Scanning" forever.
+        await resolveLostContact();
       } catch (err) {
-        if ((err as Error).name !== 'AbortError') setFinishReason('stopped');
+        // Our own cleanup aborts this fetch on unmount and on re-attach; that is
+        // not a lost scan.
+        if ((err as Error).name === 'AbortError') return;
+        await resolveLostContact();
       }
     }
 
     run();
     return () => { controller.abort(); if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-launch an interrupted scan from its saved crawl state. The stream replays
+  // the run's whole log history, so clear first rather than double-printing it.
+  const handleContinue = async () => {
+    const res = await fetch('/api/scan/continue', { method: 'POST' });
+    if (!res.ok) {
+      // Nothing left to resume, or another run took over. Say so — a button that
+      // silently does nothing is worse than the error it is hiding.
+      const detail = await res.json().catch(() => null);
+      setLogs(prev => [...prev, `Could not resume: ${detail?.error ?? `HTTP ${res.status}`}`]);
+      return;
+    }
+    setLogs([]);
+    setInterrupted(null);
+    setIsPaused(false);
+    // If the session was lost, the crawler reopens the headed login page and
+    // waits for "I've logged in" again.
+    setLoggedIn(false);
+    setFinishReason('running');
+    setRunKey(k => k + 1);
+  };
 
   const isFinished = finishReason !== 'running' && finishReason !== 'stopping';
 
@@ -109,6 +248,7 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
         <h1 className="text-3xl font-medium mb-8 text-gray-900 dark:text-white">
           {isFinished
             ? finishReason === 'completed'    ? 'Scan Complete'
+            : finishReason === 'interrupted'  ? 'Scan Paused'
             : finishReason === 'error'        ? 'Scan Failed'
             : finishReason === 'unreachable'  ? 'Cannot Reach Website'
             : 'Scan Stopped'
@@ -121,6 +261,8 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
           <div className="w-16 h-16 mb-8 rounded-full border-4 border-gray-900 dark:border-white flex items-center justify-center" aria-hidden="true">
             {finishReason === 'error' || finishReason === 'unreachable'
               ? <X size={32} strokeWidth={3} />
+              : finishReason === 'interrupted'
+              ? <Pause size={32} strokeWidth={3} />
               : <Check size={32} strokeWidth={3} />}
           </div>
         ) : (
@@ -139,6 +281,23 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
             }}>
               I&apos;ve logged in
             </Button>
+          </div>
+        )}
+
+        {/* Interrupted: progress is saved, so offer to continue rather than
+            reporting a failure. */}
+        {finishReason === 'interrupted' && (
+          <div className="mb-8 text-center">
+            <p className="text-gray-600 dark:text-gray-400 text-base">
+              The scan stopped unexpectedly, but its progress was saved
+              {interrupted ? ` — ${interrupted.pagesDone} page(s) already scanned, ${interrupted.pagesQueued} still to go` : ''}.
+            </p>
+            {interrupted?.requiresLogin && (
+              <p className="text-gray-600 dark:text-gray-400 text-base mt-2">
+                The login session was lost when the scan stopped. Log in again and
+                the crawl will carry on from where it left off.
+              </p>
+            )}
           </div>
         )}
 
@@ -163,12 +322,22 @@ export default function Scanning({ config, onFinish, onViewResults }: ScanningPr
 
         {/* Action buttons */}
         <div className="flex gap-4">
-          {isFinished ? (
+          {finishReason === 'interrupted' ? (
             <>
               <Button variant="secondary" onClick={onFinish}>
                 Scan Another Site
               </Button>
-              {finishReason !== 'unreachable' && (
+              <Button onClick={handleContinue}>
+                {interrupted?.requiresLogin ? 'Log in again to continue' : 'Resume scan'}
+              </Button>
+            </>
+          ) : isFinished ? (
+            <>
+              <Button variant="secondary" onClick={onFinish}>
+                Scan Another Site
+              </Button>
+              {/* A run that failed or was blocked has no report to open. */}
+              {finishReason !== 'unreachable' && finishReason !== 'error' && (
                 <Button onClick={() => onViewResults(latestScanId)}>
                   View Results
                 </Button>
