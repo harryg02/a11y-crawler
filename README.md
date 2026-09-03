@@ -1,5 +1,14 @@
 # A11y Crawler
 
+> [!IMPORTANT]
+> **This project has merged into [Axcess](https://github.com/lsa-mis/axcess) and is no longer developed here.**
+>
+> a11y-crawler's page and DOM-state discovery now lives in Axcess, alongside its
+> keyboard, focus, responsive, visual, and semantic test pipelines. Please file
+> issues and contribute there.
+>
+> This repository is kept for history and remains available under Apache-2.0.
+
 An automated accessibility auditing tool that discovers all pages and interactive elements in websites or web applications, runs [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.1 AA checks on every discoverable page and interactive state, and presents results in a browser-based dashboard.
 
 ![A11y Crawler screenshot](screenshot.png)
